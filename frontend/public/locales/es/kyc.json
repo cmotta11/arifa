@@ -1,0 +1,206 @@
+{
+  "list": {
+    "title": "Expedientes KYC",
+    "description": "Gestiona las presentaciones de Conozca a su Cliente y revisiones de cumplimiento.",
+    "newKYC": "Nuevo KYC",
+    "empty": "No se encontraron expedientes KYC.",
+    "showing": "Mostrando {{count}} de {{total}} expedientes"
+  },
+  "statusFilter": {
+    "all": "Todos",
+    "draft": "Borrador",
+    "submitted": "Enviado",
+    "underReview": "En Revisión",
+    "approved": "Aprobado",
+    "rejected": "Rechazado"
+  },
+  "columns": {
+    "id": "ID",
+    "ticket": "Ticket",
+    "status": "Estado",
+    "submittedAt": "Fecha de Envío",
+    "createdAt": "Fecha de Creación"
+  },
+  "status": {
+    "draft": "Borrador",
+    "submitted": "Enviado",
+    "under_review": "En Revisión",
+    "approved": "Aprobado",
+    "rejected": "Rechazado"
+  },
+  "actions": {
+    "view": "Ver",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "submit": "Enviar",
+    "backToList": "Volver a la lista",
+    "addParty": "Agregar Parte",
+    "updateParty": "Actualizar Parte"
+  },
+  "new": {
+    "title": "Nuevo Expediente KYC",
+    "selectTicket": "Seleccione un ticket para iniciar el proceso KYC.",
+    "formTitle": "Formulario KYC",
+    "formHint": "Complete todos los pasos a continuación y envíe cuando esté listo.",
+    "searchPlaceholder": "Buscar tickets por título, ID o cliente...",
+    "noTickets": "No se encontraron tickets",
+    "noTicketsSearch": "Ningún ticket coincide con su búsqueda. Intente con otras palabras.",
+    "noTicketsAvailable": "No hay tickets disponibles para iniciar un expediente KYC.",
+    "client": "Cliente",
+    "entity": "Entidad",
+    "created": "Creado",
+    "select": "Seleccionar"
+  },
+  "detail": {
+    "title": "Expediente KYC",
+    "editTitle": "Editar Expediente KYC"
+  },
+  "steps": {
+    "entityInfo": "Información de la Entidad",
+    "parties": "Partes",
+    "uboDeclaration": "Declaración de UBO",
+    "documents": "Documentos",
+    "review": "Revisar y Enviar"
+  },
+  "fields": {
+    "kycId": "ID KYC",
+    "ticket": "Ticket",
+    "status": "Estado",
+    "createdAt": "Fecha de Creación",
+    "submittedAt": "Fecha de Envío",
+    "reviewedAt": "Fecha de Revisión",
+    "partyType": "Tipo de Parte",
+    "role": "Rol",
+    "name": "Nombre",
+    "namePlaceholder": "Nombre completo o razón social",
+    "nationality": "Nacionalidad",
+    "nationalityPlaceholder": "ej. PA, US, GB",
+    "countryOfResidence": "País de Residencia",
+    "countryPlaceholder": "ej. PA, US, GB",
+    "ownership": "Participación",
+    "ownershipPercentage": "Porcentaje de Participación",
+    "dateOfBirth": "Fecha de Nacimiento",
+    "dob": "Fecha Nac.",
+    "identificationNumber": "Número de Identificación",
+    "idPlaceholder": "Pasaporte o número de ID",
+    "registryNumber": "Número de Registro",
+    "registryPlaceholder": "Número de registro mercantil",
+    "pepStatus": "Persona Políticamente Expuesta (PEP)"
+  },
+  "entityInfoHint": "Esta información proviene del ticket vinculado. Continúe al siguiente paso para agregar partes.",
+  "tabs": {
+    "overview": "Resumen",
+    "parties": "Partes",
+    "documents": "Documentos",
+    "risk": "Riesgo",
+    "rfis": "RFIs"
+  },
+  "party": {
+    "add": "Agregar Parte",
+    "addFirst": "Agregar Primera Parte",
+    "addTitle": "Agregar Parte",
+    "editTitle": "Editar Parte",
+    "deleteTitle": "Eliminar Parte",
+    "deleteConfirm": "¿Está seguro de que desea eliminar esta parte? Esta acción no se puede deshacer.",
+    "empty": "No se han agregado partes aún.",
+    "natural": "Persona Natural",
+    "corporate": "Persona Jurídica",
+    "pep": "PEP",
+    "linkExisting": "Vincular Persona Existente"
+  },
+  "ubo": {
+    "totalOwnership": "Participación Total",
+    "noUbos": "No se han agregado UBOs ni accionistas. Regrese al paso de Partes para agregarlos.",
+    "ownershipSummary": "Resumen de Participación",
+    "ownershipExceeds": "La participación total supera el 100%. Ajuste los porcentajes.",
+    "ownershipIncomplete": "La participación total no suma 100%. Verifique los porcentajes."
+  },
+  "documents": {
+    "empty": "No se han subido documentos aún.",
+    "uploadLabel": "Haga clic para subir",
+    "dragHint": "o arrastre y suelte",
+    "acceptedFormats": "PDF, DOC, DOCX, JPG, JPEG, PNG",
+    "uploading": "Subiendo...",
+    "uploadedOn": "Subido el {{date}}"
+  },
+  "navigation": {
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "saving": "Guardando..."
+  },
+  "review": {
+    "entityInfo": "Información de la Entidad",
+    "parties": "Partes",
+    "noParties": "No se han agregado partes.",
+    "riskAssessment": "Evaluación de Riesgo",
+    "documents": "Documentos",
+    "noDocuments": "No se han subido documentos.",
+    "readyToSubmit": "¿Listo para Enviar?",
+    "submitHint": "Una vez enviado, el KYC será revisado por el equipo de cumplimiento.",
+    "fixErrors": "Corrija los errores anteriores antes de enviar.",
+    "warnings": {
+      "noParties": "Se requiere al menos una parte.",
+      "ownershipNotComplete": "La participación de UBO/Accionistas no suma 100%.",
+      "noDocuments": "No se han subido documentos de soporte.",
+      "pepPresent": "Una o más partes están marcadas como Personas Políticamente Expuestas (PEP).",
+      "missingId": "Una o más partes no tienen número de identificación."
+    }
+  },
+  "risk": {
+    "title": "Evaluación de Riesgo",
+    "score": "Puntuación de Riesgo",
+    "breakdown": "Desglose de Puntuación",
+    "trigger": "Disparador",
+    "low": "Riesgo Bajo",
+    "medium": "Riesgo Medio",
+    "high": "Riesgo Alto",
+    "noAssessment": "No hay evaluación de riesgo disponible.",
+    "calculateHint": "Haga clic en \"Recalcular\" para generar una evaluación de riesgo.",
+    "recalculate": "Recalcular",
+    "assessedAt": "Evaluado el {{date}}"
+  },
+  "rfis": {
+    "empty": "No hay solicitudes de información aún.",
+    "hint": "Las RFIs aparecerán aquí cuando el equipo de cumplimiento solicite información adicional."
+  },
+  "roles": {
+    "ubo": "UBO",
+    "director": "Director",
+    "shareholder": "Accionista",
+    "protector": "Protector",
+    "authorized_signatory": "Firmante Autorizado"
+  },
+  "personSearch": {
+    "title": "Buscar Personas Existentes",
+    "placeholder": "Buscar por nombre o ID...",
+    "minChars": "Escriba al menos 2 caracteres para buscar.",
+    "noResults": "No se encontraron personas.",
+    "createHint": "Puede crear una nueva parte manualmente cerrando este diálogo.",
+    "natural": "Natural",
+    "corporate": "Jurídica",
+    "pep": "PEP"
+  },
+  "errors": {
+    "loadFailed": "Error al cargar el expediente KYC.",
+    "loadListFailed": "Error al cargar los expedientes KYC.",
+    "loadTicketsFailed": "Error al cargar los tickets.",
+    "createFailed": "Error al crear el expediente KYC.",
+    "saveFailed": "Error al guardar. Intente de nuevo."
+  },
+  "validation": {
+    "partyTypeRequired": "El tipo de parte es obligatorio.",
+    "roleRequired": "El rol es obligatorio.",
+    "nameRequired": "El nombre es obligatorio.",
+    "nameTooLong": "El nombre debe tener 255 caracteres o menos.",
+    "nationalityRequired": "La nacionalidad es obligatoria.",
+    "countryRequired": "El país de residencia es obligatorio.",
+    "ownershipMin": "La participación debe ser 0% o más.",
+    "ownershipMax": "La participación debe ser 100% o menos.",
+    "ownershipRequired": "El porcentaje de participación es obligatorio para este rol.",
+    "dobRequired": "La fecha de nacimiento es obligatoria.",
+    "idRequired": "El número de identificación es obligatorio.",
+    "atLeastOneParty": "Se requiere al menos una parte.",
+    "documentsRequired": "Se debe subir al menos un documento."
+  }
+}

@@ -1,0 +1,957 @@
+{
+  "app": {
+    "name": "ARIFA Platform"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "clients": "Clients",
+    "entities": "Entities",
+    "people": "People",
+    "tickets": "Tickets",
+    "kyc": "KYC Submissions",
+    "compliance": "Compliance",
+    "documents": "Documents",
+    "admin": "Administration"
+  },
+  "auth": {
+    "login": "Log In",
+    "logout": "Log Out",
+    "email": "Email",
+    "password": "Password",
+    "loginWithMicrosoft": "Log in with Microsoft",
+    "welcomeBack": "Welcome back",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Please enter a valid email",
+    "passwordRequired": "Password is required",
+    "passwordMinLength": "Password must be at least 6 characters",
+    "loginFailed": "Invalid email or password",
+    "language": "Language",
+    "magicLink": {
+      "validating": "Validating your login link...",
+      "invalid": "This login link is invalid or has expired.",
+      "errorTitle": "Login Link Error",
+      "contactInfo": "Please contact your coordinator for a new login link."
+    },
+    "clientLogin": {
+      "title": "Client Portal",
+      "subtitle": "Enter your email to receive a login link",
+      "emailPlaceholder": "your@email.com",
+      "sendLink": "Send Login Link",
+      "success": "If your email has portal access, you'll receive a login link shortly. Check your inbox.",
+      "staffLogin": "Staff login"
+    },
+    "clientPortalLogin": "Client portal login"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "pendingTickets": "Pending Tickets",
+    "activeKyc": "Active KYC",
+    "highRisk": "High Risk Entities",
+    "completedThisMonth": "Completed This Month",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No recent activity"
+  },
+  "tickets": {
+    "title": "Tickets",
+    "create": "Create Ticket",
+    "assign": "Assign",
+    "transition": "Move to",
+    "priority": "Priority",
+    "dueDate": "Due Date",
+    "noTickets": "No tickets found",
+    "detail": "Ticket Detail",
+    "metadata": "Ticket Information",
+    "timeline": "Activity Timeline",
+    "addComment": "Add a comment...",
+    "submitComment": "Submit",
+    "stateChanged": "moved ticket from",
+    "to": "to",
+    "assignedTo": "Assigned To",
+    "client": "Client",
+    "entity": "Entity",
+    "status": "Status",
+    "createdAt": "Created",
+    "selectUser": "Select a user...",
+    "views": {
+      "list": "List",
+      "board": "Board"
+    },
+    "form": {
+      "title": "Title",
+      "titlePlaceholder": "Enter ticket title...",
+      "titleRequired": "Title is required",
+      "clientRequired": "Client is required",
+      "selectClient": "Select a client...",
+      "noEntity": "No entity",
+      "unassigned": "Unassigned",
+      "priorityLow": "Low",
+      "priorityMedium": "Medium",
+      "priorityHigh": "High",
+      "priorityUrgent": "Urgent",
+      "createFailed": "Failed to create ticket. Please try again."
+    }
+  },
+  "kanban": {
+    "title": "Kanban Board",
+    "createTicket": "Create Ticket",
+    "noTickets": "No tickets in this column",
+    "ticketCount": "{{count}} ticket",
+    "ticketCount_plural": "{{count}} tickets"
+  },
+  "kyc": {
+    "title": "KYC Submissions",
+    "create": "New KYC Submission",
+    "submit": "Submit for Review",
+    "approve": "Approve",
+    "reject": "Reject",
+    "escalate": "Escalate to Committee",
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "underReview": "Under Review",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "selectTicket": "Select a Ticket",
+    "selectTicketDesc": "Choose the ticket to associate with this KYC submission",
+    "noKyc": "No KYC submissions found",
+    "steps": {
+      "entityInfo": "Entity Information",
+      "parties": "Parties",
+      "uboDeclaration": "UBO Declaration",
+      "documents": "Documents",
+      "review": "Review & Submit"
+    },
+    "party": {
+      "addParty": "Add Party",
+      "editParty": "Edit Party",
+      "deleteParty": "Remove Party",
+      "deleteConfirm": "Are you sure you want to remove this party?",
+      "type": "Party Type",
+      "natural": "Natural Person",
+      "corporate": "Corporate Entity",
+      "role": "Role",
+      "ubo": "Ultimate Beneficial Owner",
+      "director": "Director",
+      "shareholder": "Shareholder",
+      "protector": "Protector",
+      "authorizedSignatory": "Authorized Signatory",
+      "name": "Full Name",
+      "nationality": "Nationality",
+      "countryOfResidence": "Country of Residence",
+      "pepStatus": "Politically Exposed Person (PEP)",
+      "pepYes": "Yes, PEP",
+      "pepNo": "No",
+      "ownershipPercentage": "Ownership Percentage",
+      "dateOfBirth": "Date of Birth",
+      "identificationNumber": "Identification Number",
+      "linkPerson": "Link Existing Person",
+      "searchPerson": "Search existing persons...",
+      "noPersonFound": "No matching persons found",
+      "createNew": "Create New",
+      "linked": "Linked to existing record"
+    },
+    "ubo": {
+      "totalOwnership": "Total UBO Ownership",
+      "ownershipWarning": "UBO ownership should sum to 100%",
+      "noUbos": "No beneficial owners declared"
+    },
+    "sentBack": "Sent Back",
+    "review": {
+      "title": "Review Summary",
+      "entitySection": "Entity Information",
+      "partiesSection": "Parties ({{count}})",
+      "documentsSection": "Documents ({{count}})",
+      "riskSection": "Risk Assessment",
+      "missingItems": "Missing Required Items",
+      "readyToSubmit": "Ready to submit",
+      "submitConfirm": "Are you sure you want to submit this KYC for review? You won't be able to edit it afterwards.",
+      "currentValue": "Current Value",
+      "proposedValue": "Proposed Value",
+      "proposedChanges": "This submission contains proposed changes to entity data. Review the differences below.",
+      "approve": "Approve Changes",
+      "sendBack": "Send Back",
+      "addComment": "Add Review Comments",
+      "commentPlaceholder": "Add a comment for this field...",
+      "noChanges": "No changes"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "parties": "Parties",
+      "documents": "Documents",
+      "risk": "Risk",
+      "rfis": "RFIs",
+      "entityReview": "Entity Review"
+    },
+    "autoSaved": "Auto-saved",
+    "saving": "Saving...",
+    "lastSaved": "Last saved: {{time}}",
+    "shareLink": {
+      "button": "Share with Client",
+      "title": "Guest Link Created",
+      "description": "Share this link with the client so they can complete the KYC form.",
+      "urlLabel": "Link URL",
+      "copy": "Copy",
+      "expiresAt": "This link expires on {{date}}"
+    }
+  },
+  "compliance": {
+    "title": "Compliance Dashboard",
+    "queue": "Review Queue",
+    "noSubmissions": "No submissions awaiting review",
+    "review": "Review",
+    "approveConfirm": "Are you sure you want to approve this KYC submission?",
+    "rejectReason": "Please provide a reason for rejection:",
+    "escalateConfirm": "Are you sure you want to escalate this to the committee?",
+    "tabs": {
+      "overview": "Overview",
+      "parties": "Parties",
+      "risk": "Risk",
+      "worldcheck": "World-Check",
+      "rfis": "RFIs",
+      "documents": "Documents"
+    },
+    "risk": {
+      "title": "Risk Assessment",
+      "currentScore": "Current Score",
+      "level": "Risk Level",
+      "recalculate": "Recalculate Risk",
+      "history": "Risk History",
+      "noAssessment": "No risk assessment available",
+      "breakdown": {
+        "jurisdiction": "Jurisdiction Risk",
+        "pep": "PEP Status",
+        "structure": "Structure Complexity",
+        "worldcheck": "World-Check Findings"
+      },
+      "maxScore": "/ {{max}}",
+      "scoreChanged": "Score changed from {{from}} to {{to}}",
+      "trigger": {
+        "manual": "Manual",
+        "auto": "Automatic",
+        "scheduled": "Scheduled",
+        "webhook": "Webhook"
+      }
+    },
+    "worldcheck": {
+      "title": "World-Check Screening",
+      "screen": "Screen Party",
+      "screening": "Screening...",
+      "clear": "Clear",
+      "matched": "Matched",
+      "falsePositive": "False Positive",
+      "trueMatch": "True Match",
+      "pending": "Pending",
+      "escalated": "Escalated",
+      "resolve": "Resolve Match",
+      "markFalsePositive": "Mark as False Positive",
+      "markTrueMatch": "Mark as True Match",
+      "resolvedBy": "Resolved by {{user}}",
+      "resolvedAt": "on {{date}}",
+      "noResults": "No screening results",
+      "matchDetails": "Match Details",
+      "mockWarning": "World-Check is not configured. Showing mock screening data."
+    },
+    "rfi": {
+      "title": "Requests for Information",
+      "create": "Create RFI",
+      "respond": "Respond",
+      "requestedFields": "Requested Fields",
+      "notes": "Notes",
+      "response": "Response",
+      "open": "Open",
+      "responded": "Responded",
+      "closed": "Closed",
+      "noRfis": "No requests for information",
+      "respondPlaceholder": "Enter your response..."
+    },
+    "integration": {
+      "title": "Integration Status",
+      "configured": "Configured",
+      "notConfigured": "Not Configured",
+      "mockData": "Using mock data",
+      "dismiss": "Dismiss"
+    },
+    "stats": {
+      "pendingReview": "Pending Review",
+      "highRiskCount": "High Risk",
+      "openRfis": "Open RFIs"
+    }
+  },
+  "documents": {
+    "title": "Documents",
+    "description": "Manage templates, generate documents, and handle KYC document uploads.",
+    "upload": "Upload Document",
+    "uploading": "Uploading...",
+    "uploadSuccess": "Document uploaded successfully",
+    "type": "Document Type",
+    "types": {
+      "passport": "Passport",
+      "cedula": "Cédula",
+      "utility_bill": "Utility Bill",
+      "corporate_registry": "Corporate Registry",
+      "proof_of_address": "Proof of Address",
+      "source_of_wealth": "Source of Wealth",
+      "other": "Other"
+    },
+    "extraction": {
+      "title": "Extracted Data",
+      "processing": "Extracting data from document...",
+      "completed": "Extraction complete",
+      "failed": "Extraction failed",
+      "applyToForm": "Apply to Form",
+      "mockWarning": "Using mock extraction data. Configure LLM API for real extraction.",
+      "retry": "Retry Extraction"
+    },
+    "noDocuments": "No documents uploaded",
+    "filename": "Filename",
+    "size": "Size",
+    "uploadedAt": "Uploaded",
+    "status": "Status",
+    "download": "Download",
+    "tabs": {
+      "templates": "Templates",
+      "generate": "Generate",
+      "generated": "Generated Documents",
+      "kycDocuments": "KYC Documents"
+    },
+    "templates": {
+      "title": "Document Templates",
+      "description": "Upload and manage DOCX templates with Jinja2 tags for automated document generation.",
+      "upload": "Upload Template",
+      "name": "Template Name",
+      "entityType": "Entity Type",
+      "jurisdiction": "Jurisdiction",
+      "active": "Active",
+      "inactive": "Inactive",
+      "toggleActive": "Toggle Active",
+      "noTemplates": "No templates found",
+      "noTemplatesDesc": "Upload your first DOCX template to get started.",
+      "uploadSuccess": "Template uploaded successfully",
+      "allEntityTypes": "All Entity Types",
+      "allJurisdictions": "All Jurisdictions",
+      "allStatuses": "All Statuses",
+      "corporation": "Corporation",
+      "trust": "Trust",
+      "foundation": "Foundation",
+      "panama": "Panama",
+      "bvi": "BVI",
+      "belize": "Belize",
+      "createdAt": "Created",
+      "acceptDocx": "Accepts .docx files only"
+    },
+    "generate": {
+      "title": "Generate Document",
+      "description": "Select a ticket and template to generate a document with workflow data.",
+      "ticketId": "Ticket ID",
+      "ticketIdPlaceholder": "Enter ticket ID...",
+      "selectTemplate": "Select Template",
+      "noActiveTemplates": "No active templates available",
+      "contextData": "Context Data (Optional)",
+      "addField": "Add Field",
+      "key": "Key",
+      "value": "Value",
+      "generateBtn": "Generate Document",
+      "generating": "Generating...",
+      "success": "Document generated successfully!",
+      "generateAnother": "Generate Another",
+      "convertToPdf": "Convert to PDF",
+      "conversionQueued": "PDF conversion queued",
+      "format": "Format"
+    },
+    "generated": {
+      "title": "Generated Documents",
+      "description": "View and manage documents generated from templates.",
+      "noDocuments": "No generated documents",
+      "noDocumentsDesc": "Generate your first document from the Generate tab.",
+      "filterByTicket": "Filter by Ticket ID...",
+      "template": "Template",
+      "generatedBy": "Generated By",
+      "createdAt": "Created",
+      "converting": "Converting...",
+      "conversionQueued": "Queued",
+      "sharepointLink": "View in SharePoint",
+      "metadata": "Document Details"
+    },
+    "kycDocs": {
+      "title": "KYC Documents",
+      "description": "Upload and extract data from KYC-related documents.",
+      "selectKyc": "Select KYC Submission",
+      "noKycSelected": "Select a KYC submission to manage documents"
+    },
+    "page": {
+      "title": "Document Management",
+      "description": "Manage templates, generate documents, and handle KYC uploads.",
+      "phase3Notice": "Document assembly pipeline is now active with Gotenberg PDF conversion.",
+      "selectKycHint": "Select a KYC submission to upload documents.",
+      "uploadDisabled": "Upload is disabled until a KYC submission is selected.",
+      "noKycSelected": "No KYC Selected",
+      "noKycSelectedDescription": "Select a KYC submission from the sidebar to view and manage documents.",
+      "extractionInfo": "Supported Extraction Types",
+      "extractionInfoDescription": "Upload documents for automatic data extraction using LLM."
+    },
+    "upload": {
+      "title": "Upload Document"
+    },
+    "list": {
+      "title": "Documents"
+    }
+  },
+  "guest": {
+    "title": "Document Submission",
+    "linkExpired": "This link has expired",
+    "linkInvalid": "This link is invalid or has already been used",
+    "expiresOn": "This link expires on {{date}}",
+    "formPlaceholder": "KYC document submission form will be available here.",
+    "autoSaved": "Changes auto-saved",
+    "validating": "Validating your link...",
+    "welcome": "Welcome",
+    "welcomeDesc": "Please complete the following information for your compliance review.",
+    "steps": {
+      "yourInfo": "Your Information",
+      "beneficialOwners": "Beneficial Owners",
+      "documents": "Documents",
+      "review": "Review & Submit",
+      "general": "General Information",
+      "officers": "Officers & Directors",
+      "shares": "Share Register",
+      "riskProfile": "Risk Profile",
+      "documentsReview": "Documents & Review"
+    },
+    "sentBack": "This submission was sent back by the reviewer. Please review the comments and resubmit.",
+    "readOnly": "This field is read-only",
+    "noShareClasses": "No share classes registered",
+    "noIssuances": "No issuances",
+    "noActivities": "No activities registered",
+    "noSourcesOfFunds": "No sources of funds registered",
+    "autoSave": {
+      "saving": "Saving...",
+      "saved": "Saved at {{time}}"
+    },
+    "submitted": {
+      "title": "Thank you!",
+      "description": "Your submission has been received. Our team will review and contact you if needed."
+    },
+    "review": {
+      "classes": "classes"
+    },
+    "forClient": "For client: {{name}}",
+    "contactInfo": "If you need assistance, please contact your coordinator.",
+    "submittedDesc": "Our team will review your documents and contact you if additional information is needed.",
+    "linkExpiredDescription": "This link expired on {{date}}. Please request a new one from your coordinator.",
+    "linkInvalidDescription": "This link may have been deactivated or does not exist. Please contact your coordinator.",
+    "expired": {
+      "title": "Link Expired",
+      "description": "This submission link has expired. Please contact your coordinator for a new link.",
+      "contactTitle": "Need Help?",
+      "contactDescription": "Contact your coordinator or compliance team to request a new link."
+    },
+    "error": {
+      "title": "Something went wrong",
+      "description": "We couldn't load this page. Please try again or contact support."
+    }
+  },
+  "portal": {
+    "title": "Client Portal",
+    "nav": {
+      "home": "Home",
+      "logout": "Log Out"
+    },
+    "welcome": "Welcome, {{name}}",
+    "kycList": {
+      "title": "Your KYC Submissions",
+      "empty": "No KYC submissions found",
+      "viewDetail": "View Details"
+    },
+    "detail": {
+      "title": "KYC Details",
+      "backToList": "Back to Portal",
+      "tabs": {
+        "overview": "Overview",
+        "parties": "Parties",
+        "rfis": "Requests for Information",
+        "documents": "Documents"
+      },
+      "rfiRespond": "Respond",
+      "rfiRespondPlaceholder": "Enter your response...",
+      "rfiSubmit": "Send Response",
+      "uploadDocument": "Upload Document",
+      "selectDocumentType": "Select document type..."
+    }
+  },
+  "onboarding": {
+    "title": "Start Your KYC Onboarding",
+    "description": "Complete the form below to begin the compliance onboarding process.",
+    "contactName": "Contact Name",
+    "contactEmail": "Contact Email",
+    "clientName": "Client / Company Name",
+    "clientType": "Client Type",
+    "natural": "Natural Person",
+    "corporate": "Corporate",
+    "entityName": "Entity Name",
+    "jurisdiction": "Jurisdiction",
+    "jurisdictions": {
+      "bvi": "BVI",
+      "panama": "Panama",
+      "belize": "Belize"
+    },
+    "submit": "Start Onboarding",
+    "submitting": "Submitting...",
+    "error": "An error occurred. Please try again.",
+    "rateLimited": "Too many requests. Please try again later."
+  },
+  "admin": {
+    "title": "Administration",
+    "description": "Manage users, workflow configuration, and system settings.",
+    "accessDenied": "Access Denied",
+    "accessDeniedDesc": "You need Director privileges to access the admin panel.",
+    "accessDeniedMessage": "You need Director privileges to access the admin panel.",
+    "tabs": {
+      "users": "Users",
+      "workflow": "Workflow",
+      "jurisdictionRisks": "Jurisdiction Risks",
+      "jurisdiction": "Jurisdiction Risks",
+      "settings": "Settings"
+    },
+    "users": {
+      "title": "User Management",
+      "description": "Create, edit, and manage platform users.",
+      "createUser": "Create User",
+      "editUser": "Edit User",
+      "deactivateUser": "Deactivate User",
+      "deactivateConfirm": "Are you sure you want to deactivate this user? They will no longer be able to log in.",
+      "email": "Email",
+      "password": "Password",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "role": "Role",
+      "active": "Active",
+      "inactive": "Inactive",
+      "dateJoined": "Date Joined",
+      "noUsers": "No users found",
+      "allRoles": "All Roles",
+      "allStatuses": "All Statuses",
+      "createSuccess": "User created successfully",
+      "updateSuccess": "User updated successfully",
+      "deactivateSuccess": "User deactivated",
+      "sendMagicLink": "Send Magic Link",
+      "magicLinkSent": "Magic link sent successfully",
+      "client": "Client",
+      "selectClient": "Select a client..."
+    },
+    "workflow": {
+      "title": "Workflow Configuration",
+      "description": "Manage workflow states and transitions for the ticket pipeline.",
+      "states": "States",
+      "transitions": "Transitions",
+      "addState": "Add State",
+      "editState": "Edit State",
+      "deleteState": "Delete State",
+      "deleteStateConfirm": "Are you sure you want to delete this workflow state? This may break existing tickets.",
+      "stateName": "State Name",
+      "orderIndex": "Order",
+      "isInitial": "Initial State",
+      "isFinal": "Final State",
+      "noStates": "No workflow states configured",
+      "addTransition": "Add Transition",
+      "editTransition": "Edit Transition",
+      "deleteTransition": "Delete Transition",
+      "deleteTransitionConfirm": "Are you sure you want to delete this transition?",
+      "transitionName": "Transition Name",
+      "fromState": "From State",
+      "toState": "To State",
+      "allowedRoles": "Allowed Roles",
+      "noTransitions": "No transitions configured",
+      "flowDiagram": "Workflow Flow"
+    },
+    "jurisdictionRisks": {
+      "title": "Jurisdiction Risk Weights",
+      "description": "Manage country risk weights used in the KYC risk matrix calculation.",
+      "addCountry": "Add Country",
+      "editCountry": "Edit Risk",
+      "deleteCountry": "Remove Country",
+      "deleteConfirm": "Are you sure you want to remove this jurisdiction risk entry?",
+      "countryCode": "Code",
+      "countryName": "Country",
+      "riskWeight": "Risk Weight",
+      "riskLevel": "Risk Level",
+      "noCountries": "No jurisdiction risks configured",
+      "lowRisk": "Low",
+      "mediumRisk": "Medium",
+      "highRisk": "High",
+      "veryHighRisk": "Very High",
+      "searchCountry": "Search by country name..."
+    },
+    "settings": {
+      "title": "System Settings",
+      "description": "View system configuration and integration status.",
+      "integrations": "Integration Status",
+      "integrationStatus": "Integration Status",
+      "integrationError": "Failed to load integration status.",
+      "connected": "Connected",
+      "disconnected": "Not Configured",
+      "systemInfo": "System Information",
+      "backend": "Backend",
+      "database": "Database",
+      "quickLinks": "Quick Links",
+      "djangoAdmin": "Open Django Admin",
+      "djangoAdminDesc": "Access the Django admin panel for advanced configuration.",
+      "apiDocs": "API Documentation",
+      "apiDocsDesc": "View the REST API documentation."
+    }
+  },
+  "kanban": {
+    "title": "Kanban Board",
+    "createTicket": "Create Ticket",
+    "noTickets": "No tickets in this column",
+    "ticketCount": "{{count}} ticket",
+    "ticketCount_plural": "{{count}} tickets",
+    "views": {
+      "all": "All Tickets",
+      "my": "My Tickets",
+      "gestora": "Gestora View",
+      "compliance": "Compliance View",
+      "registry": "Public Registry View"
+    }
+  },
+  "clients": {
+    "title": "Clients",
+    "create": "New Client",
+    "noClients": "No clients found",
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "category": "Category",
+      "status": "Status",
+      "created": "Created"
+    },
+    "detail": {
+      "tabs": {
+        "overview": "Overview",
+        "entities": "Entities",
+        "matters": "Matters",
+        "invoices": "Invoices",
+        "tickets": "Tickets",
+        "people": "People",
+        "contacts": "Contacts",
+        "portalAccess": "Portal Access"
+      }
+    },
+    "contacts": {
+      "title": "Client Contacts",
+      "addContact": "Add Contact",
+      "editContact": "Edit Contact",
+      "noContacts": "No contacts added yet.",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone",
+      "position": "Position",
+      "portalAccess": "Portal Access",
+      "deleteConfirm": "Are you sure you want to delete this contact?"
+    },
+    "portalAccess": {
+      "clientUsers": "Client Users",
+      "guestLinks": "Active Guest Links",
+      "kycSubmissions": "KYC Submissions",
+      "sendMagicLink": "Send Magic Link",
+      "inviteUser": "Invite Client User",
+      "generateLink": "Generate Link",
+      "noLinks": "No active guest links",
+      "noUsers": "No client users",
+      "linkUrl": "Link URL",
+      "expires": "Expires"
+    },
+    "filters": {
+      "allTypes": "All Types",
+      "allCategories": "All Categories",
+      "allStatuses": "All Statuses",
+      "search": "Search clients..."
+    },
+    "form": {
+      "name": "Name",
+      "aderantClientId": "Aderant Client ID",
+      "clientType": "Client Type",
+      "category": "Category",
+      "status": "Status",
+      "natural": "Natural Person",
+      "corporate": "Corporate",
+      "silver": "Silver",
+      "gold": "Gold",
+      "platinum": "Platinum",
+      "active": "Active",
+      "inactive": "Inactive"
+    }
+  },
+  "entities": {
+    "title": "Entities",
+    "create": "New Entity",
+    "noEntities": "No entities found",
+    "columns": {
+      "name": "Name",
+      "jurisdiction": "Jurisdiction",
+      "client": "Client",
+      "status": "Status",
+      "incorporationDate": "Incorporation Date"
+    },
+    "detail": {
+      "tabs": {
+        "overview": "Overview",
+        "corporateStructure": "Corporate Structure",
+        "riskProfile": "Risk Profile",
+        "matters": "Matters",
+        "tickets": "Tickets",
+        "documents": "Documents",
+        "accessLinks": "Access Links",
+        "audit": "Audit Trail"
+      }
+    },
+    "accessLinks": {
+      "guestLinks": "Active Guest Links",
+      "kycSubmissions": "KYC Submissions",
+      "noLinks": "No active guest links",
+      "linkUrl": "Link URL",
+      "expires": "Expires"
+    },
+    "officers": {
+      "title": "Officers & Directors",
+      "add": "Add Officer",
+      "holder": "Holder",
+      "holderType": "Holder Type",
+      "person": "Person",
+      "position": "Position",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "active": "Active",
+      "searchPerson": "Search person...",
+      "createNew": "Create New",
+      "createNewPerson": "Create New Person",
+      "createNewEntity": "Create New Entity",
+      "createAndSelect": "Create & Select",
+      "backToSearch": "Back to Search",
+      "edit": "Edit Officer",
+      "positions": {
+        "director": "Director",
+        "president": "President",
+        "secretary": "Secretary",
+        "treasurer": "Treasurer",
+        "registered_agent": "Registered Agent",
+        "protector": "Protector",
+        "authorized_signatory": "Authorized Signatory",
+        "other": "Other"
+      }
+    },
+    "shareRegister": {
+      "title": "Share Register",
+      "addClass": "Add Share Class",
+      "addIssuance": "Add Issuance",
+      "className": "Class Name",
+      "currency": "Currency",
+      "parValue": "Par Value",
+      "authorizedShares": "Authorized Shares",
+      "votingRights": "Voting Rights",
+      "voting": "Voting",
+      "holder": "Holder",
+      "shares": "Shares",
+      "certificate": "Certificate #",
+      "flags": "Flags",
+      "issueDate": "Issue Date",
+      "numShares": "Number of Shares",
+      "trustee": "Trustee",
+      "heldAsTrustee": "Held as Trustee",
+      "trusteeFor": "Trustee For",
+      "jtwrosPartner": "JTWROS Partner Name",
+      "personHolder": "Person",
+      "entityHolder": "Entity",
+      "entityType": "Entity",
+      "searchEntity": "Search entity...",
+      "noParValue": "No Par Value",
+      "editIssuance": "Edit Issuance"
+    },
+    "ubos": {
+      "title": "Ultimate Beneficial Owners",
+      "person": "Person",
+      "via": "Ownership Chain",
+      "direct": "Direct",
+      "ownership": "Effective %",
+      "noUbos": "No beneficial owners (>=25%) found",
+      "derivationNote": "UBOs are computed recursively through the full ownership chain. Persons with >=25% effective ownership are shown."
+    },
+    "orgChart": {
+      "title": "Ownership Structure",
+      "empty": "No shareholders to display",
+      "person": "Person",
+      "entity": "Entity"
+    },
+    "activities": {
+      "title": "Activities",
+      "add": "Add Activity",
+      "activity": "Activity",
+      "countries": "Countries",
+      "countryRisk": "Country Risk",
+      "riskLevel": "Activity Risk",
+      "description": "Description",
+      "selectActivity": "Select an activity...",
+      "selectCountries": "Search countries...",
+      "defaultRisk": "Default activity risk"
+    },
+    "sourcesOfFunds": {
+      "title": "Source of Funds",
+      "add": "Add Source",
+      "source": "Source",
+      "selectSource": "Select a source...",
+      "countries": "Countries",
+      "selectCountries": "Search countries...",
+      "countryRisk": "Country Risk",
+      "riskLevel": "Source Risk",
+      "description": "Description"
+    },
+    "audit": {
+      "title": "Audit Trail",
+      "noEntries": "No audit entries found",
+      "timestamp": "Timestamp",
+      "user": "User",
+      "source": "Source",
+      "recordType": "Record Type",
+      "field": "Field",
+      "change": "Change",
+      "comment": "Comment",
+      "sources": {
+        "internal": "Internal Edit",
+        "guest_submission": "Guest Submission",
+        "approval": "Approval",
+        "send_back": "Sent Back"
+      }
+    },
+    "filters": {
+      "allJurisdictions": "All Jurisdictions",
+      "allStatuses": "All Statuses",
+      "search": "Search entities..."
+    },
+    "form": {
+      "name": "Name",
+      "jurisdiction": "Jurisdiction",
+      "client": "Client",
+      "incorporationDate": "Incorporation Date",
+      "status": "Status",
+      "bvi": "BVI",
+      "panama": "Panama",
+      "belize": "Belize",
+      "pending": "Pending",
+      "active": "Active",
+      "dissolved": "Dissolved",
+      "struckOff": "Struck Off"
+    }
+  },
+  "people": {
+    "title": "People",
+    "create": "New Person",
+    "noPeople": "No people found",
+    "columns": {
+      "fullName": "Full Name",
+      "type": "Type",
+      "nationality": "Nationality",
+      "idNumber": "ID Number",
+      "pepStatus": "PEP Status",
+      "client": "Client"
+    },
+    "detail": {
+      "tabs": {
+        "overview": "Overview",
+        "kycParties": "KYC Parties",
+        "screening": "Screening",
+        "sourceOfWealth": "Source of Wealth"
+      }
+    },
+    "sourcesOfWealth": {
+      "title": "Source of Wealth",
+      "add": "Add Source",
+      "description": "Description",
+      "riskLevel": "Risk Level"
+    },
+    "filters": {
+      "allTypes": "All Types",
+      "allPep": "All PEP Status",
+      "pepYes": "PEP",
+      "pepNo": "Not PEP",
+      "search": "Search people..."
+    },
+    "form": {
+      "fullName": "Full Name",
+      "personType": "Type",
+      "nationality": "Nationality",
+      "countryOfResidence": "Country of Residence",
+      "dateOfBirth": "Date of Birth",
+      "idNumber": "ID Number",
+      "idType": "ID Type",
+      "pepStatus": "PEP Status",
+      "client": "Client",
+      "natural": "Natural Person",
+      "corporate": "Corporate",
+      "scanDocument": "Scan Document",
+      "scanDropzone": "Drop a passport or ID document here",
+      "extractData": "Extract Data"
+    },
+    "pep": "PEP",
+    "notPep": "Not PEP"
+  },
+  "invoices": {
+    "comingSoon": "Aderant ERP integration coming soon",
+    "comingSoonDesc": "Invoice data will be synchronized from Aderant once the integration is configured."
+  },
+  "roles": {
+    "coordinator": "Coordinator",
+    "compliance_officer": "Compliance Officer",
+    "gestora": "Gestora",
+    "director": "Director",
+    "client": "Client"
+  },
+  "risk": {
+    "low": "Low Risk",
+    "medium": "Medium Risk",
+    "high": "High Risk",
+    "score": "Risk Score"
+  },
+  "riskLevels": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "ultraHigh": "Ultra High"
+  },
+  "priority": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "urgent": "Urgent"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading...",
+    "noResults": "No results found",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "actions": "Actions",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "yes": "Yes",
+    "no": "No",
+    "all": "All",
+    "filter": "Filter",
+    "export": "Export",
+    "refresh": "Refresh",
+    "close": "Close",
+    "submit": "Submit",
+    "view": "View",
+    "download": "Download",
+    "uploaded": "Uploaded",
+    "pending": "Pending",
+    "processing": "Processing",
+    "completed": "Completed",
+    "failed": "Failed"
+  }
+}

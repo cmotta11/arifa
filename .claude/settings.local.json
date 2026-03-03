@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "Bash(dir:*)",
+      "Bash(bash -c \"ls -la /mnt/c/Users/CharlieMotta/Dev/Arifa\")",
+      "WebSearch",
+      "WebFetch(domain:gotenberg.dev)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git rm:*)",
+      "Bash(git -C \"C:/Users/CharlieMotta/Dev/Arifa\" status --porcelain)",
+      "Bash(git -C \"C:\\\\Users\\\\CharlieMotta\\\\Dev\\\\Arifa\" status --porcelain)",
+      "Bash(pushd:*)",
+      "Bash(popd:*)",
+      "Bash(git -C:*)",
+      "Bash(npx tsc:*)",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "Bash(node -e:*)",
+      "Bash(docker compose up:*)",
+      "Bash(netstat:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker restart:*)",
+      "Bash(docker exec:*)",
+      "Bash(node ./node_modules/typescript/bin/tsc:*)",
+      "Bash(ls:*)",
+      "Bash(docker compose exec:*)",
+      "Bash(python -c:*)",
+      "Bash(npm install:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker:*)",
+      "Bash(find:*)",
+      "Bash(git status:*)",
+      "Bash(git remote add:*)"
+    ]
+  }
+}

@@ -1,0 +1,957 @@
+{
+  "app": {
+    "name": "Plataforma ARIFA"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "clients": "Clientes",
+    "entities": "Entidades",
+    "people": "Personas",
+    "tickets": "Tickets",
+    "kyc": "Expedientes KYC",
+    "compliance": "Cumplimiento",
+    "documents": "Documentos",
+    "admin": "Administración"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "logout": "Cerrar Sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "loginWithMicrosoft": "Iniciar sesión con Microsoft",
+    "welcomeBack": "Bienvenido de vuelta",
+    "emailRequired": "El correo electrónico es obligatorio",
+    "emailInvalid": "Ingrese un correo electrónico válido",
+    "passwordRequired": "La contraseña es obligatoria",
+    "passwordMinLength": "La contraseña debe tener al menos 6 caracteres",
+    "loginFailed": "Correo electrónico o contraseña inválidos",
+    "language": "Idioma",
+    "magicLink": {
+      "validating": "Validando su enlace de inicio de sesión...",
+      "invalid": "Este enlace de inicio de sesión es inválido o ha expirado.",
+      "errorTitle": "Error de Enlace de Inicio de Sesión",
+      "contactInfo": "Contacte a su coordinador para un nuevo enlace de inicio de sesión."
+    },
+    "clientLogin": {
+      "title": "Portal del Cliente",
+      "subtitle": "Ingrese su correo para recibir un enlace de acceso",
+      "emailPlaceholder": "su@correo.com",
+      "sendLink": "Enviar Enlace de Acceso",
+      "success": "Si su correo tiene acceso al portal, recibirá un enlace de acceso en breve. Revise su bandeja de entrada.",
+      "staffLogin": "Inicio de sesión para personal"
+    },
+    "clientPortalLogin": "Acceso al portal del cliente"
+  },
+  "dashboard": {
+    "title": "Panel",
+    "pendingTickets": "Tickets Pendientes",
+    "activeKyc": "KYC Activos",
+    "highRisk": "Entidades de Alto Riesgo",
+    "completedThisMonth": "Completados Este Mes",
+    "recentActivity": "Actividad Reciente",
+    "noActivity": "Sin actividad reciente"
+  },
+  "tickets": {
+    "title": "Tickets",
+    "create": "Crear Ticket",
+    "assign": "Asignar",
+    "transition": "Mover a",
+    "priority": "Prioridad",
+    "dueDate": "Fecha Límite",
+    "noTickets": "No se encontraron tickets",
+    "detail": "Detalle del Ticket",
+    "metadata": "Información del Ticket",
+    "timeline": "Línea de Tiempo",
+    "addComment": "Agregar un comentario...",
+    "submitComment": "Enviar",
+    "stateChanged": "movió el ticket de",
+    "to": "a",
+    "assignedTo": "Asignado a",
+    "client": "Cliente",
+    "entity": "Entidad",
+    "status": "Estado",
+    "createdAt": "Creado",
+    "selectUser": "Seleccionar un usuario...",
+    "views": {
+      "list": "Lista",
+      "board": "Tablero"
+    },
+    "form": {
+      "title": "Título",
+      "titlePlaceholder": "Ingrese el título del ticket...",
+      "titleRequired": "El título es obligatorio",
+      "clientRequired": "El cliente es obligatorio",
+      "selectClient": "Seleccionar un cliente...",
+      "noEntity": "Sin entidad",
+      "unassigned": "Sin asignar",
+      "priorityLow": "Baja",
+      "priorityMedium": "Media",
+      "priorityHigh": "Alta",
+      "priorityUrgent": "Urgente",
+      "createFailed": "Error al crear el ticket. Intente de nuevo."
+    }
+  },
+  "kanban": {
+    "title": "Tablero Kanban",
+    "createTicket": "Crear Ticket",
+    "noTickets": "Sin tickets en esta columna",
+    "ticketCount": "{{count}} ticket",
+    "ticketCount_plural": "{{count}} tickets"
+  },
+  "kyc": {
+    "title": "Expedientes KYC",
+    "create": "Nuevo Expediente KYC",
+    "submit": "Enviar a Revisión",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "escalate": "Escalar a Comité",
+    "draft": "Borrador",
+    "submitted": "Enviado",
+    "underReview": "En Revisión",
+    "approved": "Aprobado",
+    "rejected": "Rechazado",
+    "selectTicket": "Seleccionar un Ticket",
+    "selectTicketDesc": "Elija el ticket para asociar con este expediente KYC",
+    "noKyc": "No se encontraron expedientes KYC",
+    "steps": {
+      "entityInfo": "Información de Entidad",
+      "parties": "Partes",
+      "uboDeclaration": "Declaración de UBO",
+      "documents": "Documentos",
+      "review": "Revisión y Envío"
+    },
+    "party": {
+      "addParty": "Agregar Parte",
+      "editParty": "Editar Parte",
+      "deleteParty": "Eliminar Parte",
+      "deleteConfirm": "¿Está seguro de que desea eliminar esta parte?",
+      "type": "Tipo de Parte",
+      "natural": "Persona Natural",
+      "corporate": "Entidad Corporativa",
+      "role": "Rol",
+      "ubo": "Beneficiario Final",
+      "director": "Director",
+      "shareholder": "Accionista",
+      "protector": "Protector",
+      "authorizedSignatory": "Firmante Autorizado",
+      "name": "Nombre Completo",
+      "nationality": "Nacionalidad",
+      "countryOfResidence": "País de Residencia",
+      "pepStatus": "Persona Políticamente Expuesta (PEP)",
+      "pepYes": "Sí, PEP",
+      "pepNo": "No",
+      "ownershipPercentage": "Porcentaje de Participación",
+      "dateOfBirth": "Fecha de Nacimiento",
+      "identificationNumber": "Número de Identificación",
+      "linkPerson": "Vincular Persona Existente",
+      "searchPerson": "Buscar personas existentes...",
+      "noPersonFound": "No se encontraron personas",
+      "createNew": "Crear Nuevo",
+      "linked": "Vinculado a registro existente"
+    },
+    "ubo": {
+      "totalOwnership": "Participación Total UBO",
+      "ownershipWarning": "La participación UBO debe sumar 100%",
+      "noUbos": "No se han declarado beneficiarios finales"
+    },
+    "sentBack": "Devuelto",
+    "review": {
+      "title": "Resumen de Revisión",
+      "entitySection": "Información de Entidad",
+      "partiesSection": "Partes ({{count}})",
+      "documentsSection": "Documentos ({{count}})",
+      "riskSection": "Evaluación de Riesgo",
+      "missingItems": "Elementos Requeridos Faltantes",
+      "readyToSubmit": "Listo para enviar",
+      "submitConfirm": "¿Está seguro de que desea enviar este KYC para revisión? No podrá editarlo después.",
+      "currentValue": "Valor Actual",
+      "proposedValue": "Valor Propuesto",
+      "proposedChanges": "Esta presentación contiene cambios propuestos a los datos de la entidad. Revise las diferencias a continuación.",
+      "approve": "Aprobar Cambios",
+      "sendBack": "Devolver",
+      "addComment": "Agregar Comentarios de Revisión",
+      "commentPlaceholder": "Agregar un comentario para este campo...",
+      "noChanges": "Sin cambios"
+    },
+    "tabs": {
+      "overview": "General",
+      "parties": "Partes",
+      "documents": "Documentos",
+      "risk": "Riesgo",
+      "rfis": "RFIs",
+      "entityReview": "Revisión de Entidad"
+    },
+    "autoSaved": "Guardado automáticamente",
+    "saving": "Guardando...",
+    "lastSaved": "Último guardado: {{time}}",
+    "shareLink": {
+      "button": "Compartir con Cliente",
+      "title": "Enlace de Invitado Creado",
+      "description": "Comparta este enlace con el cliente para que pueda completar el formulario KYC.",
+      "urlLabel": "URL del Enlace",
+      "copy": "Copiar",
+      "expiresAt": "Este enlace expira el {{date}}"
+    }
+  },
+  "compliance": {
+    "title": "Panel de Cumplimiento",
+    "queue": "Cola de Revisión",
+    "noSubmissions": "No hay expedientes pendientes de revisión",
+    "review": "Revisar",
+    "approveConfirm": "¿Está seguro de que desea aprobar este expediente KYC?",
+    "rejectReason": "Indique el motivo del rechazo:",
+    "escalateConfirm": "¿Está seguro de que desea escalar esto al comité?",
+    "tabs": {
+      "overview": "General",
+      "parties": "Partes",
+      "risk": "Riesgo",
+      "worldcheck": "World-Check",
+      "rfis": "RFIs",
+      "documents": "Documentos"
+    },
+    "risk": {
+      "title": "Evaluación de Riesgo",
+      "currentScore": "Puntaje Actual",
+      "level": "Nivel de Riesgo",
+      "recalculate": "Recalcular Riesgo",
+      "history": "Historial de Riesgo",
+      "noAssessment": "No hay evaluación de riesgo disponible",
+      "breakdown": {
+        "jurisdiction": "Riesgo de Jurisdicción",
+        "pep": "Estatus PEP",
+        "structure": "Complejidad de Estructura",
+        "worldcheck": "Hallazgos World-Check"
+      },
+      "maxScore": "/ {{max}}",
+      "scoreChanged": "Puntaje cambió de {{from}} a {{to}}",
+      "trigger": {
+        "manual": "Manual",
+        "auto": "Automático",
+        "scheduled": "Programado",
+        "webhook": "Webhook"
+      }
+    },
+    "worldcheck": {
+      "title": "Verificación World-Check",
+      "screen": "Verificar Parte",
+      "screening": "Verificando...",
+      "clear": "Sin hallazgos",
+      "matched": "Coincidencia",
+      "falsePositive": "Falso Positivo",
+      "trueMatch": "Coincidencia Verdadera",
+      "pending": "Pendiente",
+      "escalated": "Escalado",
+      "resolve": "Resolver Coincidencia",
+      "markFalsePositive": "Marcar como Falso Positivo",
+      "markTrueMatch": "Marcar como Coincidencia Verdadera",
+      "resolvedBy": "Resuelto por {{user}}",
+      "resolvedAt": "el {{date}}",
+      "noResults": "Sin resultados de verificación",
+      "matchDetails": "Detalles de Coincidencia",
+      "mockWarning": "World-Check no está configurado. Mostrando datos de prueba."
+    },
+    "rfi": {
+      "title": "Solicitudes de Información",
+      "create": "Crear RFI",
+      "respond": "Responder",
+      "requestedFields": "Campos Solicitados",
+      "notes": "Notas",
+      "response": "Respuesta",
+      "open": "Abierto",
+      "responded": "Respondido",
+      "closed": "Cerrado",
+      "noRfis": "Sin solicitudes de información",
+      "respondPlaceholder": "Ingrese su respuesta..."
+    },
+    "integration": {
+      "title": "Estado de Integraciones",
+      "configured": "Configurado",
+      "notConfigured": "No Configurado",
+      "mockData": "Usando datos de prueba",
+      "dismiss": "Descartar"
+    },
+    "stats": {
+      "pendingReview": "Pendientes de Revisión",
+      "highRiskCount": "Alto Riesgo",
+      "openRfis": "RFIs Abiertos"
+    }
+  },
+  "documents": {
+    "title": "Documentos",
+    "description": "Gestione plantillas, genere documentos y administre documentos KYC.",
+    "upload": "Subir Documento",
+    "uploading": "Subiendo...",
+    "uploadSuccess": "Documento subido exitosamente",
+    "type": "Tipo de Documento",
+    "types": {
+      "passport": "Pasaporte",
+      "cedula": "Cédula",
+      "utility_bill": "Factura de Servicios",
+      "corporate_registry": "Registro Mercantil",
+      "proof_of_address": "Comprobante de Domicilio",
+      "source_of_wealth": "Origen de Fondos",
+      "other": "Otro"
+    },
+    "extraction": {
+      "title": "Datos Extraídos",
+      "processing": "Extrayendo datos del documento...",
+      "completed": "Extracción completada",
+      "failed": "Extracción fallida",
+      "applyToForm": "Aplicar al Formulario",
+      "mockWarning": "Usando datos de extracción simulados. Configure la API de LLM para extracción real.",
+      "retry": "Reintentar Extracción"
+    },
+    "noDocuments": "No hay documentos subidos",
+    "filename": "Nombre de Archivo",
+    "size": "Tamaño",
+    "uploadedAt": "Subido",
+    "status": "Estado",
+    "download": "Descargar",
+    "tabs": {
+      "templates": "Plantillas",
+      "generate": "Generar",
+      "generated": "Documentos Generados",
+      "kycDocuments": "Documentos KYC"
+    },
+    "templates": {
+      "title": "Plantillas de Documentos",
+      "description": "Suba y gestione plantillas DOCX con etiquetas Jinja2 para generación automatizada.",
+      "upload": "Subir Plantilla",
+      "name": "Nombre de Plantilla",
+      "entityType": "Tipo de Entidad",
+      "jurisdiction": "Jurisdicción",
+      "active": "Activa",
+      "inactive": "Inactiva",
+      "toggleActive": "Activar/Desactivar",
+      "noTemplates": "No se encontraron plantillas",
+      "noTemplatesDesc": "Suba su primera plantilla DOCX para comenzar.",
+      "uploadSuccess": "Plantilla subida exitosamente",
+      "allEntityTypes": "Todos los Tipos",
+      "allJurisdictions": "Todas las Jurisdicciones",
+      "allStatuses": "Todos los Estados",
+      "corporation": "Corporación",
+      "trust": "Fideicomiso",
+      "foundation": "Fundación",
+      "panama": "Panamá",
+      "bvi": "BVI",
+      "belize": "Belice",
+      "createdAt": "Creado",
+      "acceptDocx": "Solo acepta archivos .docx"
+    },
+    "generate": {
+      "title": "Generar Documento",
+      "description": "Seleccione un ticket y plantilla para generar un documento con datos del flujo.",
+      "ticketId": "ID del Ticket",
+      "ticketIdPlaceholder": "Ingrese ID del ticket...",
+      "selectTemplate": "Seleccionar Plantilla",
+      "noActiveTemplates": "No hay plantillas activas disponibles",
+      "contextData": "Datos de Contexto (Opcional)",
+      "addField": "Agregar Campo",
+      "key": "Clave",
+      "value": "Valor",
+      "generateBtn": "Generar Documento",
+      "generating": "Generando...",
+      "success": "¡Documento generado exitosamente!",
+      "generateAnother": "Generar Otro",
+      "convertToPdf": "Convertir a PDF",
+      "conversionQueued": "Conversión a PDF en cola",
+      "format": "Formato"
+    },
+    "generated": {
+      "title": "Documentos Generados",
+      "description": "Vea y gestione documentos generados a partir de plantillas.",
+      "noDocuments": "No hay documentos generados",
+      "noDocumentsDesc": "Genere su primer documento desde la pestaña Generar.",
+      "filterByTicket": "Filtrar por ID de Ticket...",
+      "template": "Plantilla",
+      "generatedBy": "Generado Por",
+      "createdAt": "Creado",
+      "converting": "Convirtiendo...",
+      "conversionQueued": "En cola",
+      "sharepointLink": "Ver en SharePoint",
+      "metadata": "Detalles del Documento"
+    },
+    "kycDocs": {
+      "title": "Documentos KYC",
+      "description": "Suba y extraiga datos de documentos relacionados con KYC.",
+      "selectKyc": "Seleccionar Expediente KYC",
+      "noKycSelected": "Seleccione un expediente KYC para gestionar documentos"
+    },
+    "page": {
+      "title": "Gestión de Documentos",
+      "description": "Gestione plantillas, genere documentos y administre subidas KYC.",
+      "phase3Notice": "El pipeline de ensamblaje de documentos está activo con conversión PDF Gotenberg.",
+      "selectKycHint": "Seleccione un expediente KYC para subir documentos.",
+      "uploadDisabled": "La subida está deshabilitada hasta seleccionar un expediente KYC.",
+      "noKycSelected": "Sin KYC Seleccionado",
+      "noKycSelectedDescription": "Seleccione un expediente KYC del panel lateral para ver y gestionar documentos.",
+      "extractionInfo": "Tipos de Extracción Soportados",
+      "extractionInfoDescription": "Suba documentos para extracción automática de datos usando LLM."
+    },
+    "upload": {
+      "title": "Subir Documento"
+    },
+    "list": {
+      "title": "Documentos"
+    }
+  },
+  "guest": {
+    "title": "Envío de Documentos",
+    "linkExpired": "Este enlace ha expirado",
+    "linkInvalid": "Este enlace es inválido o ya fue utilizado",
+    "expiresOn": "Este enlace expira el {{date}}",
+    "formPlaceholder": "El formulario de envío de documentos KYC estará disponible aquí.",
+    "autoSaved": "Cambios guardados automáticamente",
+    "validating": "Validando su enlace...",
+    "welcome": "Bienvenido",
+    "welcomeDesc": "Complete la siguiente información para su revisión de cumplimiento.",
+    "steps": {
+      "yourInfo": "Su Información",
+      "beneficialOwners": "Beneficiarios Finales",
+      "documents": "Documentos",
+      "review": "Revisión y Envío",
+      "general": "Información General",
+      "officers": "Directores y Oficiales",
+      "shares": "Registro de Acciones",
+      "riskProfile": "Perfil de Riesgo",
+      "documentsReview": "Documentos y Revisión"
+    },
+    "sentBack": "Esta presentación fue devuelta por el revisor. Revise los comentarios y vuelva a enviar.",
+    "readOnly": "Este campo es de solo lectura",
+    "noShareClasses": "No hay clases de acciones registradas",
+    "noIssuances": "Sin emisiones",
+    "noActivities": "No hay actividades registradas",
+    "noSourcesOfFunds": "No hay fuentes de fondos registradas",
+    "autoSave": {
+      "saving": "Guardando...",
+      "saved": "Guardado a las {{time}}"
+    },
+    "submitted": {
+      "title": "¡Gracias!",
+      "description": "Su envío ha sido recibido. Nuestro equipo revisará y lo contactará si es necesario."
+    },
+    "review": {
+      "classes": "clases"
+    },
+    "forClient": "Para el cliente: {{name}}",
+    "contactInfo": "Si necesita asistencia, contacte a su coordinador.",
+    "submittedDesc": "Nuestro equipo revisará sus documentos y lo contactará si se requiere información adicional.",
+    "linkExpiredDescription": "Este enlace expiró el {{date}}. Solicite uno nuevo a su coordinador.",
+    "linkInvalidDescription": "Este enlace puede haber sido desactivado o no existe. Contacte a su coordinador.",
+    "expired": {
+      "title": "Enlace Expirado",
+      "description": "Este enlace de envío ha expirado. Contacte a su coordinador para un nuevo enlace.",
+      "contactTitle": "¿Necesita ayuda?",
+      "contactDescription": "Contacte a su coordinador o al equipo de cumplimiento para solicitar un nuevo enlace."
+    },
+    "error": {
+      "title": "Algo salió mal",
+      "description": "No pudimos cargar esta página. Intente de nuevo o contacte a soporte."
+    }
+  },
+  "portal": {
+    "title": "Portal del Cliente",
+    "nav": {
+      "home": "Inicio",
+      "logout": "Cerrar Sesión"
+    },
+    "welcome": "Bienvenido, {{name}}",
+    "kycList": {
+      "title": "Sus Expedientes KYC",
+      "empty": "No se encontraron expedientes KYC",
+      "viewDetail": "Ver Detalles"
+    },
+    "detail": {
+      "title": "Detalle KYC",
+      "backToList": "Volver al Portal",
+      "tabs": {
+        "overview": "General",
+        "parties": "Partes",
+        "rfis": "Solicitudes de Información",
+        "documents": "Documentos"
+      },
+      "rfiRespond": "Responder",
+      "rfiRespondPlaceholder": "Ingrese su respuesta...",
+      "rfiSubmit": "Enviar Respuesta",
+      "uploadDocument": "Subir Documento",
+      "selectDocumentType": "Seleccionar tipo de documento..."
+    }
+  },
+  "onboarding": {
+    "title": "Inicie su Onboarding KYC",
+    "description": "Complete el formulario para iniciar el proceso de cumplimiento.",
+    "contactName": "Nombre de Contacto",
+    "contactEmail": "Correo de Contacto",
+    "clientName": "Nombre del Cliente / Empresa",
+    "clientType": "Tipo de Cliente",
+    "natural": "Persona Natural",
+    "corporate": "Corporativo",
+    "entityName": "Nombre de la Entidad",
+    "jurisdiction": "Jurisdicción",
+    "jurisdictions": {
+      "bvi": "BVI",
+      "panama": "Panamá",
+      "belize": "Belice"
+    },
+    "submit": "Iniciar Onboarding",
+    "submitting": "Enviando...",
+    "error": "Ocurrió un error. Intente de nuevo.",
+    "rateLimited": "Demasiadas solicitudes. Intente más tarde."
+  },
+  "admin": {
+    "title": "Administración",
+    "description": "Gestione usuarios, configuración de flujo de trabajo y ajustes del sistema.",
+    "accessDenied": "Acceso Denegado",
+    "accessDeniedDesc": "Necesita privilegios de Director para acceder al panel de administración.",
+    "accessDeniedMessage": "Necesita privilegios de Director para acceder al panel de administración.",
+    "tabs": {
+      "users": "Usuarios",
+      "workflow": "Flujo de Trabajo",
+      "jurisdictionRisks": "Riesgos Jurisdiccionales",
+      "jurisdiction": "Riesgos Jurisdiccionales",
+      "settings": "Configuración"
+    },
+    "users": {
+      "title": "Gestión de Usuarios",
+      "description": "Crear, editar y gestionar usuarios de la plataforma.",
+      "createUser": "Crear Usuario",
+      "editUser": "Editar Usuario",
+      "deactivateUser": "Desactivar Usuario",
+      "deactivateConfirm": "¿Está seguro de que desea desactivar este usuario? Ya no podrá iniciar sesión.",
+      "email": "Correo Electrónico",
+      "password": "Contraseña",
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "role": "Rol",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "dateJoined": "Fecha de Registro",
+      "noUsers": "No se encontraron usuarios",
+      "allRoles": "Todos los Roles",
+      "allStatuses": "Todos los Estados",
+      "createSuccess": "Usuario creado exitosamente",
+      "updateSuccess": "Usuario actualizado exitosamente",
+      "deactivateSuccess": "Usuario desactivado",
+      "sendMagicLink": "Enviar Enlace Mágico",
+      "magicLinkSent": "Enlace mágico enviado exitosamente",
+      "client": "Cliente",
+      "selectClient": "Seleccionar un cliente..."
+    },
+    "workflow": {
+      "title": "Configuración de Flujo de Trabajo",
+      "description": "Gestione los estados y transiciones del flujo de trabajo para el pipeline de tickets.",
+      "states": "Estados",
+      "transitions": "Transiciones",
+      "addState": "Agregar Estado",
+      "editState": "Editar Estado",
+      "deleteState": "Eliminar Estado",
+      "deleteStateConfirm": "¿Está seguro de que desea eliminar este estado? Esto podría afectar tickets existentes.",
+      "stateName": "Nombre del Estado",
+      "orderIndex": "Orden",
+      "isInitial": "Estado Inicial",
+      "isFinal": "Estado Final",
+      "noStates": "No hay estados de flujo de trabajo configurados",
+      "addTransition": "Agregar Transición",
+      "editTransition": "Editar Transición",
+      "deleteTransition": "Eliminar Transición",
+      "deleteTransitionConfirm": "¿Está seguro de que desea eliminar esta transición?",
+      "transitionName": "Nombre de la Transición",
+      "fromState": "Desde Estado",
+      "toState": "Hacia Estado",
+      "allowedRoles": "Roles Permitidos",
+      "noTransitions": "No hay transiciones configuradas",
+      "flowDiagram": "Flujo de Trabajo"
+    },
+    "jurisdictionRisks": {
+      "title": "Pesos de Riesgo Jurisdiccional",
+      "description": "Gestione los pesos de riesgo por país utilizados en el cálculo de la matriz de riesgo KYC.",
+      "addCountry": "Agregar País",
+      "editCountry": "Editar Riesgo",
+      "deleteCountry": "Eliminar País",
+      "deleteConfirm": "¿Está seguro de que desea eliminar esta entrada de riesgo jurisdiccional?",
+      "countryCode": "Código",
+      "countryName": "País",
+      "riskWeight": "Peso de Riesgo",
+      "riskLevel": "Nivel de Riesgo",
+      "noCountries": "No hay riesgos jurisdiccionales configurados",
+      "lowRisk": "Bajo",
+      "mediumRisk": "Medio",
+      "highRisk": "Alto",
+      "veryHighRisk": "Muy Alto",
+      "searchCountry": "Buscar por nombre de país..."
+    },
+    "settings": {
+      "title": "Configuración del Sistema",
+      "description": "Ver configuración del sistema y estado de las integraciones.",
+      "integrations": "Estado de Integraciones",
+      "integrationStatus": "Estado de Integraciones",
+      "integrationError": "Error al cargar el estado de las integraciones.",
+      "connected": "Conectado",
+      "disconnected": "No Configurado",
+      "systemInfo": "Información del Sistema",
+      "backend": "Backend",
+      "database": "Base de Datos",
+      "quickLinks": "Enlaces Rápidos",
+      "djangoAdmin": "Abrir Django Admin",
+      "djangoAdminDesc": "Acceda al panel de administración de Django para configuración avanzada.",
+      "apiDocs": "Documentación API",
+      "apiDocsDesc": "Ver la documentación de la API REST."
+    }
+  },
+  "kanban": {
+    "title": "Tablero Kanban",
+    "createTicket": "Crear Ticket",
+    "noTickets": "No hay tickets en esta columna",
+    "ticketCount": "{{count}} ticket",
+    "ticketCount_plural": "{{count}} tickets",
+    "views": {
+      "all": "Todos los Tickets",
+      "my": "Mis Tickets",
+      "gestora": "Vista Gestora",
+      "compliance": "Vista Cumplimiento",
+      "registry": "Vista Registro Público"
+    }
+  },
+  "clients": {
+    "title": "Clientes",
+    "create": "Nuevo Cliente",
+    "noClients": "No se encontraron clientes",
+    "columns": {
+      "name": "Nombre",
+      "type": "Tipo",
+      "category": "Categoría",
+      "status": "Estado",
+      "created": "Creado"
+    },
+    "detail": {
+      "tabs": {
+        "overview": "General",
+        "entities": "Entidades",
+        "matters": "Asuntos",
+        "invoices": "Facturas",
+        "tickets": "Tickets",
+        "people": "Personas",
+        "contacts": "Contactos",
+        "portalAccess": "Acceso al Portal"
+      }
+    },
+    "contacts": {
+      "title": "Contactos del Cliente",
+      "addContact": "Agregar Contacto",
+      "editContact": "Editar Contacto",
+      "noContacts": "No se han agregado contactos.",
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "email": "Correo Electrónico",
+      "phone": "Teléfono",
+      "position": "Cargo",
+      "portalAccess": "Acceso al Portal",
+      "deleteConfirm": "¿Está seguro de que desea eliminar este contacto?"
+    },
+    "portalAccess": {
+      "clientUsers": "Usuarios del Cliente",
+      "guestLinks": "Enlaces de Invitado Activos",
+      "kycSubmissions": "Expedientes KYC",
+      "sendMagicLink": "Enviar Enlace Mágico",
+      "inviteUser": "Invitar Usuario Cliente",
+      "generateLink": "Generar Enlace",
+      "noLinks": "No hay enlaces de invitado activos",
+      "noUsers": "No hay usuarios del cliente",
+      "linkUrl": "URL del Enlace",
+      "expires": "Expira"
+    },
+    "filters": {
+      "allTypes": "Todos los Tipos",
+      "allCategories": "Todas las Categorías",
+      "allStatuses": "Todos los Estados",
+      "search": "Buscar clientes..."
+    },
+    "form": {
+      "name": "Nombre",
+      "aderantClientId": "ID Cliente Aderant",
+      "clientType": "Tipo de Cliente",
+      "category": "Categoría",
+      "status": "Estado",
+      "natural": "Persona Natural",
+      "corporate": "Corporativo",
+      "silver": "Plata",
+      "gold": "Oro",
+      "platinum": "Platino",
+      "active": "Activo",
+      "inactive": "Inactivo"
+    }
+  },
+  "entities": {
+    "title": "Entidades",
+    "create": "Nueva Entidad",
+    "noEntities": "No se encontraron entidades",
+    "columns": {
+      "name": "Nombre",
+      "jurisdiction": "Jurisdicción",
+      "client": "Cliente",
+      "status": "Estado",
+      "incorporationDate": "Fecha de Incorporación"
+    },
+    "detail": {
+      "tabs": {
+        "overview": "General",
+        "corporateStructure": "Estructura Corporativa",
+        "riskProfile": "Perfil de Riesgo",
+        "matters": "Asuntos",
+        "tickets": "Tickets",
+        "documents": "Documentos",
+        "accessLinks": "Enlaces de Acceso",
+        "audit": "Historial de Auditoría"
+      }
+    },
+    "accessLinks": {
+      "guestLinks": "Enlaces de Invitado Activos",
+      "kycSubmissions": "Expedientes KYC",
+      "noLinks": "No hay enlaces de invitado activos",
+      "linkUrl": "URL del Enlace",
+      "expires": "Expira"
+    },
+    "officers": {
+      "title": "Directores y Oficiales",
+      "add": "Agregar Oficial",
+      "holder": "Titular",
+      "holderType": "Tipo de Titular",
+      "person": "Persona",
+      "position": "Cargo",
+      "startDate": "Fecha de Inicio",
+      "endDate": "Fecha de Fin",
+      "active": "Activo",
+      "searchPerson": "Buscar persona...",
+      "createNew": "Crear Nuevo",
+      "createNewPerson": "Crear Nueva Persona",
+      "createNewEntity": "Crear Nueva Entidad",
+      "createAndSelect": "Crear y Seleccionar",
+      "backToSearch": "Volver a Buscar",
+      "edit": "Editar Oficial",
+      "positions": {
+        "director": "Director",
+        "president": "Presidente",
+        "secretary": "Secretario",
+        "treasurer": "Tesorero",
+        "registered_agent": "Agente Residente",
+        "protector": "Protector",
+        "authorized_signatory": "Firmante Autorizado",
+        "other": "Otro"
+      }
+    },
+    "shareRegister": {
+      "title": "Registro de Acciones",
+      "addClass": "Agregar Clase de Acciones",
+      "addIssuance": "Agregar Emisión",
+      "className": "Nombre de Clase",
+      "currency": "Moneda",
+      "parValue": "Valor Par",
+      "authorizedShares": "Acciones Autorizadas",
+      "votingRights": "Derechos de Voto",
+      "voting": "Con Voto",
+      "holder": "Tenedor",
+      "shares": "Acciones",
+      "certificate": "Certificado #",
+      "flags": "Indicadores",
+      "issueDate": "Fecha de Emisión",
+      "numShares": "Número de Acciones",
+      "trustee": "Fiduciario",
+      "heldAsTrustee": "Mantenido como Fiduciario",
+      "trusteeFor": "Fiduciario de",
+      "jtwrosPartner": "Nombre del Copropietario JTWROS",
+      "personHolder": "Persona",
+      "entityHolder": "Entidad",
+      "entityType": "Entidad",
+      "searchEntity": "Buscar entidad...",
+      "noParValue": "Sin Valor Par",
+      "editIssuance": "Editar Emisión"
+    },
+    "ubos": {
+      "title": "Beneficiarios Finales",
+      "person": "Persona",
+      "via": "Cadena de Propiedad",
+      "direct": "Directo",
+      "ownership": "% Efectivo",
+      "noUbos": "No se encontraron beneficiarios finales (>=25%)",
+      "derivationNote": "Los UBOs se calculan recursivamente a través de la cadena completa de propiedad. Se muestran personas con >=25% de participación efectiva."
+    },
+    "orgChart": {
+      "title": "Estructura de Propiedad",
+      "empty": "No hay accionistas para mostrar",
+      "person": "Persona",
+      "entity": "Entidad"
+    },
+    "activities": {
+      "title": "Actividades",
+      "add": "Agregar Actividad",
+      "activity": "Actividad",
+      "countries": "Países",
+      "countryRisk": "Riesgo País",
+      "riskLevel": "Riesgo de Actividad",
+      "description": "Descripción",
+      "selectActivity": "Seleccionar actividad...",
+      "selectCountries": "Buscar países...",
+      "defaultRisk": "Riesgo por defecto de actividad"
+    },
+    "sourcesOfFunds": {
+      "title": "Origen de Fondos",
+      "add": "Agregar Origen",
+      "source": "Origen",
+      "selectSource": "Seleccionar un origen...",
+      "countries": "Países",
+      "selectCountries": "Buscar países...",
+      "countryRisk": "Riesgo País",
+      "riskLevel": "Riesgo de Origen",
+      "description": "Descripción"
+    },
+    "audit": {
+      "title": "Historial de Auditoría",
+      "noEntries": "No se encontraron entradas de auditoría",
+      "timestamp": "Fecha",
+      "user": "Usuario",
+      "source": "Origen",
+      "recordType": "Tipo de Registro",
+      "field": "Campo",
+      "change": "Cambio",
+      "comment": "Comentario",
+      "sources": {
+        "internal": "Edición Interna",
+        "guest_submission": "Envío de Invitado",
+        "approval": "Aprobación",
+        "send_back": "Devuelto"
+      }
+    },
+    "filters": {
+      "allJurisdictions": "Todas las Jurisdicciones",
+      "allStatuses": "Todos los Estados",
+      "search": "Buscar entidades..."
+    },
+    "form": {
+      "name": "Nombre",
+      "jurisdiction": "Jurisdicción",
+      "client": "Cliente",
+      "incorporationDate": "Fecha de Incorporación",
+      "status": "Estado",
+      "bvi": "BVI",
+      "panama": "Panamá",
+      "belize": "Belice",
+      "pending": "Pendiente",
+      "active": "Activa",
+      "dissolved": "Disuelta",
+      "struckOff": "Cancelada"
+    }
+  },
+  "people": {
+    "title": "Personas",
+    "create": "Nueva Persona",
+    "noPeople": "No se encontraron personas",
+    "columns": {
+      "fullName": "Nombre Completo",
+      "type": "Tipo",
+      "nationality": "Nacionalidad",
+      "idNumber": "Número de ID",
+      "pepStatus": "Estado PEP",
+      "client": "Cliente"
+    },
+    "detail": {
+      "tabs": {
+        "overview": "General",
+        "kycParties": "Partes KYC",
+        "screening": "Verificación",
+        "sourceOfWealth": "Origen de Riqueza"
+      }
+    },
+    "sourcesOfWealth": {
+      "title": "Origen de Riqueza",
+      "add": "Agregar Origen",
+      "description": "Descripción",
+      "riskLevel": "Nivel de Riesgo"
+    },
+    "filters": {
+      "allTypes": "Todos los Tipos",
+      "allPep": "Todos los Estados PEP",
+      "pepYes": "PEP",
+      "pepNo": "No PEP",
+      "search": "Buscar personas..."
+    },
+    "form": {
+      "fullName": "Nombre Completo",
+      "personType": "Tipo",
+      "nationality": "Nacionalidad",
+      "countryOfResidence": "País de Residencia",
+      "dateOfBirth": "Fecha de Nacimiento",
+      "idNumber": "Número de ID",
+      "idType": "Tipo de ID",
+      "pepStatus": "Estado PEP",
+      "client": "Cliente",
+      "natural": "Persona Natural",
+      "corporate": "Corporativo",
+      "scanDocument": "Escanear Documento",
+      "scanDropzone": "Suelte un pasaporte o documento de identidad aquí",
+      "extractData": "Extraer Datos"
+    },
+    "pep": "PEP",
+    "notPep": "No PEP"
+  },
+  "invoices": {
+    "comingSoon": "Integración con Aderant ERP próximamente",
+    "comingSoonDesc": "Los datos de facturación se sincronizarán desde Aderant una vez configurada la integración."
+  },
+  "roles": {
+    "coordinator": "Coordinador",
+    "compliance_officer": "Oficial de Cumplimiento",
+    "gestora": "Gestora",
+    "director": "Director",
+    "client": "Cliente"
+  },
+  "risk": {
+    "low": "Riesgo Bajo",
+    "medium": "Riesgo Medio",
+    "high": "Riesgo Alto",
+    "score": "Puntaje de Riesgo"
+  },
+  "riskLevels": {
+    "low": "Bajo",
+    "medium": "Medio",
+    "high": "Alto",
+    "ultraHigh": "Ultra Alto"
+  },
+  "priority": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "urgent": "Urgente"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "remove": "Quitar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "noResults": "No se encontraron resultados",
+    "confirm": "Confirmar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "actions": "Acciones",
+    "error": "Ocurrió un error",
+    "retry": "Reintentar",
+    "yes": "Sí",
+    "no": "No",
+    "all": "Todos",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "refresh": "Actualizar",
+    "close": "Cerrar",
+    "submit": "Enviar",
+    "view": "Ver",
+    "download": "Descargar",
+    "uploaded": "Subido",
+    "pending": "Pendiente",
+    "processing": "Procesando",
+    "completed": "Completado",
+    "failed": "Fallido"
+  }
+}

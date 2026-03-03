@@ -1,0 +1,206 @@
+{
+  "list": {
+    "title": "KYC Submissions",
+    "description": "Manage Know Your Customer submissions and compliance reviews.",
+    "newKYC": "New KYC",
+    "empty": "No KYC submissions found.",
+    "showing": "Showing {{count}} of {{total}} submissions"
+  },
+  "statusFilter": {
+    "all": "All",
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "underReview": "Under Review",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "columns": {
+    "id": "ID",
+    "ticket": "Ticket",
+    "status": "Status",
+    "submittedAt": "Submitted At",
+    "createdAt": "Created At"
+  },
+  "status": {
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "under_review": "Under Review",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "actions": {
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "backToList": "Back to list",
+    "addParty": "Add Party",
+    "updateParty": "Update Party"
+  },
+  "new": {
+    "title": "New KYC Submission",
+    "selectTicket": "Select a ticket to begin the KYC process.",
+    "formTitle": "KYC Form",
+    "formHint": "Complete all the steps below and submit when ready.",
+    "searchPlaceholder": "Search tickets by title, ID or client...",
+    "noTickets": "No tickets found",
+    "noTicketsSearch": "No tickets match your search. Try different keywords.",
+    "noTicketsAvailable": "There are no tickets available to start a KYC submission.",
+    "client": "Client",
+    "entity": "Entity",
+    "created": "Created",
+    "select": "Select"
+  },
+  "detail": {
+    "title": "KYC Submission",
+    "editTitle": "Edit KYC Submission"
+  },
+  "steps": {
+    "entityInfo": "Entity Information",
+    "parties": "Parties",
+    "uboDeclaration": "UBO Declaration",
+    "documents": "Documents",
+    "review": "Review & Submit"
+  },
+  "fields": {
+    "kycId": "KYC ID",
+    "ticket": "Ticket",
+    "status": "Status",
+    "createdAt": "Created At",
+    "submittedAt": "Submitted At",
+    "reviewedAt": "Reviewed At",
+    "partyType": "Party Type",
+    "role": "Role",
+    "name": "Name",
+    "namePlaceholder": "Full name or entity name",
+    "nationality": "Nationality",
+    "nationalityPlaceholder": "e.g. PA, US, GB",
+    "countryOfResidence": "Country of Residence",
+    "countryPlaceholder": "e.g. PA, US, GB",
+    "ownership": "Ownership",
+    "ownershipPercentage": "Ownership Percentage",
+    "dateOfBirth": "Date of Birth",
+    "dob": "DOB",
+    "identificationNumber": "Identification Number",
+    "idPlaceholder": "Passport or ID number",
+    "registryNumber": "Registry Number",
+    "registryPlaceholder": "Corporate registry number",
+    "pepStatus": "Politically Exposed Person (PEP)"
+  },
+  "entityInfoHint": "This information is derived from the linked ticket. Proceed to the next step to add parties.",
+  "tabs": {
+    "overview": "Overview",
+    "parties": "Parties",
+    "documents": "Documents",
+    "risk": "Risk",
+    "rfis": "RFIs"
+  },
+  "party": {
+    "add": "Add Party",
+    "addFirst": "Add First Party",
+    "addTitle": "Add Party",
+    "editTitle": "Edit Party",
+    "deleteTitle": "Delete Party",
+    "deleteConfirm": "Are you sure you want to delete this party? This action cannot be undone.",
+    "empty": "No parties have been added yet.",
+    "natural": "Natural Person",
+    "corporate": "Corporate Entity",
+    "pep": "PEP",
+    "linkExisting": "Link Existing Person"
+  },
+  "ubo": {
+    "totalOwnership": "Total Ownership",
+    "noUbos": "No UBOs or shareholders have been added. Go back to the Parties step to add them.",
+    "ownershipSummary": "Ownership Summary",
+    "ownershipExceeds": "Total ownership exceeds 100%. Please adjust the ownership percentages.",
+    "ownershipIncomplete": "Total ownership does not sum to 100%. Please verify the ownership percentages."
+  },
+  "documents": {
+    "empty": "No documents uploaded yet.",
+    "uploadLabel": "Click to upload",
+    "dragHint": "or drag and drop",
+    "acceptedFormats": "PDF, DOC, DOCX, JPG, JPEG, PNG",
+    "uploading": "Uploading...",
+    "uploadedOn": "Uploaded on {{date}}"
+  },
+  "navigation": {
+    "previous": "Previous",
+    "next": "Next",
+    "saving": "Saving..."
+  },
+  "review": {
+    "entityInfo": "Entity Information",
+    "parties": "Parties",
+    "noParties": "No parties added.",
+    "riskAssessment": "Risk Assessment",
+    "documents": "Documents",
+    "noDocuments": "No documents uploaded.",
+    "readyToSubmit": "Ready to Submit?",
+    "submitHint": "Once submitted, the KYC will be reviewed by the compliance team.",
+    "fixErrors": "Please fix the errors above before submitting.",
+    "warnings": {
+      "noParties": "At least one party is required.",
+      "ownershipNotComplete": "UBO/Shareholder ownership does not sum to 100%.",
+      "noDocuments": "No supporting documents have been uploaded.",
+      "pepPresent": "One or more parties are flagged as Politically Exposed Persons (PEP).",
+      "missingId": "One or more parties are missing identification numbers."
+    }
+  },
+  "risk": {
+    "title": "Risk Assessment",
+    "score": "Risk Score",
+    "breakdown": "Score Breakdown",
+    "trigger": "Trigger",
+    "low": "Low Risk",
+    "medium": "Medium Risk",
+    "high": "High Risk",
+    "noAssessment": "No risk assessment available.",
+    "calculateHint": "Click \"Recalculate\" to generate a risk assessment.",
+    "recalculate": "Recalculate",
+    "assessedAt": "Assessed on {{date}}"
+  },
+  "rfis": {
+    "empty": "No requests for information yet.",
+    "hint": "RFIs will appear here when the compliance team requests additional information."
+  },
+  "roles": {
+    "ubo": "UBO",
+    "director": "Director",
+    "shareholder": "Shareholder",
+    "protector": "Protector",
+    "authorized_signatory": "Authorized Signatory"
+  },
+  "personSearch": {
+    "title": "Search Existing Persons",
+    "placeholder": "Search by name or ID...",
+    "minChars": "Type at least 2 characters to search.",
+    "noResults": "No matching persons found.",
+    "createHint": "You can create a new party manually by closing this dialog.",
+    "natural": "Natural",
+    "corporate": "Corporate",
+    "pep": "PEP"
+  },
+  "errors": {
+    "loadFailed": "Failed to load KYC submission.",
+    "loadListFailed": "Failed to load KYC submissions.",
+    "loadTicketsFailed": "Failed to load tickets.",
+    "createFailed": "Failed to create KYC submission.",
+    "saveFailed": "Failed to save. Please try again."
+  },
+  "validation": {
+    "partyTypeRequired": "Party type is required.",
+    "roleRequired": "Role is required.",
+    "nameRequired": "Name is required.",
+    "nameTooLong": "Name must be 255 characters or less.",
+    "nationalityRequired": "Nationality is required.",
+    "countryRequired": "Country of residence is required.",
+    "ownershipMin": "Ownership must be 0% or more.",
+    "ownershipMax": "Ownership must be 100% or less.",
+    "ownershipRequired": "Ownership percentage is required for this role.",
+    "dobRequired": "Date of birth is required.",
+    "idRequired": "Identification number is required.",
+    "atLeastOneParty": "At least one party is required.",
+    "documentsRequired": "At least one document must be uploaded."
+  }
+}
