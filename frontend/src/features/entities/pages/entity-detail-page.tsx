@@ -20,11 +20,12 @@ import { AccessLinksTab } from "../components/access-links-tab";
 import { AuditTab } from "../components/audit-tab";
 import { CorporateStructureTab } from "../components/corporate-structure-tab";
 import { RiskProfileTab } from "../components/risk-profile-tab";
+import { EntityRiskAssessmentTab } from "../components/entity-risk-assessment-tab";
 import type { Matter, Ticket } from "@/types";
 
-type Tab = "overview" | "corporateStructure" | "riskProfile" | "matters" | "tickets" | "accessLinks" | "audit";
+type Tab = "overview" | "corporateStructure" | "riskProfile" | "riskAssessment" | "matters" | "tickets" | "accessLinks" | "audit";
 
-const tabs: Tab[] = ["overview", "corporateStructure", "riskProfile", "matters", "tickets", "accessLinks", "audit"];
+const tabs: Tab[] = ["overview", "corporateStructure", "riskProfile", "riskAssessment", "matters", "tickets", "accessLinks", "audit"];
 
 const jurisdictionColors: Record<string, "blue" | "green" | "yellow"> = {
   bvi: "blue",
@@ -293,6 +294,10 @@ export default function EntityDetailPage() {
           <RiskProfileTab entityId={id!} />
         )}
 
+        {activeTab === "riskAssessment" && (
+          <EntityRiskAssessmentTab entityId={id!} />
+        )}
+
         {activeTab === "matters" && (
           <div className="rounded-lg border border-gray-200 bg-white">
             <DataTable
@@ -318,8 +323,12 @@ export default function EntityDetailPage() {
           </div>
         )}
 
-        {activeTab === "accessLinks" && (
-          <AccessLinksTab entityId={id!} />
+        {activeTab === "accessLinks" && entity && (
+          <AccessLinksTab
+            entityId={id!}
+            clientId={entity.client.id}
+            entityName={entity.name}
+          />
         )}
 
         {activeTab === "audit" && (

@@ -386,17 +386,39 @@ class PersonViewSet(ModelViewSet):
         pep_status = self.request.query_params.get("pep_status")
         if pep_status is not None and pep_status != "":
             qs = qs.filter(pep_status=pep_status.lower() == "true")
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            qs = qs.filter(status=status_filter)
         search = self.request.query_params.get("search")
         if search:
-            qs = qs.filter(full_name__icontains=search)
+            from django.db.models import Q
+            qs = qs.filter(Q(full_name__icontains=search) | Q(last_name__icontains=search))
         return qs
 
     def create(self, request, *args, **kwargs):
         serializer = PersonInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         person = services.create_person(**serializer.validated_data)
+        services.log_person_creation(
+            person=person,
+            changed_by=request.user,
+        )
         output = PersonOutputSerializer(person)
         return Response(output.data, status=status.HTTP_201_CREATED)
+
+    def _snapshot_person(self, instance):
+        return {
+            "full_name": instance.full_name,
+            "last_name": instance.last_name,
+            "person_type": instance.person_type,
+            "nationality_id": str(instance.nationality_id) if instance.nationality_id else None,
+            "country_of_residence_id": str(instance.country_of_residence_id) if instance.country_of_residence_id else None,
+            "date_of_birth": str(instance.date_of_birth) if instance.date_of_birth else None,
+            "identification_number": instance.identification_number,
+            "identification_type": instance.identification_type,
+            "pep_status": instance.pep_status,
+            "status": instance.status,
+        }
 
     def _apply_person_fk_updates(self, instance, data):
         for key in ("client_id", "nationality_id", "country_of_residence_id"):
@@ -406,25 +428,80 @@ class PersonViewSet(ModelViewSet):
         for attr, value in data.items():
             setattr(instance, attr, value)
 
+    def _trigger_recalc_if_risk_fields_changed(self, old_data, new_data, person_id):
+        """Trigger risk recalculation if PEP, nationality, or residence changed."""
+        risk_fields = ("pep_status", "nationality_id", "country_of_residence_id")
+        changed = any(old_data.get(f) != new_data.get(f) for f in risk_fields)
+        if changed:
+            from apps.compliance.services import request_risk_recalculation
+            request_risk_recalculation(person_id=person_id)
+            # Also recalc entities this person is linked to
+            from apps.core.models import EntityOfficer, ShareIssuance
+            entity_ids = set()
+            entity_ids.update(
+                EntityOfficer.objects.filter(officer_person_id=person_id).values_list("entity_id", flat=True)
+            )
+            entity_ids.update(
+                ShareIssuance.objects.filter(shareholder_person_id=person_id).values_list("share_class__entity_id", flat=True)
+            )
+            for eid in entity_ids:
+                request_risk_recalculation(entity_id=eid)
+
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        old_data = self._snapshot_person(instance)
         serializer = PersonInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         self._apply_person_fk_updates(instance, data)
         instance.save()
+        new_data = self._snapshot_person(instance)
+        services.log_person_changes(
+            person=instance, model_name="person", old_data=old_data,
+            new_data=new_data, changed_by=request.user,
+        )
+        self._trigger_recalc_if_risk_fields_changed(old_data, new_data, instance.id)
         output = PersonOutputSerializer(instance)
         return Response(output.data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
+        old_data = self._snapshot_person(instance)
         serializer = PersonInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         self._apply_person_fk_updates(instance, data)
         instance.save()
+        new_data = self._snapshot_person(instance)
+        services.log_person_changes(
+            person=instance, model_name="person", old_data=old_data,
+            new_data=new_data, changed_by=request.user,
+        )
+        self._trigger_recalc_if_risk_fields_changed(old_data, new_data, instance.id)
         output = PersonOutputSerializer(instance)
         return Response(output.data)
+
+    @action(detail=True, methods=["get"], url_path="audit-log")
+    def audit_log(self, request, pk=None):
+        """Return paginated audit log entries for this person."""
+        from .models import PersonAuditLog
+        from .serializers import PersonAuditLogOutputSerializer
+
+        person = self.get_object()
+        qs = PersonAuditLog.objects.filter(person=person).select_related(
+            "changed_by"
+        ).order_by("-created_at")
+
+        source = request.query_params.get("source")
+        if source:
+            qs = qs.filter(source=source)
+
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = PersonAuditLogOutputSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = PersonAuditLogOutputSerializer(qs, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def search(self, request):

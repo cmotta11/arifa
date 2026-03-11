@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Compliance Snapshot Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #333; line-height: 1.5; }
+  .header { background: #1a237e; color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header .meta { font-size: 9px; text-align: right; opacity: 0.9; }
+  .confidential { background: #f44336; color: white; font-size: 8px; padding: 2px 8px; border-radius: 3px; display: inline-block; margin-top: 4px; }
+  .content { padding: 20px 30px; }
+  .section { margin-bottom: 16px; }
+  .section-title { font-size: 13px; font-weight: 600; color: #1a237e; border-bottom: 2px solid #1a237e; padding-bottom: 4px; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  th, td { padding: 5px 8px; text-align: left; border: 1px solid #ddd; font-size: 10px; }
+  th { background: #f5f5f5; font-weight: 600; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0; }
+  .stat-card { border: 1px solid #ddd; border-radius: 6px; padding: 12px; text-align: center; }
+  .stat-card .number { font-size: 28px; font-weight: 700; }
+  .stat-card .label { font-size: 10px; color: #666; }
+  .stat-high { border-color: #f44336; }
+  .stat-high .number { color: #f44336; }
+  .stat-medium { border-color: #ff9800; }
+  .stat-medium .number { color: #ff9800; }
+  .stat-low { border-color: #4caf50; }
+  .stat-low .number { color: #4caf50; }
+  .risk-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-weight: 600; font-size: 9px; color: white; }
+  .risk-low { background: #4caf50; }
+  .risk-medium { background: #ff9800; }
+  .risk-high { background: #f44336; }
+  .footer { border-top: 1px solid #ddd; padding: 10px 30px; font-size: 8px; color: #999; display: flex; justify-content: space-between; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+  .info-grid dt { font-weight: 600; color: #666; }
+  .info-grid dd { color: #333; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ARIFA - Compliance Snapshot Report</h1>
+    <div class="confidential">CONFIDENTIAL</div>
+  </div>
+  <div class="meta">
+    <div>Snapshot ID: {{ snapshot.id }}</div>
+    <div>Date: {{ snapshot.snapshot_date|date:"M d, Y H:i" }}</div>
+    <div>Status: {{ snapshot.get_status_display }}</div>
+  </div>
+</div>
+
+<div class="content">
+
+<div class="section">
+  <h2 class="section-title">Snapshot Overview</h2>
+  <dl class="info-grid">
+    <dt>Name</dt><dd>{{ snapshot.name }}</dd>
+    <dt>Date</dt><dd>{{ snapshot.snapshot_date|date:"M d, Y H:i" }}</dd>
+    <dt>Total Entities</dt><dd>{{ snapshot.total_entities }}</dd>
+    <dt>Total Persons</dt><dd>{{ snapshot.total_persons }}</dd>
+    {% if snapshot.notes %}<dt>Notes</dt><dd>{{ snapshot.notes }}</dd>{% endif %}
+  </dl>
+</div>
+
+<div class="section">
+  <h2 class="section-title">Risk Distribution</h2>
+  <div class="stats-grid">
+    <div class="stat-card stat-high">
+      <div class="number">{{ snapshot.high_risk_count }}</div>
+      <div class="label">High Risk</div>
+    </div>
+    <div class="stat-card stat-medium">
+      <div class="number">{{ snapshot.medium_risk_count }}</div>
+      <div class="label">Medium Risk</div>
+    </div>
+    <div class="stat-card stat-low">
+      <div class="number">{{ snapshot.low_risk_count }}</div>
+      <div class="label">Low Risk</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2 class="section-title">Assessment Details</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Score</th>
+        <th>Risk Level</th>
+        <th>Auto-Triggered</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in assessments %}
+      <tr>
+        <td>{% if a.entity %}Entity{% elif a.person %}Person{% else %}KYC{% endif %}</td>
+        <td>{% if a.entity %}{{ a.entity.name }}{% elif a.person %}{{ a.person.display_name }}{% else %}{{ a.kyc_submission_id }}{% endif %}</td>
+        <td>{{ a.total_score }}</td>
+        <td><span class="risk-badge risk-{{ a.risk_level }}">{{ a.get_risk_level_display }}</span></td>
+        <td>{% if a.is_auto_triggered %}Yes{% else %}No{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+</div>
+
+<div class="footer">
+  <span>ARIFA Legal Services - Confidential Compliance Report</span>
+  <span>Snapshot ID: {{ snapshot.id }}</span>
+</div>
+
+</body>
+</html>

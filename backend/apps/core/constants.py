@@ -65,6 +65,12 @@ class OfficerPosition(models.TextChoices):
     OTHER = "other", "Other"
 
 
+class PersonStatus(models.TextChoices):
+    PENDING_APPROVAL = "pending_approval", "Pending Approval"
+    APPROVED = "approved", "Approved"
+    REJECTED = "rejected", "Rejected"
+
+
 class AuditAction(models.TextChoices):
     CREATE = "create", "Create"
     UPDATE = "update", "Update"

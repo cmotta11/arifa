@@ -129,6 +129,7 @@ export interface EntitySnapshot {
     jurisdiction: string;
     incorporation_date: string | null;
     status: string;
+    nominal_directors_requested: boolean;
   };
   officers: SnapshotOfficer[];
   share_classes: SnapshotShareClass[];
@@ -217,6 +218,13 @@ async function proposeEntityChanges(
   return api.post<KYCSubmission>(`/compliance/kyc/${kycId}/propose-changes/`, {
     proposed_entity_data: data,
   });
+}
+
+async function guestCreatePerson(
+  kycId: string,
+  data: Record<string, unknown>,
+): Promise<SnapshotPerson> {
+  return api.post<SnapshotPerson>(`/compliance/kyc/${kycId}/create-person/`, data);
 }
 
 // ─── Query Hooks ────────────────────────────────────────────────────────────
@@ -330,6 +338,22 @@ export function useGuestEntitySnapshot(kycId: string | undefined) {
     queryKey: guestKeys.entitySnapshot(kycId!),
     queryFn: () => fetchEntitySnapshot(kycId!),
     enabled: !!kycId,
+  });
+}
+
+export function useGuestCreatePerson(kycId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      guestCreatePerson(kycId!, data),
+    onSuccess: () => {
+      if (kycId) {
+        queryClient.invalidateQueries({
+          queryKey: guestKeys.entitySnapshot(kycId),
+        });
+      }
+    },
   });
 }
 

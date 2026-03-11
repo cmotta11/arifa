@@ -444,9 +444,17 @@
       "contactTitle": "Need Help?",
       "contactDescription": "Contact your coordinator or compliance team to request a new link."
     },
+    "nominalDirectors": {
+      "toggle": "Request Nominal Directors",
+      "infoTitle": "About Nominal Directors",
+      "infoDescription": "Nominal directors are professional directors provided by the firm to act on behalf of your entity. This is a common practice for privacy and convenience.",
+      "costNote": "Note: Additional annual fees apply for nominal director services.",
+      "requested": "Nominal Directors Requested"
+    },
     "error": {
       "title": "Something went wrong",
-      "description": "We couldn't load this page. Please try again or contact support."
+      "description": "We couldn't load this page. Please try again or contact support.",
+      "loadFailed": "We couldn't load the entity data. Please try again."
     }
   },
   "portal": {
@@ -697,6 +705,7 @@
         "overview": "Overview",
         "corporateStructure": "Corporate Structure",
         "riskProfile": "Risk Profile",
+        "riskAssessment": "Risk Assessment",
         "matters": "Matters",
         "tickets": "Tickets",
         "documents": "Documents",
@@ -709,7 +718,11 @@
       "kycSubmissions": "KYC Submissions",
       "noLinks": "No active guest links",
       "linkUrl": "Link URL",
-      "expires": "Expires"
+      "expires": "Expires",
+      "createKycLink": "Create KYC & Guest Link",
+      "selectTicket": "Select a Ticket",
+      "selectTicketDesc": "Choose the ticket to create a KYC submission and guest link for.",
+      "noTicketsAvailable": "No tickets available without an existing KYC submission."
     },
     "officers": {
       "title": "Officers & Directors",
@@ -764,7 +777,14 @@
       "entityType": "Entity",
       "searchEntity": "Search entity...",
       "noParValue": "No Par Value",
-      "editIssuance": "Edit Issuance"
+      "editIssuance": "Edit Issuance",
+      "isJtwros": "Joint Tenants with Right of Survivorship (JTWROS)",
+      "jtwrosHint": "Joint tenancy means both holders equally own the shares. If one holder passes away, ownership automatically transfers to the surviving holder.",
+      "jtwrosPartnerName": "Co-holder Name",
+      "isTrustee": "Held as Trustee",
+      "trusteeHint": "Check this if the shareholder holds these shares on behalf of another person or entity (the beneficiary).",
+      "beneficiaryName": "Beneficiary Name",
+      "ownershipPct": "Ownership %"
     },
     "ubos": {
       "title": "Ultimate Beneficial Owners",
@@ -851,6 +871,7 @@
       "nationality": "Nationality",
       "idNumber": "ID Number",
       "pepStatus": "PEP Status",
+      "status": "Status",
       "client": "Client"
     },
     "detail": {
@@ -858,8 +879,24 @@
         "overview": "Overview",
         "kycParties": "KYC Parties",
         "screening": "Screening",
-        "sourceOfWealth": "Source of Wealth"
+        "riskAssessment": "Risk Assessment",
+        "sourceOfWealth": "Source of Wealth",
+        "auditLog": "Audit Log"
       }
+    },
+    "status": {
+      "pending_approval": "Pending Approval",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "audit": {
+      "timestamp": "Timestamp",
+      "user": "User",
+      "source": "Source",
+      "field": "Field",
+      "change": "Change",
+      "comment": "Comment",
+      "noEntries": "No audit entries found"
     },
     "sourcesOfWealth": {
       "title": "Source of Wealth",
@@ -870,12 +907,15 @@
     "filters": {
       "allTypes": "All Types",
       "allPep": "All PEP Status",
+      "allStatuses": "All Statuses",
       "pepYes": "PEP",
       "pepNo": "Not PEP",
       "search": "Search people..."
     },
     "form": {
       "fullName": "Full Name",
+      "firstName": "First Name",
+      "lastName": "Last Name",
       "personType": "Type",
       "nationality": "Nationality",
       "countryOfResidence": "Country of Residence",
@@ -883,6 +923,7 @@
       "idNumber": "ID Number",
       "idType": "ID Type",
       "pepStatus": "PEP Status",
+      "status": "Status",
       "client": "Client",
       "natural": "Natural Person",
       "corporate": "Corporate",
@@ -891,7 +932,11 @@
       "extractData": "Extract Data"
     },
     "pep": "PEP",
-    "notPep": "Not PEP"
+    "notPep": "Not PEP",
+    "quickCreate": {
+      "title": "Create New Person",
+      "create": "Create Person"
+    }
   },
   "invoices": {
     "comingSoon": "Aderant ERP integration coming soon",
@@ -903,6 +948,69 @@
     "gestora": "Gestora",
     "director": "Director",
     "client": "Client"
+  },
+  "riskMatrix": {
+    "recalculate": "Recalculate Risk",
+    "exportPDF": "Export PDF",
+    "currentAssessment": "Current Assessment",
+    "noAssessment": "No risk assessment available",
+    "noAssessmentHint": "Click 'Recalculate Risk' to generate the first assessment.",
+    "assessedAt": "Assessed at",
+    "trigger": "Trigger",
+    "triggeredRules": "Automatic Triggers Fired",
+    "forced": "forced",
+    "factorBreakdown": "Factor Breakdown",
+    "factor": "Factor",
+    "score": "Score",
+    "max": "Max",
+    "bar": "Bar",
+    "riskHistory": "Risk History",
+    "noHistory": "No risk history available",
+    "config": {
+      "title": "Risk Matrix Configuration",
+      "description": "Manage risk scoring configurations, factor weights, and automatic triggers.",
+      "create": "New Configuration",
+      "name": "Name",
+      "scope": "Scope",
+      "version": "Version",
+      "thresholds": "Thresholds",
+      "factors": "Factors",
+      "active": "Active",
+      "inactive": "Inactive",
+      "activate": "Activate",
+      "duplicate": "Duplicate",
+      "noConfigs": "No risk matrix configurations found",
+      "details": "Configuration Details",
+      "jurisdiction": "Jurisdiction",
+      "entityType": "Entity Type",
+      "global": "Global",
+      "highThreshold": "High Risk Threshold",
+      "mediumThreshold": "Medium Risk Threshold",
+      "notes": "Notes",
+      "entityFactors": "Entity Factors",
+      "personFactors": "Person Factors",
+      "triggerRules": "Automatic Trigger Rules",
+      "maxScore": "Max Score",
+      "weight": "Weight",
+      "factorDescription": "Description",
+      "total": "Total",
+      "condition": "Condition",
+      "forcedLevel": "Forced Level"
+    },
+    "snapshots": {
+      "title": "Compliance Snapshots",
+      "description": "Run batch risk analyses for regulatory audits and compliance reporting.",
+      "runNew": "Run New Analysis",
+      "name": "Snapshot Name",
+      "date": "Date",
+      "riskBreakdown": "Risk Breakdown",
+      "totals": "Totals",
+      "entities": "entities",
+      "persons": "persons",
+      "noSnapshots": "No compliance snapshots found",
+      "selectSnapshot": "Select a snapshot to view its assessments",
+      "assessments": "Assessments"
+    }
   },
   "risk": {
     "low": "Low Risk",
@@ -922,6 +1030,39 @@
     "high": "High",
     "urgent": "Urgent"
   },
+  "extraction": {
+    "processing": "Analyzing your document...",
+    "processingDescription": "Our AI is reading the document and extracting the relevant fields. This usually takes a few seconds.",
+    "completed": "Extraction complete",
+    "results": "Extracted Data",
+    "failed": "Extraction failed",
+    "failedDescription": "We couldn't extract data from this document. Please try again or enter the information manually.",
+    "retry": "Try Again",
+    "dismiss": "Dismiss",
+    "applyToForm": "Apply to Form",
+    "mockDataIndicator": "Demo mode — showing sample data. Configure the LLM API for real extraction.",
+    "fields": {
+      "fullName": "Full Name",
+      "dateOfBirth": "Date of Birth",
+      "nationality": "Nationality",
+      "passportNumber": "Passport Number",
+      "expiryDate": "Expiry Date",
+      "mrzData": "MRZ Data",
+      "cedulaNumber": "Cédula Number",
+      "name": "Name",
+      "address": "Address",
+      "utilityProvider": "Utility Provider",
+      "date": "Date",
+      "entityName": "Entity Name",
+      "registrationNumber": "Registration Number",
+      "jurisdiction": "Jurisdiction",
+      "directors": "Directors",
+      "shareholders": "Shareholders",
+      "sourceDescription": "Source Description",
+      "amount": "Amount",
+      "rawText": "Raw Text"
+    }
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -938,6 +1079,7 @@
     "actions": "Actions",
     "error": "An error occurred",
     "retry": "Retry",
+    "select": "Select",
     "yes": "Yes",
     "no": "No",
     "all": "All",

@@ -7,12 +7,19 @@ import { FileDropzone } from "@/components/forms/file-dropzone";
 import { ExtractionPreview } from "@/features/documents/components/extraction-preview";
 import { useExtractDocument } from "@/features/documents/api/documents-api";
 import type { DocumentUpload } from "@/types";
-import type { JurisdictionRisk } from "@/features/admin/api/admin-api";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+/** Minimal country interface — works with both JurisdictionRisk and SnapshotCountry */
+export interface CountryLike {
+  id: string;
+  country_code: string;
+  country_name: string;
+}
+
 export interface PersonFormData {
   full_name?: string;
+  last_name?: string;
   date_of_birth?: string;
   nationality_id?: string;
   country_of_residence_id?: string;
@@ -21,7 +28,7 @@ export interface PersonFormData {
 }
 
 interface PersonDocumentScanProps {
-  jurisdictions: JurisdictionRisk[] | undefined;
+  jurisdictions: CountryLike[] | undefined;
   onApply: (data: PersonFormData) => void;
   className?: string;
 }
@@ -120,21 +127,39 @@ export function PersonDocumentScan({
     (extractedData: Record<string, unknown>) => {
       const mapped: PersonFormData = {};
 
-      if (extractedData.full_name) {
-        mapped.full_name = String(extractedData.full_name);
+      // Name: prefer split first_name/last_name, fall back to splitting full_name
+      if (extractedData.first_name) {
+        mapped.full_name = String(extractedData.first_name);
       }
+      if (extractedData.last_name) {
+        mapped.last_name = String(extractedData.last_name);
+      }
+      if (!mapped.full_name && !mapped.last_name && extractedData.full_name) {
+        const parts = String(extractedData.full_name).trim().split(/\s+/);
+        if (parts.length > 1) {
+          mapped.last_name = parts.pop()!;
+          mapped.full_name = parts.join(" ");
+        } else {
+          mapped.full_name = parts[0];
+        }
+      }
+
       if (extractedData.date_of_birth) {
         mapped.date_of_birth = String(extractedData.date_of_birth);
       }
 
-      // Map nationality text → JurisdictionRisk ID
-      const natId = resolveNationalityId(extractedData.nationality);
+      // Map nationality: prefer ISO code (nationality_code), fall back to text
+      const natId =
+        resolveNationalityId(extractedData.nationality_code) ||
+        resolveNationalityId(extractedData.nationality);
       if (natId) {
         mapped.nationality_id = natId;
       }
 
       // Map issuing_country → country_of_residence as a reasonable default
-      const corId = resolveNationalityId(extractedData.issuing_country);
+      const corId =
+        resolveNationalityId(extractedData.issuing_country_code) ||
+        resolveNationalityId(extractedData.issuing_country);
       if (corId) {
         mapped.country_of_residence_id = corId;
       }

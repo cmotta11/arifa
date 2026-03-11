@@ -10,7 +10,29 @@ export const personKeys = {
   details: () => [...personKeys.all, "detail"] as const,
   detail: (id: string) => [...personKeys.details(), id] as const,
   sourcesOfWealth: (personId: string) => [...personKeys.all, "sourcesOfWealth", personId] as const,
+  auditLog: (personId: string) => [...personKeys.all, "auditLog", personId] as const,
 };
+
+// Audit log types
+export interface PersonAuditLogEntry {
+  id: string;
+  person: string;
+  model_name: string;
+  record_id: string | null;
+  action: string;
+  field_name: string;
+  old_value: unknown;
+  new_value: unknown;
+  changed_by: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+  source: string;
+  comment: string;
+  created_at: string;
+}
 
 // Raw API functions
 async function fetchPeople(filters: Record<string, string> = {}) {
@@ -101,5 +123,27 @@ export function useDeleteSourceOfWealth() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["people"] });
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Audit Log
+// ---------------------------------------------------------------------------
+
+export function usePersonAuditLog(
+  personId: string,
+  filters: { source?: string } = {},
+) {
+  const params: Record<string, string> = { per_page: "100" };
+  if (filters.source) params.source = filters.source;
+
+  return useQuery({
+    queryKey: personKeys.auditLog(personId),
+    queryFn: () =>
+      api.get<PaginatedResponse<PersonAuditLogEntry>>(
+        `/core/persons/${personId}/audit-log/`,
+        params,
+      ),
+    enabled: !!personId,
   });
 }

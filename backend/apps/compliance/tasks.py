@@ -1,3 +1,4 @@
+import base64
 import logging
 import uuid
 
@@ -8,11 +9,8 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def extract_document_data(self, document_upload_id: str):
-    """Call the LLM extraction integration and update the DocumentUpload record.
-
-    Marks status as PROCESSING while running, then COMPLETED or FAILED.
-    """
+def extract_document_data(self, document_upload_id: str, file_b64: str = ""):
+    """Call the LLM extraction integration and update the DocumentUpload record."""
     from .constants import LLMExtractionStatus
     from .integrations.llm_extraction import LLMExtractionClient
     from .models import DocumentUpload
@@ -26,50 +24,33 @@ def extract_document_data(self, document_upload_id: str):
     doc.llm_extraction_status = LLMExtractionStatus.PROCESSING
     doc.save(update_fields=["llm_extraction_status", "updated_at"])
 
+    image_bytes = base64.b64decode(file_b64) if file_b64 else b""
+
     try:
         client = LLMExtractionClient()
-        # In production, we would read the actual file bytes from SharePoint
-        # or a temporary storage location. For now, we pass empty bytes
-        # to the extraction client.
         extraction_result = client.extract_from_image(
-            image_bytes=b"",
-            document_type=doc.document_type,
+            image_bytes=image_bytes, document_type=doc.document_type,
         )
-
         doc.llm_extraction_json = extraction_result
         doc.llm_extraction_status = LLMExtractionStatus.COMPLETED
-        doc.save(update_fields=[
-            "llm_extraction_json",
-            "llm_extraction_status",
-            "updated_at",
-        ])
-
-        logger.info(
-            "LLM extraction completed for DocumentUpload %s", document_upload_id
-        )
+        doc.save(update_fields=["llm_extraction_json", "llm_extraction_status", "updated_at"])
+        logger.info("LLM extraction completed for DocumentUpload %s", document_upload_id)
         return {
             "status": "completed",
             "document_upload_id": document_upload_id,
-            "extraction_keys": list(extraction_result.keys()),
+            "data": extraction_result,
         }
-
     except Exception as exc:
         doc.llm_extraction_status = LLMExtractionStatus.FAILED
         doc.llm_extraction_json = {"error": str(exc)}
-        doc.save(update_fields=[
-            "llm_extraction_json",
-            "llm_extraction_status",
-            "updated_at",
-        ])
-        logger.exception(
-            "LLM extraction failed for DocumentUpload %s", document_upload_id
-        )
+        doc.save(update_fields=["llm_extraction_json", "llm_extraction_status", "updated_at"])
+        logger.exception("LLM extraction failed for DocumentUpload %s", document_upload_id)
         raise self.retry(exc=exc)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def screen_party_worldcheck(self, party_id: str):
-    """Screen a party against World-Check One and create/update a WorldCheckCase."""
+    """Screen a party against World-Check One."""
     from .constants import ScreeningStatus
     from .integrations.worldcheck import WorldCheckClient
     from .models import Party, WorldCheckCase
@@ -83,242 +64,193 @@ def screen_party_worldcheck(self, party_id: str):
     try:
         wc_client = WorldCheckClient()
         entity_type = "INDIVIDUAL" if party.party_type == "natural" else "ORGANISATION"
-
         result = wc_client.screen_entity(
-            name=party.name,
-            entity_type=entity_type,
+            name=party.name, entity_type=entity_type,
             date_of_birth=str(party.date_of_birth) if party.date_of_birth else None,
             nationality=party.nationality or None,
             country_of_residence=party.country_of_residence or None,
         )
-
-        # Determine screening status from results
         case_system_id = result.get("caseSystemId", "")
         results_list = result.get("results", [])
+        screening_status = ScreeningStatus.MATCHED if results_list else ScreeningStatus.CLEAR
 
-        if results_list:
-            screening_status = ScreeningStatus.MATCHED
-        else:
-            screening_status = ScreeningStatus.CLEAR
-
-        # Create or update the WorldCheckCase
         case, _created = WorldCheckCase.objects.update_or_create(
-            party=party,
-            case_system_id=case_system_id,
-            defaults={
-                "screening_status": screening_status,
-                "last_screened_at": timezone.now(),
-                "match_data_json": result,
-            },
+            party=party, case_system_id=case_system_id,
+            defaults={"screening_status": screening_status, "last_screened_at": timezone.now(), "match_data_json": result},
         )
-
-        logger.info(
-            "World-Check screening completed for party %s: status=%s, case=%s",
-            party_id,
-            screening_status,
-            case.id,
-        )
-        return {
-            "status": "completed",
-            "party_id": party_id,
-            "screening_status": screening_status,
-            "case_id": str(case.id),
-            "matches_found": len(results_list),
-        }
-
+        logger.info("World-Check screening completed for party %s: status=%s", party_id, screening_status)
+        return {"status": "completed", "party_id": party_id, "screening_status": screening_status, "case_id": str(case.id), "matches_found": len(results_list)}
     except Exception as exc:
         logger.exception("World-Check screening failed for party %s", party_id)
         raise self.retry(exc=exc)
 
 
+# ===========================================================================
+# New risk recalculation tasks
+# ===========================================================================
+
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=30)
+def recalculate_entity_risk_task(self, entity_id: str, trigger: str = "auto"):
+    """Recalculate risk for a single entity."""
+    from .services import calculate_entity_risk
+
+    try:
+        assessment = calculate_entity_risk(entity_id=entity_id, trigger=trigger)
+        logger.info("Entity risk recalculated: entity=%s score=%d level=%s", entity_id, assessment.total_score, assessment.risk_level)
+        return {"entity_id": entity_id, "score": assessment.total_score, "level": assessment.risk_level}
+    except Exception as exc:
+        logger.exception("Entity risk recalculation failed: entity=%s", entity_id)
+        raise self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=2, default_retry_delay=30)
+def recalculate_person_risk_task(self, person_id: str, trigger: str = "auto"):
+    """Recalculate risk for a single person."""
+    from .services import calculate_person_risk
+
+    try:
+        assessment = calculate_person_risk(person_id=person_id, trigger=trigger)
+        logger.info("Person risk recalculated: person=%s score=%d level=%s", person_id, assessment.total_score, assessment.risk_level)
+        return {"person_id": person_id, "score": assessment.total_score, "level": assessment.risk_level}
+    except Exception as exc:
+        logger.exception("Person risk recalculation failed: person=%s", person_id)
+        raise self.retry(exc=exc)
+
+
 @shared_task
 def recalculate_all_risks():
-    """Iterate all active KYC submissions and recalculate risk scores.
+    """Iterate all active entities and persons and recalculate risk scores."""
+    from .constants import RecalculationStatus, RiskTrigger
+    from .models import RiskRecalculationLog
+    from .services import calculate_entity_risk, calculate_person_risk
 
-    Creates a RiskRecalculationLog entry to track the batch run.
-    """
-    from .constants import KYCStatus, RecalculationStatus, RiskTrigger
-    from .models import KYCSubmission, RiskRecalculationLog
-    from .services import calculate_risk_score
+    from apps.core.models import Entity, Person
 
     batch_id = uuid.uuid4()
     log = RiskRecalculationLog.objects.create(
-        batch_id=batch_id,
-        status=RecalculationStatus.RUNNING,
+        batch_id=batch_id, status=RecalculationStatus.RUNNING,
         triggered_by="celery:recalculate_all_risks",
     )
 
-    active_statuses = [
-        KYCStatus.SUBMITTED,
-        KYCStatus.UNDER_REVIEW,
-        KYCStatus.APPROVED,
-    ]
-    submissions = KYCSubmission.objects.filter(status__in=active_statuses)
-    log.total_entities = submissions.count()
+    entities = Entity.objects.filter(status__in=["pending", "active"])
+    persons = Person.objects.filter(status__in=["pending_approval", "approved"])
+
+    log.total_entities = entities.count()
     log.save(update_fields=["total_entities", "updated_at"])
 
     changed = 0
     recalculated = 0
 
     try:
-        for kyc in submissions.iterator():
-            # Get current assessment before recalculation
-            from . import selectors
+        for entity in entities.iterator():
+            try:
+                from . import selectors
+                previous = selectors.get_current_entity_risk(entity_id=entity.id)
+                previous_level = previous.risk_level if previous else None
 
-            previous = selectors.get_current_risk_assessment(kyc_id=kyc.id)
-            previous_level = previous.risk_level if previous else None
+                new_assessment = calculate_entity_risk(entity_id=entity.id, trigger=RiskTrigger.SCHEDULED)
+                recalculated += 1
+                if previous_level and previous_level != new_assessment.risk_level:
+                    changed += 1
+            except Exception:
+                logger.exception("Failed to recalculate entity %s", entity.id)
 
-            new_assessment = calculate_risk_score(
-                kyc_id=kyc.id, trigger=RiskTrigger.SCHEDULED
-            )
-            recalculated += 1
+        for person in persons.iterator():
+            try:
+                from . import selectors
+                previous = selectors.get_current_person_risk(person_id=person.id)
+                previous_level = previous.risk_level if previous else None
 
-            if previous_level and previous_level != new_assessment.risk_level:
-                changed += 1
+                new_assessment = calculate_person_risk(person_id=person.id, trigger=RiskTrigger.SCHEDULED)
+                recalculated += 1
+                if previous_level and previous_level != new_assessment.risk_level:
+                    changed += 1
+            except Exception:
+                logger.exception("Failed to recalculate person %s", person.id)
 
         log.recalculated_count = recalculated
         log.changed_count = changed
         log.status = RecalculationStatus.COMPLETED
         log.completed_at = timezone.now()
-        log.save(update_fields=[
-            "recalculated_count",
-            "changed_count",
-            "status",
-            "completed_at",
-            "updated_at",
-        ])
+        log.save(update_fields=["recalculated_count", "changed_count", "status", "completed_at", "updated_at"])
 
-        logger.info(
-            "Risk recalculation batch %s completed: %d/%d recalculated, %d changed",
-            batch_id,
-            recalculated,
-            log.total_entities,
-            changed,
-        )
-        return {
-            "batch_id": str(batch_id),
-            "status": "completed",
-            "recalculated": recalculated,
-            "changed": changed,
-        }
-
+        logger.info("Risk recalculation batch %s completed: %d recalculated, %d changed", batch_id, recalculated, changed)
+        return {"batch_id": str(batch_id), "status": "completed", "recalculated": recalculated, "changed": changed}
     except Exception as exc:
         log.recalculated_count = recalculated
         log.changed_count = changed
         log.status = RecalculationStatus.FAILED
         log.completed_at = timezone.now()
-        log.save(update_fields=[
-            "recalculated_count",
-            "changed_count",
-            "status",
-            "completed_at",
-            "updated_at",
-        ])
+        log.save(update_fields=["recalculated_count", "changed_count", "status", "completed_at", "updated_at"])
         logger.exception("Risk recalculation batch %s failed", batch_id)
         raise exc
 
 
 @shared_task
 def recalculate_high_risk_entities():
-    """Recalculate risk scores only for KYC submissions currently rated HIGH."""
-    from .constants import KYCStatus, RecalculationStatus, RiskLevel, RiskTrigger
-    from .models import KYCSubmission, RiskAssessment, RiskRecalculationLog
-    from .services import calculate_risk_score
+    """Recalculate risk only for entities currently rated HIGH."""
+    from .constants import RecalculationStatus, RiskLevel, RiskTrigger
+    from .models import RiskAssessment, RiskRecalculationLog
+    from .services import calculate_entity_risk
 
     batch_id = uuid.uuid4()
     log = RiskRecalculationLog.objects.create(
-        batch_id=batch_id,
-        status=RecalculationStatus.RUNNING,
+        batch_id=batch_id, status=RecalculationStatus.RUNNING,
         triggered_by="celery:recalculate_high_risk_entities",
     )
 
-    # Find KYC submissions with current high-risk assessment
-    high_risk_kyc_ids = (
+    high_risk_entity_ids = (
         RiskAssessment.objects.filter(
-            is_current=True,
-            risk_level=RiskLevel.HIGH,
-            kyc_submission__status__in=[
-                KYCStatus.SUBMITTED,
-                KYCStatus.UNDER_REVIEW,
-                KYCStatus.APPROVED,
-            ],
-        )
-        .values_list("kyc_submission_id", flat=True)
+            is_current=True, risk_level=RiskLevel.HIGH, entity__isnull=False,
+        ).values_list("entity_id", flat=True).distinct()
     )
 
-    submissions = KYCSubmission.objects.filter(id__in=high_risk_kyc_ids)
-    log.total_entities = submissions.count()
+    from apps.core.models import Entity
+    entities = Entity.objects.filter(id__in=high_risk_entity_ids)
+    log.total_entities = entities.count()
     log.save(update_fields=["total_entities", "updated_at"])
 
     changed = 0
     recalculated = 0
 
     try:
-        for kyc in submissions.iterator():
-            from . import selectors
+        for entity in entities.iterator():
+            try:
+                from . import selectors
+                previous = selectors.get_current_entity_risk(entity_id=entity.id)
+                previous_level = previous.risk_level if previous else None
 
-            previous = selectors.get_current_risk_assessment(kyc_id=kyc.id)
-            previous_level = previous.risk_level if previous else None
-
-            new_assessment = calculate_risk_score(
-                kyc_id=kyc.id, trigger=RiskTrigger.SCHEDULED
-            )
-            recalculated += 1
-
-            if previous_level and previous_level != new_assessment.risk_level:
-                changed += 1
+                new_assessment = calculate_entity_risk(entity_id=entity.id, trigger=RiskTrigger.SCHEDULED)
+                recalculated += 1
+                if previous_level and previous_level != new_assessment.risk_level:
+                    changed += 1
+            except Exception:
+                logger.exception("Failed to recalculate entity %s", entity.id)
 
         log.recalculated_count = recalculated
         log.changed_count = changed
         log.status = RecalculationStatus.COMPLETED
         log.completed_at = timezone.now()
-        log.save(update_fields=[
-            "recalculated_count",
-            "changed_count",
-            "status",
-            "completed_at",
-            "updated_at",
-        ])
-
-        logger.info(
-            "High-risk recalculation batch %s completed: %d/%d recalculated, %d changed",
-            batch_id,
-            recalculated,
-            log.total_entities,
-            changed,
-        )
-        return {
-            "batch_id": str(batch_id),
-            "status": "completed",
-            "recalculated": recalculated,
-            "changed": changed,
-        }
-
+        log.save(update_fields=["recalculated_count", "changed_count", "status", "completed_at", "updated_at"])
+        logger.info("High-risk recalculation batch %s completed: %d recalculated, %d changed", batch_id, recalculated, changed)
+        return {"batch_id": str(batch_id), "status": "completed", "recalculated": recalculated, "changed": changed}
     except Exception as exc:
         log.recalculated_count = recalculated
         log.changed_count = changed
         log.status = RecalculationStatus.FAILED
         log.completed_at = timezone.now()
-        log.save(update_fields=[
-            "recalculated_count",
-            "changed_count",
-            "status",
-            "completed_at",
-            "updated_at",
-        ])
+        log.save(update_fields=["recalculated_count", "changed_count", "status", "completed_at", "updated_at"])
         logger.exception("High-risk recalculation batch %s failed", batch_id)
         raise exc
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=30)
 def process_worldcheck_webhook(self, payload: dict):
-    """Process an incoming World-Check webhook notification.
-
-    The payload typically contains updates about ongoing monitoring cases.
-    """
+    """Process an incoming World-Check webhook notification."""
     from .constants import RiskTrigger, ScreeningStatus
     from .models import WorldCheckCase
-    from .services import calculate_risk_score
+    from .services import request_risk_recalculation
 
     try:
         case_system_id = payload.get("caseSystemId") or payload.get("caseId", "")
@@ -330,66 +262,119 @@ def process_worldcheck_webhook(self, payload: dict):
             return {"status": "skipped", "reason": "no case ID in payload"}
 
         try:
-            case = WorldCheckCase.objects.select_related("party__kyc_submission").get(
-                case_system_id=case_system_id
-            )
+            case = WorldCheckCase.objects.select_related("party__person").get(case_system_id=case_system_id)
         except WorldCheckCase.DoesNotExist:
-            logger.warning(
-                "World-Check webhook for unknown case %s", case_system_id
-            )
+            logger.warning("World-Check webhook for unknown case %s", case_system_id)
             return {"status": "skipped", "reason": "case not found"}
 
-        # Update the case based on event type
         if event_type in ("NEW_MATCH", "UPDATED_MATCH"):
             case.screening_status = ScreeningStatus.MATCHED
             case.match_data_json = match_data
             case.last_screened_at = timezone.now()
-            case.save(update_fields=[
-                "screening_status",
-                "match_data_json",
-                "last_screened_at",
-                "updated_at",
-            ])
+            case.save(update_fields=["screening_status", "match_data_json", "last_screened_at", "updated_at"])
 
-            # Trigger risk recalculation for the affected KYC
-            if case.party and case.party.kyc_submission_id:
-                calculate_risk_score(
-                    kyc_id=case.party.kyc_submission_id,
-                    trigger=RiskTrigger.WEBHOOK,
+            # Trigger recalculation for affected person and entities
+            if case.party and case.party.person_id:
+                request_risk_recalculation(person_id=case.party.person_id, trigger=RiskTrigger.WEBHOOK)
+                from apps.core.models import EntityOfficer, ShareIssuance
+                entity_ids = set()
+                entity_ids.update(
+                    EntityOfficer.objects.filter(officer_person_id=case.party.person_id).values_list("entity_id", flat=True)
                 )
+                entity_ids.update(
+                    ShareIssuance.objects.filter(shareholder_person_id=case.party.person_id).values_list("share_class__entity_id", flat=True)
+                )
+                for eid in entity_ids:
+                    request_risk_recalculation(entity_id=eid, trigger=RiskTrigger.WEBHOOK)
 
         elif event_type == "RESOLVED":
             resolution = payload.get("resolution", ScreeningStatus.CLEAR)
             case.screening_status = resolution
             case.last_screened_at = timezone.now()
-            case.save(update_fields=[
-                "screening_status",
-                "last_screened_at",
-                "updated_at",
-            ])
+            case.save(update_fields=["screening_status", "last_screened_at", "updated_at"])
 
-        logger.info(
-            "World-Check webhook processed: case=%s event=%s",
-            case_system_id,
-            event_type,
-        )
-        return {
-            "status": "processed",
-            "case_system_id": case_system_id,
-            "event_type": event_type,
-        }
-
+        logger.info("World-Check webhook processed: case=%s event=%s", case_system_id, event_type)
+        return {"status": "processed", "case_system_id": case_system_id, "event_type": event_type}
     except Exception as exc:
         logger.exception("World-Check webhook processing failed")
         raise self.retry(exc=exc)
 
 
+@shared_task
+def run_compliance_snapshot_task(snapshot_id: str):
+    """Run a batch compliance snapshot, creating risk assessments for all entities and persons."""
+    from .constants import RiskLevel, RiskTrigger, SnapshotStatus
+    from .models import ComplianceSnapshot
+    from .services import calculate_entity_risk, calculate_person_risk
+
+    from apps.core.models import Entity, Person
+
+    try:
+        snapshot = ComplianceSnapshot.objects.get(id=snapshot_id)
+    except ComplianceSnapshot.DoesNotExist:
+        logger.error("ComplianceSnapshot %s not found", snapshot_id)
+        return
+
+    entities = Entity.objects.filter(status__in=["pending", "active"])
+    persons = Person.objects.filter(status__in=["pending_approval", "approved"])
+
+    snapshot.total_entities = entities.count()
+    snapshot.total_persons = persons.count()
+    snapshot.save(update_fields=["total_entities", "total_persons", "updated_at"])
+
+    high = 0
+    medium = 0
+    low = 0
+
+    try:
+        for entity in entities.iterator():
+            try:
+                assessment = calculate_entity_risk(
+                    entity_id=entity.id, trigger=RiskTrigger.SCHEDULED, snapshot=snapshot,
+                )
+                if assessment.risk_level == RiskLevel.HIGH:
+                    high += 1
+                elif assessment.risk_level == RiskLevel.MEDIUM:
+                    medium += 1
+                else:
+                    low += 1
+            except Exception:
+                logger.exception("Snapshot: failed entity %s", entity.id)
+
+        for person in persons.iterator():
+            try:
+                assessment = calculate_person_risk(
+                    person_id=person.id, trigger=RiskTrigger.SCHEDULED, snapshot=snapshot,
+                )
+                if assessment.risk_level == RiskLevel.HIGH:
+                    high += 1
+                elif assessment.risk_level == RiskLevel.MEDIUM:
+                    medium += 1
+                else:
+                    low += 1
+            except Exception:
+                logger.exception("Snapshot: failed person %s", person.id)
+
+        snapshot.high_risk_count = high
+        snapshot.medium_risk_count = medium
+        snapshot.low_risk_count = low
+        snapshot.status = SnapshotStatus.COMPLETED
+        snapshot.completed_at = timezone.now()
+        snapshot.save(update_fields=[
+            "high_risk_count", "medium_risk_count", "low_risk_count",
+            "status", "completed_at", "updated_at",
+        ])
+        logger.info("Compliance snapshot %s completed: high=%d medium=%d low=%d", snapshot_id, high, medium, low)
+    except Exception:
+        snapshot.status = SnapshotStatus.FAILED
+        snapshot.completed_at = timezone.now()
+        snapshot.save(update_fields=["status", "completed_at", "updated_at"])
+        logger.exception("Compliance snapshot %s failed", snapshot_id)
+
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def upload_document_to_sharepoint_async(self, document_upload_id: str):
-    """Upload a document file to SharePoint via the Graph API.
-
-    Updates the DocumentUpload record with the SharePoint file metadata.
-    """
+    """Upload a document file to SharePoint via the Graph API."""
     from .integrations.sharepoint import SharePointClient
     from .models import DocumentUpload
 
@@ -401,8 +386,6 @@ def upload_document_to_sharepoint_async(self, document_upload_id: str):
 
     try:
         sp_client = SharePointClient()
-
-        # Build the folder path based on KYC submission or party
         folder_parts = []
         if doc.kyc_submission_id:
             folder_parts.append(f"kyc/{doc.kyc_submission_id}")
@@ -410,37 +393,15 @@ def upload_document_to_sharepoint_async(self, document_upload_id: str):
             folder_parts.append(f"parties/{doc.party_id}")
         folder_path = "/".join(folder_parts) if folder_parts else "uploads"
 
-        # In production the actual file bytes would be read from temp storage.
-        # For now we pass empty bytes; the SharePointClient handles the upload.
         result = sp_client.upload_document(
-            file_bytes=b"",
-            folder_path=folder_path,
-            filename=doc.original_filename,
+            file_bytes=b"", folder_path=folder_path, filename=doc.original_filename,
         )
-
         doc.sharepoint_file_id = result.get("id", "")
         doc.sharepoint_web_url = result.get("webUrl", "")
         doc.sharepoint_drive_item_id = result.get("driveItemId", "")
-        doc.save(update_fields=[
-            "sharepoint_file_id",
-            "sharepoint_web_url",
-            "sharepoint_drive_item_id",
-            "updated_at",
-        ])
-
-        logger.info(
-            "Document %s uploaded to SharePoint: %s",
-            document_upload_id,
-            doc.sharepoint_web_url,
-        )
-        return {
-            "status": "uploaded",
-            "document_upload_id": document_upload_id,
-            "sharepoint_web_url": doc.sharepoint_web_url,
-        }
-
+        doc.save(update_fields=["sharepoint_file_id", "sharepoint_web_url", "sharepoint_drive_item_id", "updated_at"])
+        logger.info("Document %s uploaded to SharePoint: %s", document_upload_id, doc.sharepoint_web_url)
+        return {"status": "uploaded", "document_upload_id": document_upload_id, "sharepoint_web_url": doc.sharepoint_web_url}
     except Exception as exc:
-        logger.exception(
-            "SharePoint upload failed for DocumentUpload %s", document_upload_id
-        )
+        logger.exception("SharePoint upload failed for DocumentUpload %s", document_upload_id)
         raise self.retry(exc=exc)

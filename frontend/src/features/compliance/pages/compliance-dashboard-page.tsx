@@ -1,12 +1,14 @@
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/data-display/empty-state";
 import { StatCard } from "@/components/data-display/stat-card";
 import { useComplianceQueue } from "../api/compliance-api";
+import { useRiskStats } from "../api/risk-matrix-api";
 import { IntegrationStatusBanner } from "../components/integration-status-banner";
 import { ComplianceQueue } from "../components/compliance-queue";
 import { KYCReviewPanel } from "../components/kyc-review-panel";
+import { ROUTES } from "@/config/routes";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -14,6 +16,7 @@ import { KYCReviewPanel } from "../components/kyc-review-panel";
 
 export default function ComplianceDashboardPage() {
   const { t } = useTranslation("compliance");
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Selected KYC from URL or local state
@@ -29,13 +32,31 @@ export default function ComplianceDashboardPage() {
       <IntegrationStatusBanner />
 
       {/* Page Title */}
-      <div className="mb-6 mt-2">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {t("dashboard.title")}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {t("dashboard.subtitle")}
-        </p>
+      <div className="mb-6 mt-2 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t("dashboard.title")}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {t("dashboard.subtitle")}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.RISK_MATRIX)}
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {t("riskMatrix.config.title", { ns: "common" })}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.COMPLIANCE_SNAPSHOTS)}
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {t("riskMatrix.snapshots.title", { ns: "common" })}
+          </button>
+        </div>
       </div>
 
       {/* Stats Bar */}
@@ -91,10 +112,11 @@ function StatsBar() {
 
   // Fetch queue data to compute stats
   const queueQuery = useComplianceQueue();
+  const riskStatsQuery = useRiskStats();
   const allItems = queueQuery.data ?? [];
 
   const totalPending = allItems.length;
-  const highRiskCount = 0; // Risk data would need per-item risk; we approximate from the queue
+  const highRiskCount = riskStatsQuery.data?.high_risk_count ?? 0;
   const submittedCount = allItems.filter((k) => k.status === "submitted").length;
   const underReviewCount = allItems.filter((k) => k.status === "under_review").length;
 

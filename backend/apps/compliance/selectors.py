@@ -2,22 +2,17 @@ from django.db.models import QuerySet
 
 from .constants import KYCStatus, RFIStatus
 from .models import (
+    ComplianceSnapshot,
     KYCSubmission,
     Party,
     RFI,
     RiskAssessment,
+    RiskMatrixConfig,
     WorldCheckCase,
 )
 
 
 def get_kyc_submissions_for_review() -> QuerySet[KYCSubmission]:
-    """Return KYC submissions that need review, ordered by priority.
-
-    Priority order:
-    1. UNDER_REVIEW first (already escalated)
-    2. SUBMITTED (awaiting initial review)
-    Within each group, oldest first (FIFO).
-    """
     from django.db.models import Case, IntegerField, Value, When
 
     priority_ordering = Case(
@@ -26,7 +21,6 @@ def get_kyc_submissions_for_review() -> QuerySet[KYCSubmission]:
         default=Value(2),
         output_field=IntegerField(),
     )
-
     return (
         KYCSubmission.objects.filter(
             status__in=[KYCStatus.SUBMITTED, KYCStatus.UNDER_REVIEW],
@@ -38,7 +32,6 @@ def get_kyc_submissions_for_review() -> QuerySet[KYCSubmission]:
 
 
 def get_parties_for_kyc(*, kyc_id) -> QuerySet[Party]:
-    """Return all parties linked to a KYC submission with related data."""
     return (
         Party.objects.filter(kyc_submission_id=kyc_id)
         .select_related("person", "kyc_submission")
@@ -46,31 +39,67 @@ def get_parties_for_kyc(*, kyc_id) -> QuerySet[Party]:
     )
 
 
+# ===========================================================================
+# KYC-level risk selectors (legacy)
+# ===========================================================================
+
+
 def get_risk_history(*, kyc_id) -> QuerySet[RiskAssessment]:
-    """Return the full risk assessment history for a KYC submission,
-    ordered by most recent first.
-    """
-    return (
-        RiskAssessment.objects.filter(kyc_submission_id=kyc_id)
-        .order_by("-assessed_at")
-    )
+    return RiskAssessment.objects.filter(kyc_submission_id=kyc_id).order_by("-assessed_at")
 
 
 def get_current_risk_assessment(*, kyc_id) -> RiskAssessment | None:
-    """Return the current (active) risk assessment for a KYC submission,
-    or None if no assessment has been made yet.
-    """
+    return RiskAssessment.objects.filter(kyc_submission_id=kyc_id, is_current=True).first()
+
+
+# ===========================================================================
+# Entity risk selectors
+# ===========================================================================
+
+
+def get_current_entity_risk(*, entity_id) -> RiskAssessment | None:
     return (
-        RiskAssessment.objects.filter(
-            kyc_submission_id=kyc_id,
-            is_current=True,
-        )
+        RiskAssessment.objects.filter(entity_id=entity_id, is_current=True)
+        .select_related("matrix_config", "assessed_by")
         .first()
     )
 
 
+def get_entity_risk_history(*, entity_id) -> QuerySet[RiskAssessment]:
+    return (
+        RiskAssessment.objects.filter(entity_id=entity_id)
+        .select_related("matrix_config", "assessed_by", "snapshot")
+        .order_by("-assessed_at")
+    )
+
+
+# ===========================================================================
+# Person risk selectors
+# ===========================================================================
+
+
+def get_current_person_risk(*, person_id) -> RiskAssessment | None:
+    return (
+        RiskAssessment.objects.filter(person_id=person_id, is_current=True)
+        .select_related("matrix_config", "assessed_by")
+        .first()
+    )
+
+
+def get_person_risk_history(*, person_id) -> QuerySet[RiskAssessment]:
+    return (
+        RiskAssessment.objects.filter(person_id=person_id)
+        .select_related("matrix_config", "assessed_by", "snapshot")
+        .order_by("-assessed_at")
+    )
+
+
+# ===========================================================================
+# Other selectors
+# ===========================================================================
+
+
 def get_pending_rfis() -> QuerySet[RFI]:
-    """Return all open RFIs, ordered by creation date (oldest first)."""
     return (
         RFI.objects.filter(status=RFIStatus.OPEN)
         .select_related("kyc_submission", "requested_by")
@@ -79,9 +108,36 @@ def get_pending_rfis() -> QuerySet[RFI]:
 
 
 def get_worldcheck_results(*, party_id) -> QuerySet[WorldCheckCase]:
-    """Return all World-Check cases for a given party."""
     return (
         WorldCheckCase.objects.filter(party_id=party_id)
         .select_related("party", "resolved_by")
         .order_by("-last_screened_at")
     )
+
+
+def get_active_matrix_configs() -> QuerySet[RiskMatrixConfig]:
+    return RiskMatrixConfig.objects.filter(is_active=True).order_by("-version")
+
+
+def get_compliance_snapshots() -> QuerySet[ComplianceSnapshot]:
+    return ComplianceSnapshot.objects.all().order_by("-snapshot_date")
+
+
+def get_snapshot_assessments(*, snapshot_id) -> QuerySet[RiskAssessment]:
+    return (
+        RiskAssessment.objects.filter(snapshot_id=snapshot_id)
+        .select_related("entity", "person")
+        .order_by("-total_score")
+    )
+
+
+def get_risk_stats() -> dict:
+    """Return aggregate risk stats for the compliance dashboard."""
+    from .constants import RiskLevel
+
+    current = RiskAssessment.objects.filter(is_current=True)
+    return {
+        "high_risk_count": current.filter(risk_level=RiskLevel.HIGH).count(),
+        "medium_risk_count": current.filter(risk_level=RiskLevel.MEDIUM).count(),
+        "low_risk_count": current.filter(risk_level=RiskLevel.LOW).count(),
+    }

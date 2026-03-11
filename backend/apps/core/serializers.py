@@ -11,6 +11,7 @@ from .constants import (
     IdentificationType,
     MatterStatus,
     OfficerPosition,
+    PersonStatus,
     PersonType,
     RiskLevel,
 )
@@ -24,6 +25,7 @@ from .models import (
     EntityOfficer,
     Matter,
     Person,
+    PersonAuditLog,
     ShareClass,
     ShareIssuance,
     SourceOfFunds,
@@ -116,12 +118,14 @@ class PersonOutputSerializer(serializers.ModelSerializer):
     client = ClientOutputSerializer(read_only=True)
     nationality = JurisdictionRiskMinimalSerializer(read_only=True)
     country_of_residence = JurisdictionRiskMinimalSerializer(read_only=True)
+    full_name = serializers.CharField(source="display_name", read_only=True)
 
     class Meta:
         model = Person
         fields = [
             "id",
             "full_name",
+            "last_name",
             "person_type",
             "nationality",
             "country_of_residence",
@@ -129,6 +133,7 @@ class PersonOutputSerializer(serializers.ModelSerializer):
             "identification_number",
             "identification_type",
             "pep_status",
+            "status",
             "client",
             "created_at",
             "updated_at",
@@ -188,6 +193,7 @@ class MatterInputSerializer(serializers.Serializer):
 
 class PersonInputSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255)
+    last_name = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
     person_type = serializers.ChoiceField(choices=PersonType.choices)
     nationality_id = serializers.UUIDField(required=False, allow_null=True)
     country_of_residence_id = serializers.UUIDField(required=False, allow_null=True)
@@ -199,6 +205,9 @@ class PersonInputSerializer(serializers.Serializer):
         choices=IdentificationType.choices, required=False, allow_blank=True
     )
     pep_status = serializers.BooleanField(default=False)
+    status = serializers.ChoiceField(
+        choices=PersonStatus.choices, required=False
+    )
     client_id = serializers.UUIDField(required=False, allow_null=True)
 
 
@@ -454,6 +463,27 @@ class EntityAuditLogOutputSerializer(serializers.ModelSerializer):
             "id",
             "entity",
             "kyc_submission",
+            "model_name",
+            "record_id",
+            "action",
+            "field_name",
+            "old_value",
+            "new_value",
+            "changed_by",
+            "source",
+            "comment",
+            "created_at",
+        ]
+
+
+class PersonAuditLogOutputSerializer(serializers.ModelSerializer):
+    changed_by = AuditLogUserSerializer(read_only=True)
+
+    class Meta:
+        model = PersonAuditLog
+        fields = [
+            "id",
+            "person",
             "model_name",
             "record_id",
             "action",

@@ -86,3 +86,60 @@ class GotenbergClient:
             len(response.content),
         )
         return response.content
+
+    def convert_html_to_pdf(self, html_content: str) -> bytes:
+        """Convert an HTML string to PDF using Gotenberg's Chromium route.
+
+        Uses A4 format with standard margins.
+        If Gotenberg is not available, returns a minimal placeholder PDF.
+        """
+        if not self._configured:
+            logger.warning(
+                "Gotenberg URL is not configured. "
+                "Returning placeholder PDF. "
+                "Set GOTENBERG_URL in your .env and enable the gotenberg "
+                "service in docker-compose.yml."
+            )
+            return _MOCK_PDF
+
+        import requests
+
+        url = f"{self.base_url}/forms/chromium/convert/html"
+        files = {
+            "files": (
+                "index.html",
+                html_content.encode("utf-8"),
+                "text/html",
+            ),
+        }
+        data = {
+            "paperWidth": "8.27",   # A4
+            "paperHeight": "11.7",  # A4
+            "marginTop": "0.5",
+            "marginBottom": "0.5",
+            "marginLeft": "0.5",
+            "marginRight": "0.5",
+            "printBackground": "true",
+        }
+
+        logger.info("Sending HTML to Gotenberg for PDF conversion at %s", url)
+
+        try:
+            response = requests.post(url, files=files, data=data, timeout=120)
+            response.raise_for_status()
+        except requests.exceptions.ConnectionError:
+            logger.warning(
+                "Gotenberg service is not reachable at %s. "
+                "Returning placeholder PDF.",
+                self.base_url,
+            )
+            return _MOCK_PDF
+        except requests.exceptions.RequestException as exc:
+            logger.error("Gotenberg HTML-to-PDF conversion failed: %s", exc)
+            raise
+
+        logger.info(
+            "Gotenberg HTML-to-PDF conversion successful. Received %d bytes.",
+            len(response.content),
+        )
+        return response.content

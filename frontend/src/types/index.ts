@@ -63,9 +63,12 @@ export interface JurisdictionRiskRef {
   risk_weight: number;
 }
 
+export type PersonStatus = "pending_approval" | "approved" | "rejected";
+
 export interface Person {
   id: string;
   full_name: string;
+  last_name: string;
   person_type: "natural" | "corporate";
   nationality: JurisdictionRiskRef | null;
   country_of_residence: JurisdictionRiskRef | null;
@@ -73,6 +76,7 @@ export interface Person {
   identification_number: string;
   identification_type: "passport" | "cedula" | "corporate_registry" | "";
   pep_status: boolean;
+  status: PersonStatus;
   client: Client | null;
   created_at: string;
   updated_at: string;
@@ -147,13 +151,81 @@ export interface Party {
 
 export interface RiskAssessment {
   id: string;
-  kyc_submission: string;
+  kyc_submission: string | null;
+  entity: string | null;
+  entity_name: string | null;
+  person: string | null;
+  person_name: string | null;
   total_score: number;
   risk_level: "low" | "medium" | "high";
-  breakdown_json: Record<string, number>;
+  breakdown_json: Record<string, { score: number; max_score: number; detail: Record<string, unknown> }>;
   is_current: boolean;
   assessed_at: string;
   trigger: string;
+  matrix_config: string | null;
+  matrix_config_snapshot: Record<string, unknown> | null;
+  input_data_snapshot: Record<string, unknown> | null;
+  triggered_rules: TriggeredRule[];
+  is_auto_triggered: boolean;
+  assessed_by: string | null;
+  snapshot: string | null;
+}
+
+export interface TriggeredRule {
+  condition: string;
+  detail: string;
+  forced_level: string;
+}
+
+export interface RiskFactorConfig {
+  id: string;
+  code: string;
+  category: "entity" | "person";
+  max_score: number;
+  description: string;
+  scoring_rules_json: Record<string, unknown>;
+}
+
+export interface AutomaticTriggerRule {
+  id: string;
+  condition: string;
+  forced_risk_level: "low" | "medium" | "high";
+  is_active: boolean;
+  description: string;
+}
+
+export interface RiskMatrixConfig {
+  id: string;
+  name: string;
+  jurisdiction: string;
+  entity_type: string;
+  version: number;
+  is_active: boolean;
+  high_risk_threshold: number;
+  medium_risk_threshold: number;
+  created_by: string | null;
+  notes: string;
+  factors: RiskFactorConfig[];
+  trigger_rules: AutomaticTriggerRule[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ComplianceSnapshot {
+  id: string;
+  name: string;
+  snapshot_date: string;
+  created_by: string | null;
+  status: "running" | "completed" | "failed";
+  total_entities: number;
+  total_persons: number;
+  high_risk_count: number;
+  medium_risk_count: number;
+  low_risk_count: number;
+  notes: string;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface RFI {

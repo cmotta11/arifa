@@ -15,6 +15,7 @@ from .constants import (
     IdentificationType,
     MatterStatus,
     OfficerPosition,
+    PersonStatus,
     PersonType,
     RiskLevel,
 )
@@ -65,6 +66,7 @@ class Entity(TimeStampedModel):
         choices=EntityStatus.choices,
         default=EntityStatus.PENDING,
     )
+    nominal_directors_requested = models.BooleanField(default=False)
 
     class Meta(TimeStampedModel.Meta):
         verbose_name = "Entity"
@@ -108,6 +110,7 @@ class Matter(TimeStampedModel):
 
 class Person(TimeStampedModel):
     full_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255, blank=True, default="")
     person_type = models.CharField(
         max_length=20,
         choices=PersonType.choices,
@@ -135,6 +138,11 @@ class Person(TimeStampedModel):
         default="",
     )
     pep_status = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=20,
+        choices=PersonStatus.choices,
+        default=PersonStatus.PENDING_APPROVAL,
+    )
     client = models.ForeignKey(
         Client,
         on_delete=models.SET_NULL,
@@ -147,8 +155,12 @@ class Person(TimeStampedModel):
         verbose_name = "Person"
         verbose_name_plural = "Persons"
 
+    @property
+    def display_name(self):
+        return f"{self.full_name} {self.last_name}".strip()
+
     def __str__(self):
-        return f"{self.full_name} ({self.get_person_type_display()})"
+        return f"{self.display_name} ({self.get_person_type_display()})"
 
 
 class EntityOfficer(TimeStampedModel):
@@ -471,3 +483,45 @@ class EntityAuditLog(TimeStampedModel):
 
     def __str__(self):
         return f"Audit: {self.entity.name} - {self.action} {self.model_name}.{self.field_name}"
+
+
+class PersonAuditLog(TimeStampedModel):
+    person = models.ForeignKey(
+        Person,
+        on_delete=models.CASCADE,
+        related_name="audit_logs",
+    )
+    model_name = models.CharField(max_length=50)
+    record_id = models.UUIDField(null=True, blank=True)
+    action = models.CharField(
+        max_length=10,
+        choices=AuditAction.choices,
+    )
+    field_name = models.CharField(max_length=100)
+    old_value = models.JSONField(null=True, blank=True)
+    new_value = models.JSONField(null=True, blank=True)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="person_audit_logs",
+    )
+    source = models.CharField(
+        max_length=20,
+        choices=AuditSource.choices,
+    )
+    comment = models.TextField(blank=True, default="")
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Person Audit Log"
+        verbose_name_plural = "Person Audit Logs"
+        indexes = [
+            models.Index(
+                fields=["person", "-created_at"],
+                name="idx_audit_person_created",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Audit: {self.person.full_name} - {self.action} {self.model_name}.{self.field_name}"

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Person Risk Assessment Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #333; line-height: 1.5; }
+  .header { background: #1a237e; color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header .meta { font-size: 9px; text-align: right; opacity: 0.9; }
+  .confidential { background: #f44336; color: white; font-size: 8px; padding: 2px 8px; border-radius: 3px; display: inline-block; margin-top: 4px; }
+  .content { padding: 20px 30px; }
+  .section { margin-bottom: 16px; }
+  .section-title { font-size: 13px; font-weight: 600; color: #1a237e; border-bottom: 2px solid #1a237e; padding-bottom: 4px; margin-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  th, td { padding: 5px 8px; text-align: left; border: 1px solid #ddd; font-size: 10px; }
+  th { background: #f5f5f5; font-weight: 600; }
+  .score-gauge { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+  .score-number { font-size: 36px; font-weight: 700; }
+  .score-max { font-size: 14px; color: #999; }
+  .risk-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: 600; font-size: 12px; color: white; }
+  .risk-low { background: #4caf50; }
+  .risk-medium { background: #ff9800; }
+  .risk-high { background: #f44336; }
+  .trigger-box { background: #ffebee; border: 1px solid #f44336; border-radius: 4px; padding: 10px; margin: 10px 0; }
+  .trigger-box h4 { color: #c62828; font-size: 11px; margin-bottom: 4px; }
+  .trigger-item { font-size: 10px; margin-left: 12px; }
+  .bar-container { width: 100px; height: 12px; background: #eee; border-radius: 6px; display: inline-block; vertical-align: middle; }
+  .bar-fill { height: 100%; border-radius: 6px; }
+  .bar-low { background: #4caf50; }
+  .bar-medium { background: #ff9800; }
+  .bar-high { background: #f44336; }
+  .historical-banner { background: #fff3e0; border: 1px solid #ff9800; padding: 8px; border-radius: 4px; margin-bottom: 12px; font-size: 10px; color: #e65100; }
+  .footer { border-top: 1px solid #ddd; padding: 10px 30px; font-size: 8px; color: #999; display: flex; justify-content: space-between; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+  .info-grid dt { font-weight: 600; color: #666; }
+  .info-grid dd { color: #333; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>ARIFA - Person Risk Assessment Report</h1>
+    <div class="confidential">CONFIDENTIAL</div>
+  </div>
+  <div class="meta">
+    <div>Report ID: {{ assessment.id }}</div>
+    <div>Date: {{ assessment.assessed_at|date:"M d, Y H:i" }}</div>
+    <div>Trigger: {{ assessment.get_trigger_display }}</div>
+  </div>
+</div>
+
+<div class="content">
+
+{% if is_historical %}
+<div class="historical-banner">
+  Historical Report - Originally assessed on {{ assessment.assessed_at|date:"M d, Y" }}. Data shown reflects the state at the time of assessment.
+</div>
+{% endif %}
+
+<div class="section">
+  <h2 class="section-title">Person Summary</h2>
+  {% if input_snapshot.person %}
+  <dl class="info-grid">
+    <dt>Name</dt><dd>{{ input_snapshot.person.name }}</dd>
+    <dt>Type</dt><dd>{{ input_snapshot.person.person_type|title }}</dd>
+    <dt>PEP Status</dt><dd>{% if input_snapshot.person.pep_status %}Yes{% else %}No{% endif %}</dd>
+    <dt>Nationality</dt><dd>{{ input_snapshot.person.nationality|default:"N/A" }}</dd>
+    <dt>Residence</dt><dd>{{ input_snapshot.person.country_of_residence|default:"N/A" }}</dd>
+  </dl>
+  {% elif assessment.person %}
+  <dl class="info-grid">
+    <dt>Name</dt><dd>{{ assessment.person.display_name }}</dd>
+    <dt>Type</dt><dd>{{ assessment.person.get_person_type_display }}</dd>
+    <dt>PEP Status</dt><dd>{% if assessment.person.pep_status %}Yes{% else %}No{% endif %}</dd>
+  </dl>
+  {% endif %}
+</div>
+
+<div class="section">
+  <h2 class="section-title">Risk Score</h2>
+  <div class="score-gauge">
+    <span class="score-number" style="color: {% if assessment.risk_level == 'high' %}#f44336{% elif assessment.risk_level == 'medium' %}#ff9800{% else %}#4caf50{% endif %}">
+      {{ assessment.total_score }}
+    </span>
+    <span class="score-max">/ 100</span>
+    <span class="risk-badge {% if assessment.risk_level == 'high' %}risk-high{% elif assessment.risk_level == 'medium' %}risk-medium{% else %}risk-low{% endif %}">
+      {{ assessment.get_risk_level_display }}
+      {% if assessment.is_auto_triggered %}(AUTO-TRIGGERED){% endif %}
+    </span>
+  </div>
+</div>
+
+{% if triggered_rules %}
+<div class="section">
+  <div class="trigger-box">
+    <h4>Automatic Triggers Fired</h4>
+    {% for rule in triggered_rules %}
+    <div class="trigger-item">{{ rule.condition|upper }}: {{ rule.detail }} (forced {{ rule.forced_level|upper }})</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="section">
+  <h2 class="section-title">Factor Breakdown</h2>
+  <table>
+    <thead>
+      <tr><th>Factor</th><th>Score</th><th>Max</th><th>Bar</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      {% for code, data in breakdown.items %}
+      <tr>
+        <td>{{ code|title }}</td>
+        <td>{{ data.score }}</td>
+        <td>{{ data.max_score }}</td>
+        <td>
+          {% if data.max_score > 0 %}
+          <div class="bar-container">
+            <div class="bar-fill bar-medium" style="width: {% widthratio data.score data.max_score 100 %}%"></div>
+          </div>
+          {% endif %}
+        </td>
+        <td style="font-size: 9px;">{% for k, v in data.detail.items %}{{ k }}: {{ v }} {% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if config_snapshot %}
+<div class="section">
+  <h2 class="section-title">Matrix Configuration</h2>
+  <dl class="info-grid">
+    <dt>Config Name</dt><dd>{{ config_snapshot.name }}</dd>
+    <dt>Version</dt><dd>{{ config_snapshot.version }}</dd>
+    <dt>Scope</dt><dd>{{ config_snapshot.jurisdiction|default:"Global" }} {{ config_snapshot.entity_type }}</dd>
+    <dt>High Threshold</dt><dd>{{ config_snapshot.high_risk_threshold }}</dd>
+    <dt>Medium Threshold</dt><dd>{{ config_snapshot.medium_risk_threshold }}</dd>
+  </dl>
+</div>
+{% endif %}
+
+</div>
+
+<div class="footer">
+  <span>ARIFA Legal Services - Confidential Risk Report</span>
+  <span>Report ID: {{ assessment.id }}</span>
+</div>
+
+</body>
+</html>

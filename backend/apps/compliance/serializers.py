@@ -7,17 +7,25 @@ from .constants import (
     PartyRole,
     PartyType,
     RFIStatus,
+    RiskFactorCategory,
+    RiskFactorCode,
     RiskLevel,
     RiskTrigger,
     ScreeningStatus,
+    SnapshotStatus,
+    TriggerCondition,
 )
 from .models import (
+    AutomaticTriggerRule,
+    ComplianceSnapshot,
     DocumentUpload,
     JurisdictionRisk,
     KYCSubmission,
     Party,
     RFI,
     RiskAssessment,
+    RiskFactor,
+    RiskMatrixConfig,
     WorldCheckCase,
 )
 
@@ -28,174 +36,152 @@ from .models import (
 
 
 class KYCSubmissionOutputSerializer(serializers.ModelSerializer):
-    status_display = serializers.CharField(
-        source="get_status_display", read_only=True
-    )
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
         model = KYCSubmission
         fields = [
-            "id",
-            "ticket",
-            "status",
-            "status_display",
-            "submitted_at",
-            "reviewed_by",
-            "reviewed_at",
-            "proposed_entity_data",
-            "field_comments",
-            "created_at",
-            "updated_at",
+            "id", "ticket", "status", "status_display", "submitted_at",
+            "reviewed_by", "reviewed_at", "proposed_entity_data",
+            "field_comments", "created_at", "updated_at",
         ]
 
 
 class PartyOutputSerializer(serializers.ModelSerializer):
-    role_display = serializers.CharField(
-        source="get_role_display", read_only=True
-    )
-    party_type_display = serializers.CharField(
-        source="get_party_type_display", read_only=True
-    )
+    role_display = serializers.CharField(source="get_role_display", read_only=True)
+    party_type_display = serializers.CharField(source="get_party_type_display", read_only=True)
 
     class Meta:
         model = Party
         fields = [
-            "id",
-            "kyc_submission",
-            "person",
-            "party_type",
-            "party_type_display",
-            "role",
-            "role_display",
-            "name",
-            "nationality",
-            "country_of_residence",
-            "pep_status",
-            "ownership_percentage",
-            "date_of_birth",
-            "identification_number",
-            "created_at",
-            "updated_at",
+            "id", "kyc_submission", "person", "party_type", "party_type_display",
+            "role", "role_display", "name", "nationality", "country_of_residence",
+            "pep_status", "ownership_percentage", "date_of_birth",
+            "identification_number", "created_at", "updated_at",
         ]
 
 
 class JurisdictionRiskOutputSerializer(serializers.ModelSerializer):
     class Meta:
         model = JurisdictionRisk
+        fields = ["id", "country_code", "country_name", "risk_weight", "created_at", "updated_at"]
+
+
+class RiskFactorOutputSerializer(serializers.ModelSerializer):
+    code_display = serializers.CharField(source="get_code_display", read_only=True)
+    category_display = serializers.CharField(source="get_category_display", read_only=True)
+
+    class Meta:
+        model = RiskFactor
         fields = [
-            "id",
-            "country_code",
-            "country_name",
-            "risk_weight",
-            "created_at",
-            "updated_at",
+            "id", "code", "code_display", "category", "category_display",
+            "max_score", "description", "scoring_rules_json", "created_at", "updated_at",
+        ]
+
+
+class AutomaticTriggerRuleOutputSerializer(serializers.ModelSerializer):
+    condition_display = serializers.CharField(source="get_condition_display", read_only=True)
+    forced_risk_level_display = serializers.CharField(source="get_forced_risk_level_display", read_only=True)
+
+    class Meta:
+        model = AutomaticTriggerRule
+        fields = [
+            "id", "condition", "condition_display", "forced_risk_level",
+            "forced_risk_level_display", "is_active", "description",
+            "created_at", "updated_at",
+        ]
+
+
+class RiskMatrixConfigOutputSerializer(serializers.ModelSerializer):
+    factors = RiskFactorOutputSerializer(many=True, read_only=True)
+    trigger_rules = AutomaticTriggerRuleOutputSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = RiskMatrixConfig
+        fields = [
+            "id", "name", "jurisdiction", "entity_type", "version",
+            "is_active", "high_risk_threshold", "medium_risk_threshold",
+            "created_by", "notes", "factors", "trigger_rules",
+            "created_at", "updated_at",
+        ]
+
+
+class ComplianceSnapshotOutputSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = ComplianceSnapshot
+        fields = [
+            "id", "name", "snapshot_date", "created_by", "status",
+            "status_display", "total_entities", "total_persons",
+            "high_risk_count", "medium_risk_count", "low_risk_count",
+            "notes", "completed_at", "created_at", "updated_at",
         ]
 
 
 class RiskAssessmentOutputSerializer(serializers.ModelSerializer):
-    risk_level_display = serializers.CharField(
-        source="get_risk_level_display", read_only=True
-    )
-    trigger_display = serializers.CharField(
-        source="get_trigger_display", read_only=True
-    )
+    risk_level_display = serializers.CharField(source="get_risk_level_display", read_only=True)
+    trigger_display = serializers.CharField(source="get_trigger_display", read_only=True)
+    entity_name = serializers.CharField(source="entity.name", read_only=True, default=None)
+    person_name = serializers.CharField(source="person.display_name", read_only=True, default=None)
 
     class Meta:
         model = RiskAssessment
         fields = [
-            "id",
-            "kyc_submission",
-            "total_score",
-            "risk_level",
-            "risk_level_display",
-            "breakdown_json",
-            "is_current",
-            "assessed_at",
-            "trigger",
-            "trigger_display",
-            "created_at",
-            "updated_at",
+            "id", "kyc_submission", "entity", "entity_name", "person", "person_name",
+            "total_score", "risk_level", "risk_level_display",
+            "breakdown_json", "is_current", "assessed_at",
+            "trigger", "trigger_display",
+            "matrix_config", "matrix_config_snapshot", "input_data_snapshot",
+            "triggered_rules", "is_auto_triggered",
+            "assessed_by", "snapshot",
+            "created_at", "updated_at",
         ]
 
 
 class RFIOutputSerializer(serializers.ModelSerializer):
-    status_display = serializers.CharField(
-        source="get_status_display", read_only=True
-    )
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
         model = RFI
         fields = [
-            "id",
-            "kyc_submission",
-            "requested_by",
-            "requested_fields",
-            "notes",
-            "status",
-            "status_display",
-            "response_text",
-            "responded_at",
-            "created_at",
-            "updated_at",
+            "id", "kyc_submission", "requested_by", "requested_fields",
+            "notes", "status", "status_display", "response_text",
+            "responded_at", "created_at", "updated_at",
         ]
 
 
 class WorldCheckCaseOutputSerializer(serializers.ModelSerializer):
-    screening_status_display = serializers.CharField(
-        source="get_screening_status_display", read_only=True
-    )
+    screening_status_display = serializers.CharField(source="get_screening_status_display", read_only=True)
 
     class Meta:
         model = WorldCheckCase
         fields = [
-            "id",
-            "party",
-            "case_system_id",
-            "screening_status",
-            "screening_status_display",
-            "last_screened_at",
-            "ongoing_monitoring_enabled",
-            "match_data_json",
-            "resolved_by",
-            "resolved_at",
-            "created_at",
-            "updated_at",
+            "id", "party", "case_system_id", "screening_status",
+            "screening_status_display", "last_screened_at",
+            "ongoing_monitoring_enabled", "match_data_json",
+            "resolved_by", "resolved_at", "created_at", "updated_at",
         ]
 
 
 class DocumentUploadOutputSerializer(serializers.ModelSerializer):
-    document_type_display = serializers.CharField(
-        source="get_document_type_display", read_only=True
-    )
-    llm_extraction_status_display = serializers.CharField(
-        source="get_llm_extraction_status_display", read_only=True
-    )
+    document_type_display = serializers.CharField(source="get_document_type_display", read_only=True)
+    llm_extraction_status_display = serializers.CharField(source="get_llm_extraction_status_display", read_only=True)
 
     class Meta:
         model = DocumentUpload
         fields = [
-            "id",
-            "kyc_submission",
-            "party",
-            "document_type",
-            "document_type_display",
-            "original_filename",
-            "sharepoint_file_id",
-            "sharepoint_web_url",
-            "sharepoint_drive_item_id",
-            "uploaded_by",
-            "file_size",
-            "mime_type",
-            "llm_extraction_json",
-            "llm_extraction_status",
-            "llm_extraction_status_display",
-            "created_at",
-            "updated_at",
+            "id", "kyc_submission", "party", "document_type",
+            "document_type_display", "original_filename",
+            "sharepoint_file_id", "sharepoint_web_url",
+            "sharepoint_drive_item_id", "uploaded_by", "file_size",
+            "mime_type", "llm_extraction_json", "llm_extraction_status",
+            "llm_extraction_status_display", "created_at", "updated_at",
         ]
 
 
 # ===========================================================================
-# Input serializers (plain Serializer -- no create/update)
+# Input serializers
 # ===========================================================================
 
 
@@ -207,28 +193,17 @@ class PartyInputSerializer(serializers.Serializer):
     party_type = serializers.ChoiceField(choices=PartyType.choices)
     role = serializers.ChoiceField(choices=PartyRole.choices)
     name = serializers.CharField(max_length=255)
-    nationality = serializers.CharField(
-        max_length=100, required=False, allow_blank=True, default=""
-    )
-    country_of_residence = serializers.CharField(
-        max_length=100, required=False, allow_blank=True, default=""
-    )
+    nationality = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+    country_of_residence = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     pep_status = serializers.BooleanField(default=False)
-    ownership_percentage = serializers.DecimalField(
-        max_digits=5, decimal_places=2, required=False, allow_null=True, default=None
-    )
+    ownership_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, allow_null=True, default=None)
     date_of_birth = serializers.DateField(required=False, allow_null=True, default=None)
-    identification_number = serializers.CharField(
-        max_length=100, required=False, allow_blank=True, default=""
-    )
+    identification_number = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     person_id = serializers.UUIDField(required=False, allow_null=True, default=None)
 
 
 class RFIInputSerializer(serializers.Serializer):
-    requested_fields = serializers.ListField(
-        child=serializers.CharField(max_length=100),
-        allow_empty=False,
-    )
+    requested_fields = serializers.ListField(child=serializers.CharField(max_length=100), allow_empty=False)
     notes = serializers.CharField(required=False, allow_blank=True, default="")
 
 
@@ -237,12 +212,10 @@ class RFIRespondInputSerializer(serializers.Serializer):
 
 
 class WorldCheckResolveInputSerializer(serializers.Serializer):
-    resolution = serializers.ChoiceField(
-        choices=[
-            (ScreeningStatus.FALSE_POSITIVE, "False Positive"),
-            (ScreeningStatus.TRUE_MATCH, "True Match"),
-        ]
-    )
+    resolution = serializers.ChoiceField(choices=[
+        (ScreeningStatus.FALSE_POSITIVE, "False Positive"),
+        (ScreeningStatus.TRUE_MATCH, "True Match"),
+    ])
 
 
 class DocumentUploadInputSerializer(serializers.Serializer):
@@ -261,11 +234,7 @@ class ExtractDocumentInputSerializer(serializers.Serializer):
 
 
 class CalculateRiskInputSerializer(serializers.Serializer):
-    trigger = serializers.ChoiceField(
-        choices=RiskTrigger.choices,
-        default=RiskTrigger.MANUAL,
-        required=False,
-    )
+    trigger = serializers.ChoiceField(choices=RiskTrigger.choices, default=RiskTrigger.MANUAL, required=False)
 
 
 class JurisdictionRiskInputSerializer(serializers.Serializer):
@@ -273,11 +242,36 @@ class JurisdictionRiskInputSerializer(serializers.Serializer):
     country_name = serializers.CharField(max_length=100)
     risk_weight = serializers.IntegerField(min_value=1, max_value=10)
 
-    def create(self, validated_data):
-        raise NotImplementedError("Use the view/service layer instead.")
 
-    def update(self, instance, validated_data):
-        raise NotImplementedError("Use the view/service layer instead.")
+# --- Risk Matrix Config ---
+
+class RiskMatrixConfigInputSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255)
+    jurisdiction = serializers.CharField(max_length=20, required=False, allow_blank=True, default="")
+    entity_type = serializers.CharField(max_length=20, required=False, allow_blank=True, default="")
+    high_risk_threshold = serializers.IntegerField(default=70, required=False)
+    medium_risk_threshold = serializers.IntegerField(default=40, required=False)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class RiskFactorInputSerializer(serializers.Serializer):
+    code = serializers.ChoiceField(choices=RiskFactorCode.choices)
+    category = serializers.ChoiceField(choices=RiskFactorCategory.choices)
+    max_score = serializers.IntegerField(min_value=0)
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    scoring_rules_json = serializers.JSONField(required=False, default=dict)
+
+
+class AutomaticTriggerRuleInputSerializer(serializers.Serializer):
+    condition = serializers.ChoiceField(choices=TriggerCondition.choices)
+    forced_risk_level = serializers.ChoiceField(choices=RiskLevel.choices, default=RiskLevel.HIGH, required=False)
+    is_active = serializers.BooleanField(default=True, required=False)
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class ComplianceSnapshotInputSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
 
 
 # ===========================================================================
@@ -303,7 +297,7 @@ class OnboardingOutputSerializer(serializers.Serializer):
 
 
 # ===========================================================================
-# Guest entity snapshot & propose-changes serializers
+# Guest entity snapshot & propose-changes
 # ===========================================================================
 
 

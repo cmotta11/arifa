@@ -72,3 +72,39 @@ class RecalculationStatus(models.TextChoices):
     RUNNING = "running", "Running"
     COMPLETED = "completed", "Completed"
     FAILED = "failed", "Failed"
+
+
+class RiskFactorCode(models.TextChoices):
+    # Entity-level factors
+    JURISDICTION = "jurisdiction", "Jurisdiction Risk"
+    STRUCTURE_COMPLEXITY = "structure_complexity", "Structure Complexity"
+    ACTIVITY_RISK = "activity_risk", "Activity Risk"
+    SOURCE_OF_FUNDS_RISK = "source_of_funds_risk", "Source of Funds Risk"
+    OWNERSHIP_OPACITY = "ownership_opacity", "Ownership Opacity"
+    MULTI_JURISDICTION = "multi_jurisdiction", "Multi-Jurisdiction Exposure"
+    RELATIONSHIP_AGE = "relationship_age", "Relationship Age"
+    # Person-level factors
+    NATIONALITY_RISK = "nationality_risk", "Nationality Risk"
+    RESIDENCE_RISK = "residence_risk", "Residence Risk"
+    PEP_STATUS = "pep_status", "PEP Status"
+    SANCTIONS_SCREENING = "sanctions_screening", "Sanctions Screening"
+    SOURCE_OF_WEALTH_RISK = "source_of_wealth_risk", "Source of Wealth Risk"
+    ID_VERIFICATION = "id_verification", "ID Verification"
+
+
+class RiskFactorCategory(models.TextChoices):
+    ENTITY = "entity", "Entity"
+    PERSON = "person", "Person"
+
+
+class TriggerCondition(models.TextChoices):
+    PEP_STATUS = "pep_status", "PEP Detected"
+    SANCTIONS_MATCH = "sanctions_match", "Sanctions Match"
+    HIGH_RISK_JURISDICTION = "high_risk_jurisdiction", "High-Risk Jurisdiction"
+    COMPLEX_STRUCTURE = "complex_structure", "Complex Structure"
+
+
+class SnapshotStatus(models.TextChoices):
+    RUNNING = "running", "Running"
+    COMPLETED = "completed", "Completed"
+    FAILED = "failed", "Failed"

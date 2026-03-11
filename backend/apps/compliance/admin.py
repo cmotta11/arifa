@@ -1,12 +1,16 @@
 from django.contrib import admin
 
 from .models import (
+    AutomaticTriggerRule,
+    ComplianceSnapshot,
     DocumentUpload,
     JurisdictionRisk,
     KYCSubmission,
     Party,
     RFI,
     RiskAssessment,
+    RiskFactor,
+    RiskMatrixConfig,
     RiskRecalculationLog,
     WorldCheckCase,
 )
@@ -46,20 +50,89 @@ class JurisdictionRiskAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
 
+class RiskFactorInline(admin.TabularInline):
+    model = RiskFactor
+    extra = 0
+
+
+class AutomaticTriggerRuleInline(admin.TabularInline):
+    model = AutomaticTriggerRule
+    extra = 0
+
+
+@admin.register(RiskMatrixConfig)
+class RiskMatrixConfigAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "jurisdiction",
+        "entity_type",
+        "version",
+        "is_active",
+        "high_risk_threshold",
+        "medium_risk_threshold",
+        "created_by",
+    )
+    list_filter = ("is_active", "jurisdiction", "entity_type")
+    search_fields = ("name",)
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("created_by",)
+    inlines = [RiskFactorInline, AutomaticTriggerRuleInline]
+
+
+@admin.register(RiskFactor)
+class RiskFactorAdmin(admin.ModelAdmin):
+    list_display = ("code", "category", "max_score", "matrix_config")
+    list_filter = ("category", "code")
+    search_fields = ("code", "description")
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("matrix_config",)
+
+
+@admin.register(AutomaticTriggerRule)
+class AutomaticTriggerRuleAdmin(admin.ModelAdmin):
+    list_display = ("condition", "forced_risk_level", "is_active", "matrix_config")
+    list_filter = ("condition", "forced_risk_level", "is_active")
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("matrix_config",)
+
+
+@admin.register(ComplianceSnapshot)
+class ComplianceSnapshotAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "snapshot_date",
+        "status",
+        "total_entities",
+        "total_persons",
+        "high_risk_count",
+        "medium_risk_count",
+        "low_risk_count",
+        "created_by",
+    )
+    list_filter = ("status",)
+    search_fields = ("name",)
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("created_by",)
+
+
 @admin.register(RiskAssessment)
 class RiskAssessmentAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
+        "entity",
+        "person",
         "kyc_submission",
         "total_score",
         "risk_level",
         "is_current",
+        "is_auto_triggered",
         "trigger",
         "assessed_at",
     )
-    list_filter = ("risk_level", "is_current", "trigger")
-    search_fields = ("kyc_submission__id",)
+    list_filter = ("risk_level", "is_current", "trigger", "is_auto_triggered")
+    search_fields = ("kyc_submission__id", "entity__name", "person__full_name")
     readonly_fields = ("created_at", "updated_at", "assessed_at")
-    raw_id_fields = ("kyc_submission",)
+    raw_id_fields = ("kyc_submission", "entity", "person", "matrix_config", "assessed_by", "snapshot")
 
 
 @admin.register(RiskRecalculationLog)

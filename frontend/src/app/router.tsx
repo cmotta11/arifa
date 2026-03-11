@@ -37,6 +37,15 @@ const DocumentsPage = lazy(
 const AdminPage = lazy(
   () => import("@/features/admin/pages/admin-page"),
 );
+const RiskMatrixConfigPage = lazy(
+  () => import("@/features/compliance/pages/risk-matrix-config-page"),
+);
+const RiskMatrixConfigDetailPage = lazy(
+  () => import("@/features/compliance/pages/risk-matrix-config-detail-page"),
+);
+const SnapshotsPage = lazy(
+  () => import("@/features/compliance/pages/snapshots-page"),
+);
 const ClientsListPage = lazy(
   () => import("@/features/clients/pages/clients-list-page"),
 );
@@ -177,6 +186,9 @@ export function AppRouter() {
             element={<ComplianceDashboardPage />}
           />
           <Route path={ROUTES.DOCUMENTS} element={<DocumentsPage />} />
+          <Route path={ROUTES.RISK_MATRIX} element={<RiskMatrixConfigPage />} />
+          <Route path={ROUTES.RISK_MATRIX_DETAIL} element={<RiskMatrixConfigDetailPage />} />
+          <Route path={ROUTES.COMPLIANCE_SNAPSHOTS} element={<SnapshotsPage />} />
           <Route path={ROUTES.ADMIN} element={<AdminPage />} />
         </Route>
       </Routes>

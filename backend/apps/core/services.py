@@ -1,6 +1,10 @@
+import logging
+
 from django.db import transaction
 
 from .constants import AuditAction, AuditSource, RiskLevel
+
+logger = logging.getLogger(__name__)
 from .models import (
     ActivityCatalog,
     Client,
@@ -11,6 +15,7 @@ from .models import (
     EntityOfficer,
     Matter,
     Person,
+    PersonAuditLog,
     ShareClass,
     ShareIssuance,
     SourceOfFunds,
@@ -45,6 +50,53 @@ def log_entity_changes(
                 changed_by=changed_by,
                 source=source,
             )
+
+
+def log_person_changes(
+    *,
+    person,
+    model_name,
+    record_id=None,
+    old_data,
+    new_data,
+    changed_by,
+    source=AuditSource.INTERNAL,
+):
+    """Compare old_data and new_data dicts, create audit entries for each difference."""
+    for field, new_val in new_data.items():
+        old_val = old_data.get(field)
+        if str(old_val) != str(new_val):
+            PersonAuditLog.objects.create(
+                person=person,
+                model_name=model_name,
+                record_id=record_id,
+                action=AuditAction.UPDATE,
+                field_name=field,
+                old_value=old_val,
+                new_value=new_val,
+                changed_by=changed_by,
+                source=source,
+            )
+
+
+def log_person_creation(
+    *,
+    person,
+    changed_by=None,
+    source=AuditSource.INTERNAL,
+):
+    """Create an audit log entry for a newly created person."""
+    PersonAuditLog.objects.create(
+        person=person,
+        model_name="person",
+        record_id=person.id,
+        action=AuditAction.CREATE,
+        field_name="",
+        old_value=None,
+        new_value=person.display_name,
+        changed_by=changed_by,
+        source=source,
+    )
 
 
 def _risk_weight_to_level(weight: int) -> str:
@@ -123,9 +175,11 @@ def create_person(
 
 
 def search_persons(*, query: str):
+    from django.db.models import Q
+
     return Person.objects.select_related(
         "nationality", "country_of_residence"
-    ).filter(full_name__icontains=query)
+    ).filter(Q(full_name__icontains=query) | Q(last_name__icontains=query))
 
 
 @transaction.atomic
@@ -137,13 +191,19 @@ def create_entity_officer(
     positions: list[str],
     **kwargs,
 ) -> EntityOfficer:
-    return EntityOfficer.objects.create(
+    officer = EntityOfficer.objects.create(
         entity_id=entity_id,
         officer_person_id=officer_person_id,
         officer_entity_id=officer_entity_id,
         positions=positions,
         **kwargs,
     )
+
+    # Trigger risk recalculation for the entity
+    from apps.compliance.services import request_risk_recalculation
+    request_risk_recalculation(entity_id=entity_id)
+
+    return officer
 
 
 @transaction.atomic
@@ -167,11 +227,22 @@ def create_share_issuance(
     num_shares: int,
     **kwargs,
 ) -> ShareIssuance:
-    return ShareIssuance.objects.create(
+    issuance = ShareIssuance.objects.create(
         share_class_id=share_class_id,
         num_shares=num_shares,
         **kwargs,
     )
+
+    # Trigger risk recalculation for the entity owning this share class
+    from apps.compliance.services import request_risk_recalculation
+    try:
+        entity_id = ShareClass.objects.filter(id=share_class_id).values_list("entity_id", flat=True).first()
+        if entity_id:
+            request_risk_recalculation(entity_id=entity_id)
+    except Exception:
+        logger.exception("Failed to schedule risk recalculation for share issuance")
+
+    return issuance
 
 
 @transaction.atomic
@@ -198,6 +269,11 @@ def create_entity_activity(
         description=description,
     )
     activity.countries.set(jurisdictions)
+
+    # Trigger risk recalculation for the entity
+    from apps.compliance.services import request_risk_recalculation
+    request_risk_recalculation(entity_id=entity_id)
+
     return activity
 
 
@@ -224,6 +300,11 @@ def create_source_of_funds(
         description=description,
     )
     sof.countries.set(jurisdictions)
+
+    # Trigger risk recalculation for the entity
+    from apps.compliance.services import request_risk_recalculation
+    request_risk_recalculation(entity_id=entity_id)
+
     return sof
 
 
@@ -293,7 +374,7 @@ def get_ownership_tree(entity_id, *, _depth=0, _max_depth=5, _visited=None):
                 {
                     "type": "person",
                     "id": str(data["person"].id),
-                    "name": data["person"].full_name,
+                    "name": data["person"].display_name,
                     "person": data["person"],
                     "pct": round(pct, 2),
                     "children": [],
@@ -372,11 +453,17 @@ def create_source_of_wealth(
     description: str,
     **kwargs,
 ) -> SourceOfWealth:
-    return SourceOfWealth.objects.create(
+    sow = SourceOfWealth.objects.create(
         person_id=person_id,
         description=description,
         **kwargs,
     )
+
+    # Trigger risk recalculation for the person
+    from apps.compliance.services import request_risk_recalculation
+    request_risk_recalculation(person_id=person_id)
+
+    return sow
 
 
 # ---------------------------------------------------------------------------

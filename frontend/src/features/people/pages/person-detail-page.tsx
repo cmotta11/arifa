@@ -12,11 +12,20 @@ import { Spinner } from "@/components/ui/spinner";
 import { ROUTES } from "@/config/routes";
 import { usePerson, useUpdatePerson } from "../api/people-api";
 import { useJurisdictionRisks } from "@/features/admin/api/admin-api";
+import { PersonDocumentScan, type PersonFormData } from "../components/person-document-scan";
 import { SourceOfWealthTab } from "../components/source-of-wealth-tab";
+import { PersonAuditTab } from "../components/audit-tab";
+import { PersonRiskAssessmentTab } from "../components/person-risk-assessment-tab";
 
-type Tab = "overview" | "kycParties" | "screening" | "sourceOfWealth";
+type Tab = "overview" | "kycParties" | "screening" | "riskAssessment" | "sourceOfWealth" | "auditLog";
 
-const tabs: Tab[] = ["overview", "kycParties", "screening", "sourceOfWealth"];
+const tabs: Tab[] = ["overview", "kycParties", "screening", "riskAssessment", "sourceOfWealth", "auditLog"];
+
+const STATUS_BADGE_COLORS: Record<string, "yellow" | "green" | "red"> = {
+  pending_approval: "yellow",
+  approved: "green",
+  rejected: "red",
+};
 
 export default function PersonDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,6 +70,7 @@ export default function PersonDetailPage() {
   const handleEdit = () => {
     setFormData({
       full_name: person.full_name,
+      last_name: person.last_name,
       person_type: person.person_type,
       nationality_id: person.nationality?.id ?? "",
       country_of_residence_id: person.country_of_residence?.id ?? "",
@@ -68,6 +78,7 @@ export default function PersonDetailPage() {
       identification_number: person.identification_number,
       identification_type: person.identification_type,
       pep_status: String(person.pep_status),
+      status: person.status,
     });
     setEditing(true);
   };
@@ -75,6 +86,7 @@ export default function PersonDetailPage() {
   const handleSave = () => {
     const payload: Record<string, unknown> = { ...formData };
     payload.pep_status = formData.pep_status === "true";
+    payload.last_name = formData.last_name ?? "";
     if (!payload.date_of_birth) {
       payload.date_of_birth = null;
     }
@@ -105,6 +117,9 @@ export default function PersonDetailPage() {
             <h1 className="text-2xl font-bold text-gray-900">{person.full_name}</h1>
             <Badge color={person.person_type === "corporate" ? "blue" : "gray"}>
               {t(`people.form.${person.person_type}`)}
+            </Badge>
+            <Badge color={STATUS_BADGE_COLORS[person.status] ?? "gray"}>
+              {t(`people.status.${person.status}`)}
             </Badge>
             {person.pep_status && (
               <Badge color="red">{t("people.pep")}</Badge>
@@ -154,11 +169,32 @@ export default function PersonDetailPage() {
         {activeTab === "overview" && (
           <Card>
             {editing ? (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <PersonDocumentScan
+                  jurisdictions={jurisdictions}
+                  onApply={(data: PersonFormData) => {
+                    setFormData((p) => ({
+                      ...p,
+                      ...(data.full_name !== undefined && { full_name: data.full_name }),
+                      ...(data.last_name !== undefined && { last_name: data.last_name }),
+                      ...(data.date_of_birth !== undefined && { date_of_birth: data.date_of_birth }),
+                      ...(data.nationality_id !== undefined && { nationality_id: data.nationality_id }),
+                      ...(data.country_of_residence_id !== undefined && { country_of_residence_id: data.country_of_residence_id }),
+                      ...(data.identification_number !== undefined && { identification_number: data.identification_number }),
+                      ...(data.identification_type !== undefined && { identification_type: data.identification_type }),
+                    }));
+                  }}
+                />
+                <div className="grid grid-cols-2 gap-4">
                 <Input
-                  label={t("people.form.fullName")}
+                  label={t("people.form.firstName")}
                   value={formData.full_name ?? ""}
                   onChange={(e) => setFormData((p) => ({ ...p, full_name: e.target.value }))}
+                />
+                <Input
+                  label={t("people.form.lastName")}
+                  value={formData.last_name ?? ""}
+                  onChange={(e) => setFormData((p) => ({ ...p, last_name: e.target.value }))}
                 />
                 <Select
                   label={t("people.form.personType")}
@@ -217,12 +253,27 @@ export default function PersonDetailPage() {
                     { value: "true", label: t("people.pep") },
                   ]}
                 />
+                <Select
+                  label={t("people.form.status")}
+                  value={formData.status ?? "pending_approval"}
+                  onChange={(e) => setFormData((p) => ({ ...p, status: e.target.value }))}
+                  options={[
+                    { value: "pending_approval", label: t("people.status.pending_approval") },
+                    { value: "approved", label: t("people.status.approved") },
+                    { value: "rejected", label: t("people.status.rejected") },
+                  ]}
+                />
+              </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm text-gray-500">{t("people.form.fullName")}</p>
+                  <p className="text-sm text-gray-500">{t("people.form.firstName")}</p>
                   <p className="font-medium">{person.full_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">{t("people.form.lastName")}</p>
+                  <p className="font-medium">{person.last_name || "—"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">{t("people.form.personType")}</p>
@@ -260,6 +311,12 @@ export default function PersonDetailPage() {
                     {person.pep_status ? t("people.pep") : t("people.notPep")}
                   </Badge>
                 </div>
+                <div>
+                  <p className="text-sm text-gray-500">{t("people.form.status")}</p>
+                  <Badge color={STATUS_BADGE_COLORS[person.status] ?? "gray"}>
+                    {t(`people.status.${person.status}`)}
+                  </Badge>
+                </div>
               </div>
             )}
           </Card>
@@ -277,8 +334,16 @@ export default function PersonDetailPage() {
           </Card>
         )}
 
+        {activeTab === "riskAssessment" && (
+          <PersonRiskAssessmentTab personId={id!} />
+        )}
+
         {activeTab === "sourceOfWealth" && (
           <SourceOfWealthTab personId={id!} />
+        )}
+
+        {activeTab === "auditLog" && (
+          <PersonAuditTab personId={id!} />
         )}
       </div>
     </div>

@@ -16,6 +16,7 @@ import type { Person } from "@/types";
 
 const emptyForm = {
   full_name: "",
+  last_name: "",
   person_type: "natural",
   nationality_id: "",
   country_of_residence_id: "",
@@ -31,6 +32,7 @@ export default function PeopleListPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [pepFilter, setPepFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(emptyForm);
 
@@ -39,8 +41,9 @@ export default function PeopleListPage() {
     if (search) f.search = search;
     if (typeFilter) f.person_type = typeFilter;
     if (pepFilter) f.pep_status = pepFilter;
+    if (statusFilter) f.status = statusFilter;
     return f;
-  }, [search, typeFilter, pepFilter]);
+  }, [search, typeFilter, pepFilter, statusFilter]);
 
   const { data, isLoading } = usePeople(filters);
   const createMutation = useCreatePerson();
@@ -61,6 +64,7 @@ export default function PeopleListPage() {
     setForm((p) => ({
       ...p,
       ...(data.full_name && { full_name: data.full_name }),
+      ...(data.last_name && { last_name: data.last_name }),
       ...(data.nationality_id && { nationality_id: data.nationality_id }),
       ...(data.country_of_residence_id && { country_of_residence_id: data.country_of_residence_id }),
       ...(data.identification_number && { identification_number: data.identification_number }),
@@ -72,6 +76,7 @@ export default function PeopleListPage() {
     if (!form.full_name.trim()) return;
     const payload: Record<string, unknown> = {
       full_name: form.full_name,
+      last_name: form.last_name,
       person_type: form.person_type,
       pep_status: form.pep_status === "true",
     };
@@ -101,6 +106,19 @@ export default function PeopleListPage() {
     { value: "true", label: t("people.filters.pepYes") },
     { value: "false", label: t("people.filters.pepNo") },
   ];
+
+  const statusOptions = [
+    { value: "", label: t("people.filters.allStatuses") },
+    { value: "pending_approval", label: t("people.status.pending_approval") },
+    { value: "approved", label: t("people.status.approved") },
+    { value: "rejected", label: t("people.status.rejected") },
+  ];
+
+  const statusBadgeColor = (s: string) => {
+    if (s === "approved") return "green" as const;
+    if (s === "rejected") return "red" as const;
+    return "yellow" as const;
+  };
 
   const columns = useMemo(
     () => [
@@ -138,6 +156,15 @@ export default function PeopleListPage() {
         render: (row: Person) => (
           <Badge color={row.pep_status ? "red" : "green"}>
             {row.pep_status ? t("people.pep") : t("people.notPep")}
+          </Badge>
+        ),
+      },
+      {
+        key: "status",
+        header: t("people.columns.status"),
+        render: (row: Person) => (
+          <Badge color={statusBadgeColor(row.status)}>
+            {t(`people.status.${row.status}`)}
           </Badge>
         ),
       },
@@ -183,6 +210,13 @@ export default function PeopleListPage() {
             onChange={(e) => setPepFilter(e.target.value)}
           />
         </div>
+        <div className="w-40">
+          <Select
+            options={statusOptions}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -204,12 +238,19 @@ export default function PeopleListPage() {
         title={t("people.create")}
       >
         <div className="space-y-4">
-          <Input
-            label={t("people.form.fullName")}
-            value={form.full_name}
-            onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))}
-            autoFocus
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label={t("people.form.firstName")}
+              value={form.full_name}
+              onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))}
+              autoFocus
+            />
+            <Input
+              label={t("people.form.lastName")}
+              value={form.last_name}
+              onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))}
+            />
+          </div>
           <Select
             label={t("people.form.personType")}
             value={form.person_type}

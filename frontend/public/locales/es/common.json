@@ -444,9 +444,17 @@
       "contactTitle": "¿Necesita ayuda?",
       "contactDescription": "Contacte a su coordinador o al equipo de cumplimiento para solicitar un nuevo enlace."
     },
+    "nominalDirectors": {
+      "toggle": "Solicitar Directores Nominales",
+      "infoTitle": "Acerca de los Directores Nominales",
+      "infoDescription": "Los directores nominales son directores profesionales proporcionados por la firma para actuar en nombre de su entidad. Es una práctica común para privacidad y conveniencia.",
+      "costNote": "Nota: Se aplican tarifas anuales adicionales por servicios de directores nominales.",
+      "requested": "Directores Nominales Solicitados"
+    },
     "error": {
       "title": "Algo salió mal",
-      "description": "No pudimos cargar esta página. Intente de nuevo o contacte a soporte."
+      "description": "No pudimos cargar esta página. Intente de nuevo o contacte a soporte.",
+      "loadFailed": "No pudimos cargar los datos de la entidad. Intente de nuevo."
     }
   },
   "portal": {
@@ -697,6 +705,7 @@
         "overview": "General",
         "corporateStructure": "Estructura Corporativa",
         "riskProfile": "Perfil de Riesgo",
+        "riskAssessment": "Evaluación de Riesgo",
         "matters": "Asuntos",
         "tickets": "Tickets",
         "documents": "Documentos",
@@ -709,7 +718,11 @@
       "kycSubmissions": "Expedientes KYC",
       "noLinks": "No hay enlaces de invitado activos",
       "linkUrl": "URL del Enlace",
-      "expires": "Expira"
+      "expires": "Expira",
+      "createKycLink": "Crear KYC y Enlace de Invitado",
+      "selectTicket": "Seleccionar un Ticket",
+      "selectTicketDesc": "Elija el ticket para crear una presentación KYC y un enlace de invitado.",
+      "noTicketsAvailable": "No hay tickets disponibles sin una presentación KYC existente."
     },
     "officers": {
       "title": "Directores y Oficiales",
@@ -764,7 +777,14 @@
       "entityType": "Entidad",
       "searchEntity": "Buscar entidad...",
       "noParValue": "Sin Valor Par",
-      "editIssuance": "Editar Emisión"
+      "editIssuance": "Editar Emisión",
+      "isJtwros": "Copropiedad con Derecho de Supervivencia (JTWROS)",
+      "jtwrosHint": "La copropiedad significa que ambos titulares poseen las acciones por igual. Si un titular fallece, la propiedad se transfiere automáticamente al titular sobreviviente.",
+      "jtwrosPartnerName": "Nombre del Cotitular",
+      "isTrustee": "Mantenido como Fiduciario",
+      "trusteeHint": "Marque esta opción si el accionista posee estas acciones en nombre de otra persona o entidad (el beneficiario).",
+      "beneficiaryName": "Nombre del Beneficiario",
+      "ownershipPct": "% de Participación"
     },
     "ubos": {
       "title": "Beneficiarios Finales",
@@ -851,6 +871,7 @@
       "nationality": "Nacionalidad",
       "idNumber": "Número de ID",
       "pepStatus": "Estado PEP",
+      "status": "Estado",
       "client": "Cliente"
     },
     "detail": {
@@ -858,8 +879,24 @@
         "overview": "General",
         "kycParties": "Partes KYC",
         "screening": "Verificación",
-        "sourceOfWealth": "Origen de Riqueza"
+        "riskAssessment": "Evaluación de Riesgo",
+        "sourceOfWealth": "Origen de Riqueza",
+        "auditLog": "Registro de Auditoría"
       }
+    },
+    "status": {
+      "pending_approval": "Pendiente de Aprobación",
+      "approved": "Aprobado",
+      "rejected": "Rechazado"
+    },
+    "audit": {
+      "timestamp": "Fecha/Hora",
+      "user": "Usuario",
+      "source": "Origen",
+      "field": "Campo",
+      "change": "Cambio",
+      "comment": "Comentario",
+      "noEntries": "No se encontraron registros de auditoría"
     },
     "sourcesOfWealth": {
       "title": "Origen de Riqueza",
@@ -870,12 +907,15 @@
     "filters": {
       "allTypes": "Todos los Tipos",
       "allPep": "Todos los Estados PEP",
+      "allStatuses": "Todos los Estados",
       "pepYes": "PEP",
       "pepNo": "No PEP",
       "search": "Buscar personas..."
     },
     "form": {
       "fullName": "Nombre Completo",
+      "firstName": "Nombre(s)",
+      "lastName": "Apellido(s)",
       "personType": "Tipo",
       "nationality": "Nacionalidad",
       "countryOfResidence": "País de Residencia",
@@ -883,6 +923,7 @@
       "idNumber": "Número de ID",
       "idType": "Tipo de ID",
       "pepStatus": "Estado PEP",
+      "status": "Estado",
       "client": "Cliente",
       "natural": "Persona Natural",
       "corporate": "Corporativo",
@@ -891,7 +932,11 @@
       "extractData": "Extraer Datos"
     },
     "pep": "PEP",
-    "notPep": "No PEP"
+    "notPep": "No PEP",
+    "quickCreate": {
+      "title": "Crear Nueva Persona",
+      "create": "Crear Persona"
+    }
   },
   "invoices": {
     "comingSoon": "Integración con Aderant ERP próximamente",
@@ -903,6 +948,69 @@
     "gestora": "Gestora",
     "director": "Director",
     "client": "Cliente"
+  },
+  "riskMatrix": {
+    "recalculate": "Recalcular Riesgo",
+    "exportPDF": "Exportar PDF",
+    "currentAssessment": "Evaluación Actual",
+    "noAssessment": "No hay evaluación de riesgo disponible",
+    "noAssessmentHint": "Haga clic en 'Recalcular Riesgo' para generar la primera evaluación.",
+    "assessedAt": "Evaluado el",
+    "trigger": "Disparador",
+    "triggeredRules": "Disparadores Automáticos Activados",
+    "forced": "forzado",
+    "factorBreakdown": "Desglose de Factores",
+    "factor": "Factor",
+    "score": "Puntaje",
+    "max": "Máx",
+    "bar": "Barra",
+    "riskHistory": "Historial de Riesgo",
+    "noHistory": "No hay historial de riesgo disponible",
+    "config": {
+      "title": "Configuración de Matriz de Riesgo",
+      "description": "Gestione configuraciones de puntuación de riesgo, pesos de factores y disparadores automáticos.",
+      "create": "Nueva Configuración",
+      "name": "Nombre",
+      "scope": "Alcance",
+      "version": "Versión",
+      "thresholds": "Umbrales",
+      "factors": "Factores",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "activate": "Activar",
+      "duplicate": "Duplicar",
+      "noConfigs": "No se encontraron configuraciones de matriz de riesgo",
+      "details": "Detalles de Configuración",
+      "jurisdiction": "Jurisdicción",
+      "entityType": "Tipo de Entidad",
+      "global": "Global",
+      "highThreshold": "Umbral Alto",
+      "mediumThreshold": "Umbral Medio",
+      "notes": "Notas",
+      "entityFactors": "Factores de Entidad",
+      "personFactors": "Factores de Persona",
+      "triggerRules": "Reglas de Disparo Automático",
+      "maxScore": "Puntaje Máximo",
+      "weight": "Peso",
+      "factorDescription": "Descripción",
+      "total": "Total",
+      "condition": "Condición",
+      "forcedLevel": "Nivel Forzado"
+    },
+    "snapshots": {
+      "title": "Instantáneas de Cumplimiento",
+      "description": "Ejecute análisis de riesgo por lotes para auditorías regulatorias e informes de cumplimiento.",
+      "runNew": "Ejecutar Nuevo Análisis",
+      "name": "Nombre de Instantánea",
+      "date": "Fecha",
+      "riskBreakdown": "Distribución de Riesgo",
+      "totals": "Totales",
+      "entities": "entidades",
+      "persons": "personas",
+      "noSnapshots": "No se encontraron instantáneas de cumplimiento",
+      "selectSnapshot": "Seleccione una instantánea para ver sus evaluaciones",
+      "assessments": "Evaluaciones"
+    }
   },
   "risk": {
     "low": "Riesgo Bajo",
@@ -922,6 +1030,39 @@
     "high": "Alta",
     "urgent": "Urgente"
   },
+  "extraction": {
+    "processing": "Analizando su documento...",
+    "processingDescription": "Nuestra IA está leyendo el documento y extrayendo los campos relevantes. Esto suele tardar unos segundos.",
+    "completed": "Extracción completada",
+    "results": "Datos Extraídos",
+    "failed": "Error en la extracción",
+    "failedDescription": "No pudimos extraer datos de este documento. Intente de nuevo o ingrese la información manualmente.",
+    "retry": "Reintentar",
+    "dismiss": "Cerrar",
+    "applyToForm": "Aplicar al Formulario",
+    "mockDataIndicator": "Modo demostración — mostrando datos de ejemplo. Configure la API de LLM para extracción real.",
+    "fields": {
+      "fullName": "Nombre Completo",
+      "dateOfBirth": "Fecha de Nacimiento",
+      "nationality": "Nacionalidad",
+      "passportNumber": "Número de Pasaporte",
+      "expiryDate": "Fecha de Vencimiento",
+      "mrzData": "Datos MRZ",
+      "cedulaNumber": "Número de Cédula",
+      "name": "Nombre",
+      "address": "Dirección",
+      "utilityProvider": "Proveedor de Servicios",
+      "date": "Fecha",
+      "entityName": "Nombre de Entidad",
+      "registrationNumber": "Número de Registro",
+      "jurisdiction": "Jurisdicción",
+      "directors": "Directores",
+      "shareholders": "Accionistas",
+      "sourceDescription": "Descripción de Origen",
+      "amount": "Monto",
+      "rawText": "Texto Sin Procesar"
+    }
+  },
   "common": {
     "save": "Guardar",
     "cancel": "Cancelar",
@@ -938,6 +1079,7 @@
     "actions": "Acciones",
     "error": "Ocurrió un error",
     "retry": "Reintentar",
+    "select": "Seleccionar",
     "yes": "Sí",
     "no": "No",
     "all": "Todos",

@@ -43,16 +43,22 @@ class LLMExtractionError(Exception):
 _EXTRACTION_PROMPTS = {
     "passport": (
         "Extract the following fields from this passport image: "
-        "full_name, date_of_birth, nationality, passport_number, "
-        "expiry_date, issuing_country, gender, place_of_birth. "
+        "first_name (given names only), last_name (surname/family name only), "
+        "date_of_birth (in YYYY-MM-DD format), "
+        "nationality_code (ISO 3166-1 alpha-3 country code, e.g. 'PAN' for Panama), "
+        "passport_number, expiry_date (YYYY-MM-DD), "
+        "issuing_country_code (ISO 3166-1 alpha-3), gender, place_of_birth. "
         "Return the result as a JSON object. If a field is not "
         "visible or legible, set it to null."
     ),
     "cedula": (
         "Extract the following fields from this national ID card (cedula): "
-        "full_name, date_of_birth, cedula_number, nationality, "
-        "expiry_date, gender, address. "
-        "Return the result as a JSON object."
+        "first_name (given names only), last_name (surname/family name only), "
+        "date_of_birth (in YYYY-MM-DD format), cedula_number, "
+        "nationality_code (ISO 3166-1 alpha-3 country code, e.g. 'PAN' for Panama), "
+        "expiry_date (YYYY-MM-DD), gender, address. "
+        "Return the result as a JSON object. If a field is not "
+        "visible or legible, set it to null."
     ),
     "utility_bill": (
         "Extract the following fields from this utility bill: "
@@ -164,9 +170,11 @@ class LLMExtractionClient:
         self,
         api_url: str | None = None,
         api_key: str | None = None,
+        auth_type: str | None = None,
     ):
         self.api_url = (api_url or getattr(settings, "LLM_API_URL", "")).rstrip("/")
         self.api_key = api_key or getattr(settings, "LLM_API_KEY", "")
+        self.auth_type = auth_type or getattr(settings, "LLM_AUTH_TYPE", "bearer")
         self._configured = bool(self.api_url and self.api_key)
 
         if not self._configured:
@@ -177,10 +185,16 @@ class LLMExtractionClient:
             )
         else:
             self.session = requests.Session()
-            self.session.headers.update({
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            })
+            if self.auth_type == "api-key":
+                self.session.headers.update({
+                    "api-key": self.api_key,
+                    "Content-Type": "application/json",
+                })
+            else:
+                self.session.headers.update({
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                })
 
     def extract_from_image(
         self,
@@ -225,8 +239,10 @@ class LLMExtractionClient:
 
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
+        model = getattr(settings, "LLM_MODEL_NAME", "gpt-4o")
+
         payload = {
-            "model": "gpt-4o",
+            "model": model,
             "messages": [
                 {
                     "role": "system",
@@ -263,9 +279,11 @@ class LLMExtractionClient:
             len(image_bytes),
         )
 
+        url = f"{self.api_url}/chat/completions"
+
         try:
             response = self.session.post(
-                f"{self.api_url}/chat/completions",
+                url,
                 json=payload,
                 timeout=120,
             )

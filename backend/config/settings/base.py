@@ -146,6 +146,18 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "x-guest-token",
+]
 
 # ---------- Celery ----------
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
@@ -186,6 +198,8 @@ WORLDCHECK_WEBHOOK_SECRET = os.environ.get("WORLDCHECK_WEBHOOK_SECRET", "")
 # ---------- LLM ----------
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 LLM_API_URL = os.environ.get("LLM_API_URL", "")
+LLM_AUTH_TYPE = os.environ.get("LLM_AUTH_TYPE", "bearer")
+LLM_MODEL_NAME = os.environ.get("LLM_MODEL_NAME", "gpt-4o")
 
 # ---------- Aderant ERP ----------
 ADERANT_API_URL = os.environ.get("ADERANT_API_URL", "")

@@ -14,9 +14,13 @@ from .constants import (
     PartyType,
     RecalculationStatus,
     RFIStatus,
+    RiskFactorCategory,
+    RiskFactorCode,
     RiskLevel,
     RiskTrigger,
     ScreeningStatus,
+    SnapshotStatus,
+    TriggerCondition,
 )
 
 
@@ -108,10 +112,146 @@ class JurisdictionRisk(TimeStampedModel):
         return f"{self.country_name} ({self.country_code}) - weight {self.risk_weight}"
 
 
+class RiskMatrixConfig(TimeStampedModel):
+    name = models.CharField(max_length=255)
+    jurisdiction = models.CharField(max_length=20, blank=True, default="")
+    entity_type = models.CharField(max_length=20, blank=True, default="")
+    version = models.PositiveIntegerField(default=1)
+    is_active = models.BooleanField(default=True)
+    high_risk_threshold = models.IntegerField(default=70)
+    medium_risk_threshold = models.IntegerField(default=40)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="risk_matrix_configs",
+    )
+    notes = models.TextField(blank=True, default="")
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Risk Matrix Config"
+        verbose_name_plural = "Risk Matrix Configs"
+
+    def __str__(self):
+        scope = []
+        if self.jurisdiction:
+            scope.append(self.jurisdiction)
+        if self.entity_type:
+            scope.append(self.entity_type)
+        scope_str = " / ".join(scope) if scope else "Global"
+        return f"{self.name} v{self.version} ({scope_str})"
+
+
+class RiskFactor(TimeStampedModel):
+    matrix_config = models.ForeignKey(
+        RiskMatrixConfig,
+        on_delete=models.CASCADE,
+        related_name="factors",
+    )
+    code = models.CharField(
+        max_length=30,
+        choices=RiskFactorCode.choices,
+    )
+    category = models.CharField(
+        max_length=10,
+        choices=RiskFactorCategory.choices,
+    )
+    max_score = models.IntegerField()
+    description = models.TextField(blank=True, default="")
+    scoring_rules_json = models.JSONField(default=dict, blank=True)
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Risk Factor"
+        verbose_name_plural = "Risk Factors"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["matrix_config", "code", "category"],
+                name="unique_factor_per_config",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_code_display()} (max={self.max_score})"
+
+
+class AutomaticTriggerRule(TimeStampedModel):
+    matrix_config = models.ForeignKey(
+        RiskMatrixConfig,
+        on_delete=models.CASCADE,
+        related_name="trigger_rules",
+    )
+    condition = models.CharField(
+        max_length=30,
+        choices=TriggerCondition.choices,
+    )
+    forced_risk_level = models.CharField(
+        max_length=10,
+        choices=RiskLevel.choices,
+        default=RiskLevel.HIGH,
+    )
+    is_active = models.BooleanField(default=True)
+    description = models.TextField(blank=True, default="")
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Automatic Trigger Rule"
+        verbose_name_plural = "Automatic Trigger Rules"
+
+    def __str__(self):
+        return f"{self.get_condition_display()} -> {self.get_forced_risk_level_display()}"
+
+
+class ComplianceSnapshot(TimeStampedModel):
+    name = models.CharField(max_length=255)
+    snapshot_date = models.DateTimeField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="compliance_snapshots",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=SnapshotStatus.choices,
+        default=SnapshotStatus.RUNNING,
+    )
+    total_entities = models.IntegerField(default=0)
+    total_persons = models.IntegerField(default=0)
+    high_risk_count = models.IntegerField(default=0)
+    medium_risk_count = models.IntegerField(default=0)
+    low_risk_count = models.IntegerField(default=0)
+    notes = models.TextField(blank=True, default="")
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Compliance Snapshot"
+        verbose_name_plural = "Compliance Snapshots"
+
+    def __str__(self):
+        return f"{self.name} ({self.get_status_display()})"
+
+
 class RiskAssessment(TimeStampedModel):
     kyc_submission = models.ForeignKey(
         KYCSubmission,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="risk_assessments",
+    )
+    entity = models.ForeignKey(
+        "core.Entity",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="risk_assessments",
+    )
+    person = models.ForeignKey(
+        "core.Person",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="risk_assessments",
     )
     total_score = models.IntegerField()
@@ -126,15 +266,52 @@ class RiskAssessment(TimeStampedModel):
         max_length=20,
         choices=RiskTrigger.choices,
     )
+    matrix_config = models.ForeignKey(
+        RiskMatrixConfig,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assessments",
+    )
+    matrix_config_snapshot = models.JSONField(default=dict, blank=True)
+    input_data_snapshot = models.JSONField(default=dict, blank=True)
+    triggered_rules = models.JSONField(default=list, blank=True)
+    is_auto_triggered = models.BooleanField(default=False)
+    assessed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="risk_assessments",
+    )
+    snapshot = models.ForeignKey(
+        ComplianceSnapshot,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assessments",
+    )
 
     class Meta(TimeStampedModel.Meta):
         verbose_name = "Risk Assessment"
         verbose_name_plural = "Risk Assessments"
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(entity__isnull=False)
+                    | models.Q(person__isnull=False)
+                    | models.Q(kyc_submission__isnull=False)
+                ),
+                name="risk_assessment_has_subject",
+            )
+        ]
 
     def __str__(self):
+        subject = "Entity" if self.entity_id else "Person" if self.person_id else "KYC"
+        subject_id = self.entity_id or self.person_id or self.kyc_submission_id
         return (
             f"Risk {self.get_risk_level_display()} "
-            f"(score={self.total_score}) for KYC {self.kyc_submission_id}"
+            f"(score={self.total_score}) for {subject} {subject_id}"
         )
 
 
