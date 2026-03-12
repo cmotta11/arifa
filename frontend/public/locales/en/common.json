@@ -11,6 +11,7 @@
     "kyc": "KYC Submissions",
     "compliance": "Compliance",
     "documents": "Documents",
+    "registrosContables": "Accounting Records",
     "admin": "Administration"
   },
   "auth": {
@@ -718,8 +719,11 @@
       "kycSubmissions": "KYC Submissions",
       "noLinks": "No active guest links",
       "linkUrl": "Link URL",
+      "linkType": "Type",
+      "accountingRecord": "Accounting Record",
       "expires": "Expires",
       "createKycLink": "Create KYC & Guest Link",
+      "createAccountingLink": "Create Accounting Record",
       "selectTicket": "Select a Ticket",
       "selectTicketDesc": "Choose the ticket to create a KYC submission and guest link for.",
       "noTicketsAvailable": "No tickets available without an existing KYC submission."
@@ -1061,6 +1065,125 @@
       "sourceDescription": "Source Description",
       "amount": "Amount",
       "rawText": "Raw Text"
+    }
+  },
+  "registrosContables": {
+    "title": "Accounting Records",
+    "entity": "Entity",
+    "client": "Client",
+    "formType": "Form Type",
+    "status": "Status",
+    "submittedAt": "Submitted",
+    "fiscalYear": "Fiscal Year",
+    "formTypes": {
+      "no_operations": {
+        "name": "No operations",
+        "description": "No assets, operations, or income"
+      },
+      "panama_assets": {
+        "name": "Form B - Asset-holding entity",
+        "description": "Legal structure with Panamanian UBOs and declared assets"
+      },
+      "balance_general": {
+        "name": "Balance sheet",
+        "description": "Foreign UBOs or income outside Panama"
+      },
+      "exempt_license": {
+        "name": "Exempt by business license",
+        "description": "Has an active business license"
+      }
+    },
+    "status": {
+      "all": "All",
+      "total": "Total",
+      "pending": "Pending",
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "balanceSections": {
+      "assets": "Assets",
+      "totalAssets": "Total Assets",
+      "liabilities": "Liabilities",
+      "totalLiabilities": "Total Liabilities",
+      "equity": "Equity",
+      "income": "Income",
+      "totalIncome": "Total Income"
+    },
+    "balanceFields": {
+      "cash": "Cash and equivalents",
+      "investments_deposits": "Investments and deposits",
+      "fixed_assets": "Fixed assets",
+      "other_assets": "Other assets",
+      "bank_debt": "Bank debt",
+      "other_liabilities": "Other liabilities",
+      "interest": "Interest",
+      "dividends": "Dividends",
+      "rent": "Rent",
+      "other_income": "Other income"
+    },
+    "panamaAssets": {
+      "formTitle": "Form B",
+      "declarationTitle": "Sworn Declaration",
+      "subtitle": "Asset-Holding Entity with Panamanian Beneficial Owner",
+      "entityLabel": "Entity name",
+      "introText": "The undersigned hereby declares that the entity identified above satisfies the conditions set forth in Article 4 of Executive Decree No. 177 of December 30, 2024, regarding the obligation to file accounting records declarations:",
+      "requirement1": "The entity holds assets exclusively in:",
+      "requirement2": "The ultimate beneficial owners registered with the SSNF hold exclusively Panamanian nationality.",
+      "requirement3": "The entity does not conduct activities that generate taxable income in the Republic of Panama.",
+      "searchCountries": "Search country..."
+    },
+    "guest": {
+      "title": "Accounting Record - Annual Declaration",
+      "selectFormType": "Select declaration type",
+      "selectFormTypeDescription": "Choose the option that best describes this entity's situation for the fiscal year.",
+      "changeFormType": "Change form type",
+      "noOperationsDeclaration": "I declare that this company has had no operations, assets, income, or expenses during the corresponding fiscal period.",
+      "exemptDeclaration": "I declare that this company has an active business license and is exempt from filing detailed accounting records under the law.",
+      "licenseNumber": "Business License Number",
+      "licenseNumberPlaceholder": "Enter business license number",
+      "optional": "optional",
+      "supportingDocuments": "Supporting Documents",
+      "dropDocuments": "Drag and drop files here, or click to select",
+      "uploading": "Uploading...",
+      "signerInfo": "Signer Information",
+      "signerName": "Full name",
+      "signerIdentification": "ID or Passport",
+      "signerIdentificationPlaceholder": "E.g.: 8-888-8888",
+      "signature": "Signature",
+      "clearSignature": "Clear signature",
+      "declaration": "I declare under oath that the information provided is correct and complete.",
+      "submit": "Submit Declaration",
+      "saving": "Saving...",
+      "submissionSuccess": "Declaration Submitted",
+      "submissionSuccessDescription": "Your declaration has been successfully submitted. You will receive a confirmation once it has been reviewed.",
+      "printDownload": "Print / Download PDF",
+      "rejectionNotice": "Your declaration was rejected. Please review the notes below and resubmit.",
+      "submitError": "An error occurred while submitting your declaration. Please try again."
+    },
+    "staff": {
+      "bulkSend": "Send to all entities",
+      "bulkSendConfirmTitle": "Confirm bulk send",
+      "bulkSendConfirmDescription": "This will create accounting records and guest links for all Panama entities that don't have one for fiscal year {{year}}.",
+      "copyLink": "Copy link",
+      "print": "Print",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approveTitle": "Approve Record",
+      "rejectTitle": "Reject Record",
+      "reviewNotes": "Review Notes",
+      "reviewNotesPlaceholder": "Add review notes (optional)...",
+      "reviewedBy": "Reviewed by"
+    },
+    "print": {
+      "title": "Accounting Record",
+      "fiscalYear": "Fiscal Year",
+      "entityInfo": "Entity Information",
+      "formData": "Form Data",
+      "signerInfo": "Signer Information",
+      "documents": "Documents",
+      "submittedAt": "Submitted on"
     }
   },
   "common": {

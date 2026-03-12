@@ -1,7 +1,8 @@
-from django.db.models import QuerySet
+from django.db.models import Count, Q, QuerySet
 
-from .constants import KYCStatus, RFIStatus
+from .constants import AccountingRecordStatus, KYCStatus, RFIStatus
 from .models import (
+    AccountingRecord,
     ComplianceSnapshot,
     KYCSubmission,
     Party,
@@ -141,3 +142,43 @@ def get_risk_stats() -> dict:
         "medium_risk_count": current.filter(risk_level=RiskLevel.MEDIUM).count(),
         "low_risk_count": current.filter(risk_level=RiskLevel.LOW).count(),
     }
+
+
+# ===========================================================================
+# Accounting Records selectors
+# ===========================================================================
+
+
+def get_accounting_records_list(*, fiscal_year=None, status=None) -> QuerySet[AccountingRecord]:
+    qs = AccountingRecord.objects.select_related(
+        "entity__client", "reviewed_by",
+    ).order_by("-created_at")
+
+    if fiscal_year:
+        qs = qs.filter(fiscal_year=fiscal_year)
+    if status:
+        qs = qs.filter(status=status)
+    return qs
+
+
+def get_accounting_record_detail(*, record_id) -> AccountingRecord:
+    return AccountingRecord.objects.select_related(
+        "entity__client", "reviewed_by",
+    ).prefetch_related("documents", "guest_links").get(id=record_id)
+
+
+def get_accounting_records_summary(*, fiscal_year=2025) -> dict:
+    qs = AccountingRecord.objects.filter(fiscal_year=fiscal_year)
+    total = qs.count()
+    counts = qs.values("status").annotate(count=Count("id"))
+    result = {
+        "total": total,
+        "pending": 0,
+        "draft": 0,
+        "submitted": 0,
+        "approved": 0,
+        "rejected": 0,
+    }
+    for row in counts:
+        result[row["status"]] = row["count"]
+    return result

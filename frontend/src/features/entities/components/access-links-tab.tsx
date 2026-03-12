@@ -15,6 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ShareGuestLinkButton } from "@/features/kyc/components/share-guest-link-button";
 import { useCreateKYC, useCreateGuestLink } from "@/features/kyc/api/kyc-api";
 import { useCreateTicket } from "@/features/tickets/api/tickets-api";
+import { useCreateAccountingRecordForEntity } from "@/features/registros-contables/api/registros-contables-api";
 import {
   useEntityGuestLinks,
   useEntityKYCSubmissions,
@@ -67,6 +68,7 @@ export function AccessLinksTab({ entityId, clientId, entityName }: AccessLinksTa
   const createKycMutation = useCreateKYC();
   const createGuestLinkMutation = useCreateGuestLink();
   const createTicketMutation = useCreateTicket();
+  const createAccountingRecordMutation = useCreateAccountingRecordForEntity();
 
   const guestLinks = guestLinksQuery.data?.results ?? [];
   const kycSubmissions = kycQuery.data?.results ?? [];
@@ -76,8 +78,9 @@ export function AccessLinksTab({ entityId, clientId, entityName }: AccessLinksTa
   const kycTicketIds = new Set(kycSubmissions.map((k) => k.ticket));
   const availableTickets = tickets.filter((t) => !kycTicketIds.has(t.id));
 
-  const showLinkResultDialog = (token: string, expiresAt: string) => {
-    setGeneratedUrl(`${window.location.origin}/guest/${token}`);
+  const showLinkResultDialog = (token: string, expiresAt: string, type: "kyc" | "accounting" = "kyc") => {
+    const basePath = type === "accounting" ? "/registros-contables/guest/" : "/guest/";
+    setGeneratedUrl(`${window.location.origin}${basePath}${token}`);
     setGeneratedExpires(
       new Date(expiresAt).toLocaleDateString(undefined, {
         year: "numeric",
@@ -129,6 +132,33 @@ export function AccessLinksTab({ entityId, clientId, entityName }: AccessLinksTa
     }
   };
 
+  const handleCreateAccountingRecordLink = async () => {
+    try {
+      const record = await createAccountingRecordMutation.mutateAsync({
+        entity_id: entityId,
+        fiscal_year: new Date().getFullYear() - 1,
+      });
+      // The record response includes guest_link_token directly
+      if (record.guest_link_token) {
+        // Compute a reasonable expiry (30 days from now)
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        guestLinksQuery.refetch();
+        showLinkResultDialog(record.guest_link_token, expiresAt, "accounting");
+      } else {
+        // Fallback: refetch guest links and find the new one
+        const refreshed = await guestLinksQuery.refetch();
+        const link = (refreshed.data?.results ?? []).find(
+          (l) => l.accounting_record === record.id
+        );
+        if (link) {
+          showLinkResultDialog(link.token, link.expires_at, "accounting");
+        }
+      }
+    } catch {
+      // Errors handled by mutation state
+    }
+  };
+
   const handleCopyResult = async () => {
     await navigator.clipboard.writeText(generatedUrl);
     setCopiedResult(true);
@@ -140,7 +170,8 @@ export function AccessLinksTab({ entityId, clientId, entityName }: AccessLinksTa
       key: "token",
       header: t("entities.accessLinks.linkUrl"),
       render: (row: Record<string, unknown>) => {
-        const url = `${window.location.origin}/guest/${String(row.token)}`;
+        const basePath = row.accounting_record ? "/registros-contables/guest/" : "/guest/";
+        const url = `${window.location.origin}${basePath}${String(row.token)}`;
         return (
           <div className="flex items-center gap-2">
             <span className="max-w-xs truncate text-sm text-gray-600">
@@ -152,12 +183,16 @@ export function AccessLinksTab({ entityId, clientId, entityName }: AccessLinksTa
       },
     },
     {
-      key: "kyc_submission",
-      header: "KYC",
+      key: "type",
+      header: t("entities.accessLinks.linkType"),
       render: (row: Record<string, unknown>) =>
-        row.kyc_submission
-          ? String(row.kyc_submission).slice(0, 8) + "..."
-          : "—",
+        row.accounting_record ? (
+          <Badge color="blue">{t("entities.accessLinks.accountingRecord")}</Badge>
+        ) : row.kyc_submission ? (
+          <Badge color="green">KYC</Badge>
+        ) : (
+          <Badge color="gray">Ticket</Badge>
+        ),
     },
     {
       key: "expires_at",
@@ -219,8 +254,16 @@ export function AccessLinksTab({ entityId, clientId, entityName }: AccessLinksTa
 
   return (
     <div className="space-y-6">
-      {/* Create KYC & Link Button */}
-      <div className="flex justify-end">
+      {/* Create Link Buttons */}
+      <div className="flex justify-end gap-3">
+        <Button
+          variant="secondary"
+          onClick={handleCreateAccountingRecordLink}
+          loading={createAccountingRecordMutation.isPending}
+        >
+          <PlusIcon className="mr-1.5 h-4 w-4" />
+          {t("entities.accessLinks.createAccountingLink")}
+        </Button>
         <Button
           variant="primary"
           onClick={handleButtonClick}

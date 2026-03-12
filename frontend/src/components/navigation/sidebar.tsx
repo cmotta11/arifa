@@ -9,6 +9,7 @@ import {
   IdentificationIcon,
   ShieldCheckIcon,
   DocumentDuplicateIcon,
+  DocumentTextIcon,
   Cog6ToothIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -34,6 +35,7 @@ const navItems: NavItem[] = [
   { labelKey: "nav.kyc", href: ROUTES.KYC, icon: IdentificationIcon },
   { labelKey: "nav.compliance", href: ROUTES.COMPLIANCE, icon: ShieldCheckIcon },
   { labelKey: "nav.documents", href: ROUTES.DOCUMENTS, icon: DocumentDuplicateIcon },
+  { labelKey: "nav.registrosContables", href: ROUTES.REGISTROS_CONTABLES, icon: DocumentTextIcon },
   { labelKey: "nav.admin", href: ROUTES.ADMIN, icon: Cog6ToothIcon, roles: ["director"] },
 ];
 

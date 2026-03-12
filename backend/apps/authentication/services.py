@@ -54,20 +54,25 @@ def create_guest_link(
     created_by: User,
     ticket=None,
     kyc_submission=None,
+    accounting_record=None,
 ) -> GuestLink:
     """Create a guest link that expires in 30 days.
 
-    Exactly one of ``ticket`` or ``kyc_submission`` must be provided.
+    Exactly one of ``ticket``, ``kyc_submission``, or ``accounting_record``
+    must be provided.
     """
-    if (ticket is None) == (kyc_submission is None):
+    targets = [ticket, kyc_submission, accounting_record]
+    provided = sum(1 for t in targets if t is not None)
+    if provided != 1:
         raise ApplicationError(
-            "Exactly one of 'ticket' or 'kyc_submission' must be provided."
+            "Exactly one of 'ticket', 'kyc_submission', or 'accounting_record' must be provided."
         )
 
     guest_link = GuestLink.objects.create(
         created_by=created_by,
         ticket=ticket,
         kyc_submission=kyc_submission,
+        accounting_record=accounting_record,
         expires_at=timezone.now() + timedelta(days=GUEST_LINK_EXPIRY_DAYS),
     )
     return guest_link
@@ -129,7 +134,8 @@ def validate_guest_link(*, token) -> GuestLink:
     """
     try:
         guest_link = GuestLink.objects.select_related(
-            "created_by", "ticket", "kyc_submission"
+            "created_by", "ticket", "kyc_submission",
+            "accounting_record__entity__client",
         ).get(token=token)
     except GuestLink.DoesNotExist:
         raise ApplicationError("Guest link not found.")

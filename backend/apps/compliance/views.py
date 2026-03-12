@@ -10,6 +10,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
+from rest_framework import serializers
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
@@ -19,6 +20,8 @@ from apps.authentication.permissions import IsClient, IsDirector
 
 from . import selectors, services
 from .models import (
+    AccountingRecord,
+    AccountingRecordDocument,
     AutomaticTriggerRule,
     ComplianceSnapshot,
     DocumentUpload,
@@ -32,9 +35,16 @@ from .models import (
 )
 from .permissions import CanManageKYC, CanManageRFI, CanReviewKYC, CanScreenParties
 from .serializers import (
+    AccountingRecordDocumentOutputSerializer,
+    AccountingRecordDocumentUploadInputSerializer,
+    AccountingRecordOutputSerializer,
+    AccountingRecordReviewInputSerializer,
+    AccountingRecordSaveDraftInputSerializer,
+    AccountingRecordSummaryOutputSerializer,
     ApproveWithChangesInputSerializer,
     AutomaticTriggerRuleInputSerializer,
     AutomaticTriggerRuleOutputSerializer,
+    BulkCreateAccountingRecordsInputSerializer,
     CalculateRiskInputSerializer,
     ComplianceSnapshotInputSerializer,
     ComplianceSnapshotOutputSerializer,
@@ -1240,3 +1250,223 @@ class RiskAssessmentExportPDFView(APIView):
                 {"detail": f"PDF generation failed: {str(exc)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+# ===========================================================================
+# Accounting Records ViewSet (staff)
+# ===========================================================================
+
+
+class AccountingRecordListOutputSerializer(AccountingRecordOutputSerializer):
+    """List serializer that excludes PII (signature_data, form_data)."""
+
+    class Meta(AccountingRecordOutputSerializer.Meta):
+        fields = [
+            f for f in AccountingRecordOutputSerializer.Meta.fields
+            if f not in ("signature_data", "form_data")
+        ]
+
+
+class CreateForEntityInputSerializer(serializers.Serializer):
+    entity_id = serializers.UUIDField()
+    fiscal_year = serializers.IntegerField(default=lambda: __import__("datetime").date.today().year - 1)
+
+
+class AccountingRecordViewSet(ModelViewSet):
+    queryset = AccountingRecord.objects.select_related(
+        "entity__client", "reviewed_by"
+    ).prefetch_related("guest_links").all()
+    permission_classes = [IsAuthenticated, CanManageKYC]
+    pagination_class = StandardPagination
+    http_method_names = ["get", "post", "head", "options"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return AccountingRecordListOutputSerializer
+        return AccountingRecordOutputSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        fiscal_year = self.request.query_params.get("fiscal_year")
+        if fiscal_year:
+            qs = qs.filter(fiscal_year=fiscal_year)
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs.order_by("-created_at")
+
+    @action(detail=False, methods=["post"], url_path="bulk-create")
+    def bulk_create(self, request):
+        serializer = BulkCreateAccountingRecordsInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        records = services.bulk_create_accounting_records(
+            fiscal_year=serializer.validated_data["fiscal_year"],
+            created_by=request.user,
+        )
+        output = AccountingRecordListOutputSerializer(records, many=True, context={"request": request})
+        return Response(output.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="create-for-entity")
+    def create_for_entity(self, request):
+        """Create a single accounting record + guest link for a specific entity."""
+        from django.db import IntegrityError
+        from apps.authentication.services import create_guest_link
+
+        serializer = CreateForEntityInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        entity_id = serializer.validated_data["entity_id"]
+        fiscal_year = serializer.validated_data["fiscal_year"]
+
+        try:
+            record = services.create_accounting_record(
+                entity_id=entity_id, fiscal_year=fiscal_year,
+            )
+        except IntegrityError:
+            return Response(
+                {"detail": "An accounting record already exists for this entity and fiscal year."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        create_guest_link(created_by=request.user, accounting_record=record)
+        record.refresh_from_db()
+        output = AccountingRecordOutputSerializer(record, context={"request": request})
+        return Response(output.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["get"], url_path="summary")
+    def summary(self, request):
+        fiscal_year = int(request.query_params.get(
+            "fiscal_year", __import__("datetime").date.today().year - 1,
+        ))
+        data = selectors.get_accounting_records_summary(fiscal_year=fiscal_year)
+        return Response(AccountingRecordSummaryOutputSerializer(data).data)
+
+    @action(detail=True, methods=["post"], url_path="approve")
+    def approve(self, request, pk=None):
+        serializer = AccountingRecordReviewInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        record = services.approve_accounting_record(
+            record_id=pk,
+            reviewed_by=request.user,
+            review_notes=serializer.validated_data.get("review_notes", ""),
+        )
+        return Response(AccountingRecordOutputSerializer(record, context={"request": request}).data)
+
+    @action(detail=True, methods=["post"], url_path="reject")
+    def reject(self, request, pk=None):
+        serializer = AccountingRecordReviewInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        record = services.reject_accounting_record(
+            record_id=pk,
+            reviewed_by=request.user,
+            review_notes=serializer.validated_data.get("review_notes", ""),
+        )
+        return Response(AccountingRecordOutputSerializer(record, context={"request": request}).data)
+
+    @action(detail=True, methods=["get"], url_path="documents")
+    def documents(self, request, pk=None):
+        docs = AccountingRecordDocument.objects.filter(
+            accounting_record_id=pk
+        ).order_by("-created_at")
+        return Response(
+            AccountingRecordDocumentOutputSerializer(docs, many=True, context={"request": request}).data
+        )
+
+
+# ===========================================================================
+# Accounting Records Guest Views
+# ===========================================================================
+
+
+class AccountingRecordGuestMixin:
+    """Validate guest token for accounting record access."""
+
+    def _validate_guest_accounting(self, request, record_id):
+        from apps.authentication.models import GuestLink
+
+        guest_token = request.headers.get("X-Guest-Token")
+        if guest_token:
+            try:
+                link = GuestLink.objects.select_related(
+                    "accounting_record__entity__client"
+                ).get(
+                    token=guest_token, is_active=True, accounting_record_id=record_id
+                )
+                if link.is_expired:
+                    raise PermissionDenied("Guest link has expired.")
+                return link.accounting_record
+            except GuestLink.DoesNotExist:
+                raise PermissionDenied("Invalid guest token.")
+        elif request.user and request.user.is_authenticated:
+            return AccountingRecord.objects.select_related(
+                "entity__client"
+            ).get(id=record_id)
+        else:
+            raise PermissionDenied("Authentication required.")
+
+
+class AccountingRecordGuestThrottle(AnonRateThrottle):
+    rate = "60/minute"
+
+
+class AccountingRecordGuestView(AccountingRecordGuestMixin, APIView):
+    """GET: Get record data for form. PATCH: Auto-save draft."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [AccountingRecordGuestThrottle]
+
+    def get(self, request, pk):
+        record = self._validate_guest_accounting(request, pk)
+        return Response(AccountingRecordOutputSerializer(record, context={"request": request}).data)
+
+    def patch(self, request, pk):
+        record = self._validate_guest_accounting(request, pk)
+        serializer = AccountingRecordSaveDraftInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        record = services.save_accounting_record_draft(
+            record_id=pk,
+            **serializer.validated_data,
+        )
+        return Response(AccountingRecordOutputSerializer(record, context={"request": request}).data)
+
+
+class AccountingRecordGuestSubmitView(AccountingRecordGuestMixin, APIView):
+    """POST: Submit with signature."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [AccountingRecordGuestThrottle]
+
+    def post(self, request, pk):
+        self._validate_guest_accounting(request, pk)
+        record = services.submit_accounting_record(record_id=pk)
+        return Response(AccountingRecordOutputSerializer(record, context={"request": request}).data)
+
+
+class AccountingRecordGuestDocumentView(AccountingRecordGuestMixin, APIView):
+    """GET: List uploaded docs. POST: Upload supporting doc."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [AccountingRecordGuestThrottle]
+
+    def get(self, request, pk):
+        self._validate_guest_accounting(request, pk)
+        docs = AccountingRecordDocument.objects.filter(
+            accounting_record_id=pk
+        ).order_by("-created_at")
+        return Response(
+            AccountingRecordDocumentOutputSerializer(docs, many=True, context={"request": request}).data
+        )
+
+    def post(self, request, pk):
+        self._validate_guest_accounting(request, pk)
+        serializer = AccountingRecordDocumentUploadInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        doc = services.upload_accounting_document(
+            record_id=pk,
+            file_obj=serializer.validated_data["file"],
+            description=serializer.validated_data.get("description", ""),
+        )
+        return Response(
+            AccountingRecordDocumentOutputSerializer(doc, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )

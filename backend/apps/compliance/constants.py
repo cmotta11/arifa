@@ -108,3 +108,18 @@ class SnapshotStatus(models.TextChoices):
     RUNNING = "running", "Running"
     COMPLETED = "completed", "Completed"
     FAILED = "failed", "Failed"
+
+
+class AccountingRecordFormType(models.TextChoices):
+    NO_OPERATIONS = "no_operations", "Sociedad sin operaciones"
+    PANAMA_ASSETS = "panama_assets", "Formulario B - Tenedora de activos"
+    BALANCE_GENERAL = "balance_general", "Balance general"
+    EXEMPT_LICENSE = "exempt_license", "Exento por aviso de operación"
+
+
+class AccountingRecordStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    DRAFT = "draft", "Draft"
+    SUBMITTED = "submitted", "Submitted"
+    APPROVED = "approved", "Approved"
+    REJECTED = "rejected", "Rejected"

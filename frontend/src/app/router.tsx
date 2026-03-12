@@ -89,6 +89,20 @@ const OnboardingPage = lazy(
   () => import("@/features/onboarding/pages/onboarding-page"),
 );
 
+// Registros Contables
+const RegistrosContablesListPage = lazy(
+  () => import("@/features/registros-contables/pages/registros-contables-list-page"),
+);
+const RegistrosContablesDetailPage = lazy(
+  () => import("@/features/registros-contables/pages/registros-contables-detail-page"),
+);
+const RegistrosContablesGuestPage = lazy(
+  () => import("@/features/registros-contables/pages/registros-contables-guest-page"),
+);
+const RegistrosContablesPrintPage = lazy(
+  () => import("@/features/registros-contables/pages/registros-contables-print-page"),
+);
+
 function LoadingFallback() {
   return (
     <div className="flex h-screen items-center justify-center">
@@ -142,6 +156,22 @@ export function AppRouter() {
             </Suspense>
           }
         />
+        <Route
+          path={ROUTES.REGISTROS_CONTABLES_GUEST}
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <RegistrosContablesGuestPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path={ROUTES.REGISTROS_CONTABLES_PRINT}
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <RegistrosContablesPrintPage />
+            </Suspense>
+          }
+        />
 
         {/* Client portal routes */}
         <Route
@@ -189,6 +219,8 @@ export function AppRouter() {
           <Route path={ROUTES.RISK_MATRIX} element={<RiskMatrixConfigPage />} />
           <Route path={ROUTES.RISK_MATRIX_DETAIL} element={<RiskMatrixConfigDetailPage />} />
           <Route path={ROUTES.COMPLIANCE_SNAPSHOTS} element={<SnapshotsPage />} />
+          <Route path={ROUTES.REGISTROS_CONTABLES} element={<RegistrosContablesListPage />} />
+          <Route path={ROUTES.REGISTROS_CONTABLES_DETAIL} element={<RegistrosContablesDetailPage />} />
           <Route path={ROUTES.ADMIN} element={<AdminPage />} />
         </Route>
       </Routes>

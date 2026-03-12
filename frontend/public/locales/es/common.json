@@ -11,6 +11,7 @@
     "kyc": "Expedientes KYC",
     "compliance": "Cumplimiento",
     "documents": "Documentos",
+    "registrosContables": "Registros Contables",
     "admin": "Administración"
   },
   "auth": {
@@ -718,8 +719,11 @@
       "kycSubmissions": "Expedientes KYC",
       "noLinks": "No hay enlaces de invitado activos",
       "linkUrl": "URL del Enlace",
+      "linkType": "Tipo",
+      "accountingRecord": "Registro Contable",
       "expires": "Expira",
       "createKycLink": "Crear KYC y Enlace de Invitado",
+      "createAccountingLink": "Crear Registro Contable",
       "selectTicket": "Seleccionar un Ticket",
       "selectTicketDesc": "Elija el ticket para crear una presentación KYC y un enlace de invitado.",
       "noTicketsAvailable": "No hay tickets disponibles sin una presentación KYC existente."
@@ -1061,6 +1065,125 @@
       "sourceDescription": "Descripción de Origen",
       "amount": "Monto",
       "rawText": "Texto Sin Procesar"
+    }
+  },
+  "registrosContables": {
+    "title": "Registros Contables",
+    "entity": "Entidad",
+    "client": "Cliente",
+    "formType": "Tipo de Formulario",
+    "status": "Estado",
+    "submittedAt": "Fecha de Envío",
+    "fiscalYear": "Año Fiscal",
+    "formTypes": {
+      "no_operations": {
+        "name": "Sociedad sin operaciones",
+        "description": "Sin activos, operaciones ni ingresos"
+      },
+      "panama_assets": {
+        "name": "Formulario B - Tenedora de activos",
+        "description": "Estructura jurídica con beneficiarios finales panameños y activos declarados"
+      },
+      "balance_general": {
+        "name": "Balance general",
+        "description": "Beneficiarios finales extranjeros o ingresos fuera de Panamá"
+      },
+      "exempt_license": {
+        "name": "Exento por aviso de operación",
+        "description": "Posee aviso de operación vigente"
+      }
+    },
+    "status": {
+      "all": "Todos",
+      "total": "Total",
+      "pending": "Pendiente",
+      "draft": "Borrador",
+      "submitted": "Enviado",
+      "approved": "Aprobado",
+      "rejected": "Rechazado"
+    },
+    "balanceSections": {
+      "assets": "Activos",
+      "totalAssets": "Total Activos",
+      "liabilities": "Pasivos",
+      "totalLiabilities": "Total Pasivos",
+      "equity": "Patrimonio",
+      "income": "Ingresos",
+      "totalIncome": "Total Ingresos"
+    },
+    "balanceFields": {
+      "cash": "Efectivo y equivalentes",
+      "investments_deposits": "Inversiones y depósitos",
+      "fixed_assets": "Activos fijos",
+      "other_assets": "Otros activos",
+      "bank_debt": "Deuda bancaria",
+      "other_liabilities": "Otros pasivos",
+      "interest": "Intereses",
+      "dividends": "Dividendos",
+      "rent": "Alquileres",
+      "other_income": "Otros ingresos"
+    },
+    "panamaAssets": {
+      "formTitle": "Formulario B",
+      "declarationTitle": "Declaración Jurada",
+      "subtitle": "Entidad Tenedora de Activos con Beneficiario Final Panameño",
+      "entityLabel": "Nombre de la entidad",
+      "introText": "Mediante la presente, quien suscribe declara que la entidad indicada satisface las condiciones establecidas en el artículo 4 del Decreto Ejecutivo No. 177 del 30 de diciembre de 2024, relativas a la obligación de presentar la declaración de registros contables:",
+      "requirement1": "La entidad mantiene activos únicamente en:",
+      "requirement2": "Los beneficiarios finales registrados ante la SSNF poseen exclusivamente la nacionalidad panameña.",
+      "requirement3": "La entidad no desarrolla actividades que generen renta gravable en la República de Panamá.",
+      "searchCountries": "Buscar país..."
+    },
+    "guest": {
+      "title": "Registro Contable - Declaración Anual",
+      "selectFormType": "Seleccione el tipo de declaración",
+      "selectFormTypeDescription": "Elija la opción que mejor describe la situación de esta entidad para el año fiscal.",
+      "changeFormType": "Cambiar tipo de formulario",
+      "noOperationsDeclaration": "Declaro que esta sociedad no ha tenido operaciones, activos, ingresos ni gastos durante el período fiscal correspondiente.",
+      "exemptDeclaration": "Declaro que esta sociedad cuenta con un aviso de operación vigente y está exenta de presentar registros contables detallados conforme a la ley.",
+      "licenseNumber": "Número de Aviso de Operación",
+      "licenseNumberPlaceholder": "Ingrese el número de aviso de operación",
+      "optional": "opcional",
+      "supportingDocuments": "Documentos de Soporte",
+      "dropDocuments": "Arrastre archivos aquí o haga clic para seleccionar",
+      "uploading": "Subiendo...",
+      "signerInfo": "Información del Firmante",
+      "signerName": "Nombre completo",
+      "signerIdentification": "Cédula o Pasaporte",
+      "signerIdentificationPlaceholder": "Ej: 8-888-8888",
+      "signature": "Firma",
+      "clearSignature": "Limpiar firma",
+      "declaration": "Declaro bajo juramento que la información proporcionada es correcta y completa.",
+      "submit": "Enviar Declaración",
+      "saving": "Guardando...",
+      "submissionSuccess": "Declaración Enviada",
+      "submissionSuccessDescription": "Su declaración ha sido enviada exitosamente. Recibirá una confirmación una vez que sea revisada.",
+      "printDownload": "Imprimir / Descargar PDF",
+      "rejectionNotice": "Su declaración fue rechazada. Por favor revise las notas a continuación y vuelva a enviar.",
+      "submitError": "Ocurrió un error al enviar la declaración. Por favor intente nuevamente."
+    },
+    "staff": {
+      "bulkSend": "Enviar a todas las entidades",
+      "bulkSendConfirmTitle": "Confirmar envío masivo",
+      "bulkSendConfirmDescription": "Esto creará registros contables y enlaces de invitado para todas las entidades de Panamá que no tengan uno para el año fiscal {{year}}.",
+      "copyLink": "Copiar enlace",
+      "print": "Imprimir",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "approveTitle": "Aprobar Registro",
+      "rejectTitle": "Rechazar Registro",
+      "reviewNotes": "Notas de Revisión",
+      "reviewNotesPlaceholder": "Agregue notas de revisión (opcional)...",
+      "reviewedBy": "Revisado por"
+    },
+    "print": {
+      "title": "Registro Contable",
+      "fiscalYear": "Año Fiscal",
+      "entityInfo": "Información de la Entidad",
+      "formData": "Datos del Formulario",
+      "signerInfo": "Información del Firmante",
+      "documents": "Documentos",
+      "submittedAt": "Enviado el"
     }
   },
   "common": {

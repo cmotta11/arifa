@@ -417,6 +417,7 @@ export interface GuestLink {
   is_active: boolean;
   ticket: string | null;
   kyc_submission: string | null;
+  accounting_record: string | null;
   client_name: string | null;
   entity_name: string | null;
 }

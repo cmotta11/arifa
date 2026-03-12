@@ -7,6 +7,8 @@ from django.db import models
 from common.base_model import TimeStampedModel
 
 from .constants import (
+    AccountingRecordFormType,
+    AccountingRecordStatus,
     DocumentType,
     KYCStatus,
     LLMExtractionStatus,
@@ -445,3 +447,74 @@ class DocumentUpload(TimeStampedModel):
 
     def __str__(self):
         return f"{self.original_filename} ({self.get_document_type_display()})"
+
+
+class AccountingRecord(TimeStampedModel):
+    entity = models.ForeignKey(
+        "core.Entity",
+        on_delete=models.CASCADE,
+        related_name="accounting_records",
+    )
+    fiscal_year = models.IntegerField(default=2025)
+    form_type = models.CharField(
+        max_length=20,
+        choices=AccountingRecordFormType.choices,
+        blank=True,
+        default="",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=AccountingRecordStatus.choices,
+        default=AccountingRecordStatus.PENDING,
+    )
+    form_data = models.JSONField(default=dict, blank=True)
+    signature_data = models.TextField(blank=True, default="")
+    signer_name = models.CharField(max_length=255, blank=True, default="")
+    signer_identification = models.CharField(max_length=100, blank=True, default="")
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_accounting_records",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_notes = models.TextField(blank=True, default="")
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Accounting Record"
+        verbose_name_plural = "Accounting Records"
+        indexes = [
+            models.Index(fields=["fiscal_year", "status"], name="accrec_fy_status_idx"),
+            models.Index(fields=["entity", "fiscal_year"], name="accrec_entity_fy_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["entity", "fiscal_year"],
+                name="unique_accounting_record_per_entity_year",
+            )
+        ]
+
+    def __str__(self):
+        return f"Accounting Record {self.entity_id} FY{self.fiscal_year} - {self.get_status_display()}"
+
+
+class AccountingRecordDocument(TimeStampedModel):
+    accounting_record = models.ForeignKey(
+        AccountingRecord,
+        on_delete=models.CASCADE,
+        related_name="documents",
+    )
+    file = models.FileField(upload_to="accounting_records/%Y/")
+    original_filename = models.CharField(max_length=255)
+    file_size = models.IntegerField(default=0)
+    mime_type = models.CharField(max_length=100, blank=True, default="")
+    description = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Accounting Record Document"
+        verbose_name_plural = "Accounting Record Documents"
+
+    def __str__(self):
+        return f"{self.original_filename} for {self.accounting_record}"

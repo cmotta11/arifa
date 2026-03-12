@@ -2,6 +2,10 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AccountingRecordGuestDocumentView,
+    AccountingRecordGuestSubmitView,
+    AccountingRecordGuestView,
+    AccountingRecordViewSet,
     ClientPortalViewSet,
     ComplianceSnapshotViewSet,
     EntityCalculateRiskView,
@@ -33,6 +37,7 @@ router.register(r"jurisdiction-risks", JurisdictionRiskViewSet, basename="jurisd
 router.register(r"portal/kyc", ClientPortalViewSet, basename="portal-kyc")
 router.register(r"risk-matrix-configs", RiskMatrixConfigViewSet, basename="risk-matrix-config")
 router.register(r"snapshots", ComplianceSnapshotViewSet, basename="snapshot")
+router.register(r"accounting-records", AccountingRecordViewSet, basename="accounting-record")
 
 urlpatterns = router.urls + [
     # Standalone endpoints
@@ -99,5 +104,21 @@ urlpatterns = router.urls + [
         "risk-assessments/<uuid:assessment_id>/export-pdf/",
         RiskAssessmentExportPDFView.as_view(),
         name="risk-assessment-export-pdf",
+    ),
+    # Accounting records guest endpoints
+    path(
+        "accounting-records/<uuid:pk>/guest/",
+        AccountingRecordGuestView.as_view(),
+        name="accounting-record-guest",
+    ),
+    path(
+        "accounting-records/<uuid:pk>/guest/submit/",
+        AccountingRecordGuestSubmitView.as_view(),
+        name="accounting-record-guest-submit",
+    ),
+    path(
+        "accounting-records/<uuid:pk>/guest/documents/",
+        AccountingRecordGuestDocumentView.as_view(),
+        name="accounting-record-guest-documents",
     ),
 ]

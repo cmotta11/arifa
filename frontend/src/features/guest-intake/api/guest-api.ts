@@ -20,6 +20,7 @@ export interface GuestLinkValidation {
   token: string;
   ticket: string | null;
   kyc_submission: string | null;
+  accounting_record: string | null;
   expires_at: string;
   is_active: boolean;
   created_by: string;

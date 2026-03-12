@@ -1,6 +1,8 @@
 from django.contrib import admin
 
 from .models import (
+    AccountingRecord,
+    AccountingRecordDocument,
     AutomaticTriggerRule,
     ComplianceSnapshot,
     DocumentUpload,
@@ -201,3 +203,44 @@ class DocumentUploadAdmin(admin.ModelAdmin):
     search_fields = ("original_filename", "sharepoint_file_id")
     readonly_fields = ("created_at", "updated_at")
     raw_id_fields = ("kyc_submission", "party", "uploaded_by")
+
+
+class AccountingRecordDocumentInline(admin.TabularInline):
+    model = AccountingRecordDocument
+    extra = 0
+    readonly_fields = ("created_at",)
+
+
+@admin.register(AccountingRecord)
+class AccountingRecordAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "entity",
+        "fiscal_year",
+        "form_type",
+        "status",
+        "signer_name",
+        "submitted_at",
+        "reviewed_by",
+        "created_at",
+    )
+    list_filter = ("status", "form_type", "fiscal_year")
+    search_fields = ("entity__name", "signer_name", "signer_identification")
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("entity", "reviewed_by")
+    inlines = [AccountingRecordDocumentInline]
+
+
+@admin.register(AccountingRecordDocument)
+class AccountingRecordDocumentAdmin(admin.ModelAdmin):
+    list_display = (
+        "original_filename",
+        "accounting_record",
+        "file_size",
+        "mime_type",
+        "description",
+        "created_at",
+    )
+    search_fields = ("original_filename", "description")
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("accounting_record",)

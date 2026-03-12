@@ -116,6 +116,7 @@ class GuestLinkView(APIView):
             "ticket__entity",
             "kyc_submission__ticket__client",
             "kyc_submission__ticket__entity",
+            "accounting_record__entity__client",
         ).filter(is_active=True, expires_at__gt=timezone.now())
 
         client_id = request.query_params.get("client_id")
@@ -125,11 +126,13 @@ class GuestLinkView(APIView):
             qs = qs.filter(
                 models.Q(kyc_submission__ticket__client_id=client_id)
                 | models.Q(ticket__client_id=client_id)
+                | models.Q(accounting_record__entity__client_id=client_id)
             )
         if entity_id:
             qs = qs.filter(
                 models.Q(kyc_submission__ticket__entity_id=entity_id)
                 | models.Q(ticket__entity_id=entity_id)
+                | models.Q(accounting_record__entity_id=entity_id)
             )
 
         qs = qs.order_by("-created_at")
@@ -142,27 +145,42 @@ class GuestLinkView(APIView):
         return Response(GuestLinkOutputSerializer(qs, many=True).data)
 
     def post(self, request):
+        from django.core.exceptions import ObjectDoesNotExist
+
         serializer = GuestLinkCreateInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
         ticket = None
         kyc_submission = None
+        accounting_record = None
 
-        if data.get("ticket"):
-            from apps.workflow.models import Ticket
+        try:
+            if data.get("ticket"):
+                from apps.workflow.models import Ticket
 
-            ticket = Ticket.objects.get(id=data["ticket"])
+                ticket = Ticket.objects.get(id=data["ticket"])
 
-        if data.get("kyc_submission"):
-            from apps.compliance.models import KYCSubmission
+            if data.get("kyc_submission"):
+                from apps.compliance.models import KYCSubmission
 
-            kyc_submission = KYCSubmission.objects.get(id=data["kyc_submission"])
+                kyc_submission = KYCSubmission.objects.get(id=data["kyc_submission"])
+
+            if data.get("accounting_record"):
+                from apps.compliance.models import AccountingRecord
+
+                accounting_record = AccountingRecord.objects.get(id=data["accounting_record"])
+        except ObjectDoesNotExist:
+            return Response(
+                {"detail": "Referenced object not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         guest_link = create_guest_link(
             created_by=request.user,
             ticket=ticket,
             kyc_submission=kyc_submission,
+            accounting_record=accounting_record,
         )
 
         return Response(

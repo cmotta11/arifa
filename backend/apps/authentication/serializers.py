@@ -120,6 +120,7 @@ class GuestLinkOutputSerializer(serializers.ModelSerializer):
             "is_active",
             "ticket",
             "kyc_submission",
+            "accounting_record",
             "client_name",
             "entity_name",
         )
@@ -131,6 +132,10 @@ class GuestLinkOutputSerializer(serializers.ModelSerializer):
                 return ticket.client.name
         if obj.ticket and obj.ticket.client:
             return obj.ticket.client.name
+        if obj.accounting_record and obj.accounting_record.entity:
+            entity = obj.accounting_record.entity
+            if entity.client:
+                return entity.client.name
         return None
 
     def get_entity_name(self, obj):
@@ -140,12 +145,15 @@ class GuestLinkOutputSerializer(serializers.ModelSerializer):
                 return ticket.entity.name
         if obj.ticket and obj.ticket.entity:
             return obj.ticket.entity.name
+        if obj.accounting_record and obj.accounting_record.entity:
+            return obj.accounting_record.entity.name
         return None
 
 
 class GuestLinkCreateInputSerializer(serializers.Serializer):
     ticket = serializers.UUIDField(required=False, allow_null=True, default=None)
     kyc_submission = serializers.UUIDField(required=False, allow_null=True, default=None)
+    accounting_record = serializers.UUIDField(required=False, allow_null=True, default=None)
 
     def create(self, validated_data):
         raise NotImplementedError("Use the create_guest_link service instead.")

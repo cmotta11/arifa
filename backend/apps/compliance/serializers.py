@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
 from .constants import (
+    AccountingRecordFormType,
+    AccountingRecordStatus,
     DocumentType,
     KYCStatus,
     LLMExtractionStatus,
@@ -16,6 +18,8 @@ from .constants import (
     TriggerCondition,
 )
 from .models import (
+    AccountingRecord,
+    AccountingRecordDocument,
     AutomaticTriggerRule,
     ComplianceSnapshot,
     DocumentUpload,
@@ -399,3 +403,92 @@ class SendBackInputSerializer(serializers.Serializer):
 
 class ApproveWithChangesInputSerializer(serializers.Serializer):
     modified_data = serializers.DictField(required=False, default=None)
+
+
+# ===========================================================================
+# Accounting Records serializers
+# ===========================================================================
+
+
+class AccountingRecordDocumentOutputSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AccountingRecordDocument
+        fields = [
+            "id", "accounting_record", "file_url", "original_filename",
+            "file_size", "mime_type", "description", "created_at", "updated_at",
+        ]
+
+    def get_file_url(self, obj):
+        if obj.file:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
+
+
+class AccountingRecordOutputSerializer(serializers.ModelSerializer):
+    entity_name = serializers.CharField(source="entity.name", read_only=True)
+    client_name = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    form_type_display = serializers.CharField(source="get_form_type_display", read_only=True, default="")
+    reviewed_by_email = serializers.EmailField(source="reviewed_by.email", read_only=True, default=None)
+    guest_link_token = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AccountingRecord
+        fields = [
+            "id", "entity", "entity_name", "client_name", "fiscal_year",
+            "form_type", "form_type_display", "status", "status_display",
+            "form_data", "signature_data", "signer_name", "signer_identification",
+            "submitted_at", "reviewed_by", "reviewed_by_email", "reviewed_at",
+            "review_notes", "guest_link_token", "created_at", "updated_at",
+        ]
+
+    def get_client_name(self, obj):
+        if obj.entity and obj.entity.client:
+            return obj.entity.client.name
+        return None
+
+    def get_guest_link_token(self, obj):
+        if hasattr(obj, "guest_links"):
+            link = obj.guest_links.filter(is_active=True).first()
+            if link:
+                return str(link.token)
+        return None
+
+
+class AccountingRecordSummaryOutputSerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+    pending = serializers.IntegerField()
+    draft = serializers.IntegerField()
+    submitted = serializers.IntegerField()
+    approved = serializers.IntegerField()
+    rejected = serializers.IntegerField()
+
+
+class AccountingRecordSaveDraftInputSerializer(serializers.Serializer):
+    form_type = serializers.ChoiceField(
+        choices=AccountingRecordFormType.choices, required=False, allow_blank=True, default=""
+    )
+    form_data = serializers.DictField(required=False, default=None)
+    signature_data = serializers.CharField(
+        max_length=500_000, required=False, allow_blank=True, default="",
+    )
+    signer_name = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+    signer_identification = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+
+
+class AccountingRecordReviewInputSerializer(serializers.Serializer):
+    review_notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class AccountingRecordDocumentUploadInputSerializer(serializers.Serializer):
+    file = serializers.FileField()
+    description = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+
+
+class BulkCreateAccountingRecordsInputSerializer(serializers.Serializer):
+    fiscal_year = serializers.IntegerField()

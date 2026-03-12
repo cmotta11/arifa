@@ -86,6 +86,13 @@ class GuestLink(TimeStampedModel):
         blank=True,
         related_name="guest_links",
     )
+    accounting_record = models.ForeignKey(
+        "compliance.AccountingRecord",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="guest_links",
+    )
     expires_at = models.DateTimeField(default=_default_guest_link_expiry)
     is_active = models.BooleanField(default=True)
 
@@ -96,8 +103,21 @@ class GuestLink(TimeStampedModel):
             models.CheckConstraint(
                 name="guest_link_exactly_one_target",
                 check=(
-                    models.Q(ticket__isnull=False, kyc_submission__isnull=True)
-                    | models.Q(ticket__isnull=True, kyc_submission__isnull=False)
+                    models.Q(
+                        ticket__isnull=False,
+                        kyc_submission__isnull=True,
+                        accounting_record__isnull=True,
+                    )
+                    | models.Q(
+                        ticket__isnull=True,
+                        kyc_submission__isnull=False,
+                        accounting_record__isnull=True,
+                    )
+                    | models.Q(
+                        ticket__isnull=True,
+                        kyc_submission__isnull=True,
+                        accounting_record__isnull=False,
+                    )
                 ),
             ),
         ]

@@ -24,4 +24,8 @@ export const ROUTES = {
   CLIENT_PORTAL_KYC_DETAIL: "/portal/kyc/:id",
   ONBOARDING: "/onboarding",
   MAGIC_LOGIN: "/auth/magic/:token",
+  REGISTROS_CONTABLES: "/registros-contables",
+  REGISTROS_CONTABLES_DETAIL: "/registros-contables/:id",
+  REGISTROS_CONTABLES_GUEST: "/registros-contables/guest/:token",
+  REGISTROS_CONTABLES_PRINT: "/registros-contables/:id/print",
 } as const;

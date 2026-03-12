@@ -8,6 +8,7 @@ from django.utils import timezone
 from common.exceptions import ApplicationError
 
 from .constants import (
+    AccountingRecordStatus,
     KYCStatus,
     RFIStatus,
     RiskFactorCategory,
@@ -19,6 +20,8 @@ from .constants import (
     TriggerCondition,
 )
 from .models import (
+    AccountingRecord,
+    AccountingRecordDocument,
     AutomaticTriggerRule,
     ComplianceSnapshot,
     DocumentUpload,
@@ -1502,3 +1505,220 @@ def generate_snapshot_pdf(*, snapshot_id) -> bytes:
     from apps.documents.integrations.gotenberg import GotenbergClient
     client = GotenbergClient()
     return client.convert_html_to_pdf(html_content)
+
+
+# ===========================================================================
+# Accounting Records (Panama Law 254/2021)
+# ===========================================================================
+
+
+@transaction.atomic
+def create_accounting_record(*, entity_id, fiscal_year=None) -> AccountingRecord:
+    """Create a single accounting record for an entity."""
+    from datetime import date
+
+    if fiscal_year is None:
+        fiscal_year = date.today().year - 1
+
+    record = AccountingRecord.objects.create(
+        entity_id=entity_id,
+        fiscal_year=fiscal_year,
+        status=AccountingRecordStatus.PENDING,
+    )
+    logger.info("Accounting record created: entity=%s fiscal_year=%d", entity_id, fiscal_year)
+    return record
+
+
+@transaction.atomic
+def bulk_create_accounting_records(*, fiscal_year=None, created_by) -> list[AccountingRecord]:
+    """Create AccountingRecord + GuestLink for all Panama entities that don't have one."""
+    from datetime import date
+
+    from apps.authentication.constants import GUEST_LINK_EXPIRY_DAYS
+    from apps.authentication.models import GuestLink
+    from apps.core.models import Entity
+
+    if fiscal_year is None:
+        fiscal_year = date.today().year - 1
+
+    panama_entities = Entity.objects.filter(
+        jurisdiction__iexact="panama",
+    ).exclude(
+        accounting_records__fiscal_year=fiscal_year,
+    )
+
+    records = []
+    for entity in panama_entities:
+        record = AccountingRecord.objects.create(
+            entity=entity,
+            fiscal_year=fiscal_year,
+            status=AccountingRecordStatus.PENDING,
+        )
+        GuestLink.objects.create(
+            created_by=created_by,
+            accounting_record=record,
+            expires_at=timezone.now() + timedelta(days=GUEST_LINK_EXPIRY_DAYS),
+        )
+        records.append(record)
+
+    logger.info(
+        "Bulk created %d accounting records for FY%d by %s",
+        len(records), fiscal_year, created_by,
+    )
+    return records
+
+
+@transaction.atomic
+def save_accounting_record_draft(
+    *,
+    record_id,
+    form_type="",
+    form_data=None,
+    signature_data="",
+    signer_name="",
+    signer_identification="",
+) -> AccountingRecord:
+    """Auto-save from guest form. Transitions PENDING->DRAFT on first save."""
+    record = AccountingRecord.objects.select_for_update().get(id=record_id)
+    if record.status not in {AccountingRecordStatus.PENDING, AccountingRecordStatus.DRAFT, AccountingRecordStatus.REJECTED}:
+        raise ApplicationError(f"Cannot save draft for record in '{record.get_status_display()}' status.")
+
+    update_fields = ["updated_at"]
+
+    if form_type is not None:
+        record.form_type = form_type
+        update_fields.append("form_type")
+    if form_data is not None:
+        record.form_data = form_data
+        update_fields.append("form_data")
+    if signature_data is not None:
+        record.signature_data = signature_data
+        update_fields.append("signature_data")
+    if signer_name is not None:
+        record.signer_name = signer_name
+        update_fields.append("signer_name")
+    if signer_identification is not None:
+        record.signer_identification = signer_identification
+        update_fields.append("signer_identification")
+
+    if record.status == AccountingRecordStatus.PENDING:
+        record.status = AccountingRecordStatus.DRAFT
+        update_fields.append("status")
+
+    # If rejected, move back to draft when client edits and clear review metadata
+    if record.status == AccountingRecordStatus.REJECTED:
+        record.status = AccountingRecordStatus.DRAFT
+        record.reviewed_by = None
+        record.reviewed_at = None
+        record.review_notes = ""
+        update_fields.extend(["status", "reviewed_by", "reviewed_at", "review_notes"])
+
+    record.save(update_fields=list(set(update_fields)))
+    return record
+
+
+@transaction.atomic
+def submit_accounting_record(*, record_id) -> AccountingRecord:
+    """Validate required fields and transition to SUBMITTED."""
+    record = AccountingRecord.objects.select_for_update().get(id=record_id)
+    if record.status not in {AccountingRecordStatus.DRAFT}:
+        raise ApplicationError(f"Cannot submit record in '{record.get_status_display()}' status.")
+
+    if not record.form_type:
+        raise ApplicationError("Form type is required before submitting.")
+    if not record.signature_data:
+        raise ApplicationError("Signature is required before submitting.")
+    if not record.signer_name:
+        raise ApplicationError("Signer name is required before submitting.")
+
+    record.status = AccountingRecordStatus.SUBMITTED
+    record.submitted_at = timezone.now()
+    record.save(update_fields=["status", "submitted_at", "updated_at"])
+
+    logger.info("Accounting record submitted: id=%s", record_id)
+    return record
+
+
+@transaction.atomic
+def approve_accounting_record(*, record_id, reviewed_by, review_notes="") -> AccountingRecord:
+    """Approve a submitted accounting record."""
+    record = AccountingRecord.objects.select_for_update().get(id=record_id)
+    if record.status != AccountingRecordStatus.SUBMITTED:
+        raise ApplicationError(f"Cannot approve record in '{record.get_status_display()}' status.")
+
+    record.status = AccountingRecordStatus.APPROVED
+    record.reviewed_by = reviewed_by
+    record.reviewed_at = timezone.now()
+    record.review_notes = review_notes
+    record.save(update_fields=["status", "reviewed_by", "reviewed_at", "review_notes", "updated_at"])
+
+    logger.info("Accounting record approved: id=%s by %s", record_id, reviewed_by)
+    return record
+
+
+@transaction.atomic
+def reject_accounting_record(*, record_id, reviewed_by, review_notes="") -> AccountingRecord:
+    """Reject a submitted accounting record so client can re-submit."""
+    record = AccountingRecord.objects.select_for_update().get(id=record_id)
+    if record.status != AccountingRecordStatus.SUBMITTED:
+        raise ApplicationError(f"Cannot reject record in '{record.get_status_display()}' status.")
+
+    record.status = AccountingRecordStatus.REJECTED
+    record.reviewed_by = reviewed_by
+    record.reviewed_at = timezone.now()
+    record.review_notes = review_notes
+    record.save(update_fields=["status", "reviewed_by", "reviewed_at", "review_notes", "updated_at"])
+
+    logger.info("Accounting record rejected: id=%s by %s", record_id, reviewed_by)
+    return record
+
+
+ALLOWED_DOCUMENT_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # xlsx
+    "application/vnd.ms-excel",  # xls
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # docx
+}
+MAX_DOCUMENT_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_DOCUMENTS_PER_RECORD = 20
+
+
+def upload_accounting_document(*, record_id, file_obj, description="") -> AccountingRecordDocument:
+    """Upload a supporting document for an accounting record."""
+    record = AccountingRecord.objects.get(id=record_id)
+
+    # Only allow uploads for records that are not yet approved
+    if record.status == AccountingRecordStatus.APPROVED:
+        raise ApplicationError("Cannot upload documents for an approved record.")
+
+    # File size validation
+    if file_obj.size > MAX_DOCUMENT_SIZE:
+        raise ApplicationError(f"File size exceeds the maximum of {MAX_DOCUMENT_SIZE // (1024 * 1024)} MB.")
+
+    # File type validation
+    mime_type = getattr(file_obj, "content_type", "")
+    if mime_type and mime_type not in ALLOWED_DOCUMENT_TYPES:
+        raise ApplicationError(
+            f"File type '{mime_type}' is not allowed. "
+            "Accepted formats: PDF, JPEG, PNG, GIF, XLSX, XLS, DOCX."
+        )
+
+    # Document count limit
+    existing_count = AccountingRecordDocument.objects.filter(
+        accounting_record_id=record_id
+    ).count()
+    if existing_count >= MAX_DOCUMENTS_PER_RECORD:
+        raise ApplicationError(f"Maximum of {MAX_DOCUMENTS_PER_RECORD} documents per record reached.")
+
+    doc = AccountingRecordDocument.objects.create(
+        accounting_record_id=record_id,
+        file=file_obj,
+        original_filename=file_obj.name,
+        file_size=file_obj.size,
+        mime_type=mime_type,
+        description=description,
+    )
+    return doc
