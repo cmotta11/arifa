@@ -114,7 +114,7 @@ export default function PersonDetailPage() {
         </button>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{person.full_name}</h1>
+            <h1 className="text-xl font-semibold text-gray-900">{person.full_name}</h1>
             <Badge color={person.person_type === "corporate" ? "blue" : "gray"}>
               {t(`people.form.${person.person_type}`)}
             </Badge>

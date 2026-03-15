@@ -132,7 +132,7 @@ export default function ClientsListPage() {
     <div className="flex h-full flex-col p-6">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t("clients.title")}</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{t("clients.title")}</h1>
         <Button variant="primary" onClick={() => setShowCreate(true)}>
           {t("clients.create")}
         </Button>

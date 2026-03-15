@@ -161,7 +161,7 @@ export default function CourierArchivePage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">
+      <h1 className="mb-6 text-xl font-semibold text-gray-900">
         {t("courier.title")}
       </h1>
 

@@ -215,7 +215,7 @@ export default function GestoraDashboardPage() {
     <div className="flex h-full flex-col p-6">
       {/* Header */}
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900">
           {t("incorporation.gestora.title")}
         </h1>
         <p className="mt-1 text-sm text-gray-500">

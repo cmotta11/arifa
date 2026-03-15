@@ -104,7 +104,7 @@ export default function KYCNewPage() {
         </button>
 
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl font-semibold text-gray-900">
             {t("new.formTitle")}
           </h1>
           <p className="mt-1 text-sm text-gray-500">{t("new.formHint")}</p>
@@ -148,7 +148,7 @@ export default function KYCNewPage() {
 
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900">
           {t("new.title")}
         </h1>
         <p className="mt-1 text-sm text-gray-500">{t("new.selectTicket")}</p>

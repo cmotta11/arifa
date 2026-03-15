@@ -19,7 +19,7 @@ export default function PortalDashboard() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900">
+      <h1 className="text-xl font-semibold text-gray-900">
         {t("portal.welcome", { name: displayName })}
       </h1>
       <p className="mt-1 text-sm text-gray-500">{t("portal.title")}</p>

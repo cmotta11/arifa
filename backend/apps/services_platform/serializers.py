@@ -275,3 +275,44 @@ class ExpenseMarkPaidInputSerializer(serializers.Serializer):
     payment_reference = serializers.CharField(
         max_length=200, required=False, allow_blank=True, default="",
     )
+
+
+# ===========================================================================
+# Portal (client-facing) serializers
+# ===========================================================================
+
+
+class PortalServiceRequestOutputSerializer(serializers.ModelSerializer):
+    service_type = serializers.SerializerMethodField()
+    current_stage = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ServiceRequest
+        fields = [
+            "id",
+            "service_type",
+            "status",
+            "notes",
+            "current_stage",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_service_type(self, obj):
+        first_item = obj.items.select_related("service").first()
+        if first_item:
+            return first_item.service.name
+        return obj.metadata.get("service_type", "General")
+
+    def get_current_stage(self, obj):
+        if obj.ticket:
+            return obj.ticket.current_state.name if obj.ticket.current_state else None
+        return None
+
+
+class PortalServiceRequestCreateInputSerializer(serializers.Serializer):
+    entity_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+    service_ids = serializers.ListField(
+        child=serializers.UUIDField(), allow_empty=False,
+    )

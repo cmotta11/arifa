@@ -146,7 +146,7 @@ export default function SnapshotsPage() {
   return (
     <div className="flex h-full flex-col p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900">
           {t("riskMatrix.snapshots.title")}
         </h1>
         <p className="mt-1 text-sm text-gray-500">

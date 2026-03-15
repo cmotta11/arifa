@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Modal } from "@/components/overlay/modal";
 import { DataTable } from "@/components/data-display/data-table";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useEntities } from "@/features/entities/api/entities-api";
 import {
   useESSubmissions,
   useCreateES,
@@ -48,14 +49,16 @@ export default function ESListPage() {
   const { data, isLoading } = useESSubmissions(params);
   const createMut = useCreateES();
   const bulkCreateMut = useBulkCreateES();
+  const entitiesQuery = useEntities();
 
   const submissions = data?.results ?? [];
 
   const isDirector = user?.role === "director";
 
-  // Entity options for the create modal — extracted from existing submissions
-  // In a real scenario this would come from a separate entity list endpoint;
-  // for now we provide a text input for the entity ID.
+  const entityOptions = (entitiesQuery.data?.results ?? []).map((e) => ({
+    value: e.id,
+    label: `${e.name} (${e.jurisdiction.toUpperCase()})`,
+  }));
 
   const handleCreate = async () => {
     if (!newEntity.trim()) return;
@@ -143,7 +146,7 @@ export default function ESListPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900">
           {t("es.title")}
         </h1>
         <div className="flex items-center gap-3">
@@ -222,11 +225,12 @@ export default function ESListPage() {
         size="sm"
       >
         <div className="space-y-4">
-          <Input
-            label={t("es.list.entityId")}
+          <SearchableSelect
+            label={t("es.list.entity")}
+            options={entityOptions}
             value={newEntity}
-            onChange={(e) => setNewEntity(e.target.value)}
-            placeholder={t("es.list.entityIdPlaceholder")}
+            onChange={setNewEntity}
+            placeholder={t("es.list.entityPlaceholder")}
           />
           <Select
             label={t("es.list.fiscalYear")}

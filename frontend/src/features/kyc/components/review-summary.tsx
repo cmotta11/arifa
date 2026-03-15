@@ -254,7 +254,7 @@ export function ReviewSummary({
           </CardHeader>
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <p className="text-3xl font-bold text-gray-900">
+              <p className="text-2xl font-semibold text-gray-900">
                 {risk.total_score}
               </p>
               <p className="text-xs text-gray-500">{t("risk.score")}</p>

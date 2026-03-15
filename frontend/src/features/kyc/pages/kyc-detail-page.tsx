@@ -127,7 +127,7 @@ export default function KYCDetailPage() {
 
         {/* Title */}
         <div className="mb-6 flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl font-semibold text-gray-900">
             {t("detail.editTitle")}
           </h1>
           <Badge color={kycStatusColorMap[kyc.status] ?? "gray"}>
@@ -176,7 +176,7 @@ export default function KYCDetailPage() {
 
       {/* Page Header */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900">
           {t("detail.title")}
         </h1>
         <Badge color={kycStatusColorMap[kyc.status] ?? "gray"}>

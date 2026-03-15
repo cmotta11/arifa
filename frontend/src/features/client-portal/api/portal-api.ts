@@ -47,11 +47,23 @@ export interface PortalRenewal {
 export interface PortalServiceRequest {
   id: string;
   service_type: string;
-  status: "draft" | "submitted" | "in_progress" | "completed";
-  description: string;
+  status: string;
+  notes: string;
   current_stage: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface PortalServiceCatalogItem {
+  id: string;
+  name: string;
+  code: string;
+  category: string;
+  category_display: string;
+  description: string;
+  base_price: string;
+  currency: string;
+  estimated_days: number | null;
 }
 
 export interface PortalNotification {
@@ -84,6 +96,7 @@ export const portalKeys = {
   entities: () => [...portalKeys.all, "entities"] as const,
   entityDetail: (id: string) => [...portalKeys.all, "entity", id] as const,
   services: () => [...portalKeys.all, "services"] as const,
+  serviceCatalog: () => [...portalKeys.all, "service-catalog"] as const,
   notifications: () => [...portalKeys.all, "notifications"] as const,
   profile: () => [...portalKeys.all, "profile"] as const,
 };
@@ -257,13 +270,42 @@ export function usePortalEntityDetail(id: string | undefined) {
 // ─── Portal Service Requests ────────────────────────────────────────────────
 
 async function fetchPortalServices(): Promise<PaginatedResponse<PortalServiceRequest>> {
-  return api.get<PaginatedResponse<PortalServiceRequest>>("/workflow/portal/services/");
+  return api.get<PaginatedResponse<PortalServiceRequest>>("/services/portal/requests/");
 }
 
 export function usePortalServices() {
   return useQuery({
     queryKey: portalKeys.services(),
     queryFn: fetchPortalServices,
+  });
+}
+
+async function fetchPortalServiceCatalog(): Promise<PaginatedResponse<PortalServiceCatalogItem>> {
+  return api.get<PaginatedResponse<PortalServiceCatalogItem>>("/services/portal/catalog/");
+}
+
+export function usePortalServiceCatalog() {
+  return useQuery({
+    queryKey: portalKeys.serviceCatalog(),
+    queryFn: fetchPortalServiceCatalog,
+  });
+}
+
+async function createPortalServiceRequest(body: {
+  entity_id?: string | null;
+  notes?: string;
+  service_ids: string[];
+}): Promise<PortalServiceRequest> {
+  return api.post<PortalServiceRequest>("/services/portal/requests/", body);
+}
+
+export function useCreatePortalServiceRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createPortalServiceRequest,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portalKeys.services() });
+    },
   });
 }
 

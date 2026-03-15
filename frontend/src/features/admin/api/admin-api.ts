@@ -3,6 +3,7 @@ import { api } from "@/lib/api-client";
 import type {
   User,
   Role,
+  WorkflowDefinition,
   WorkflowState,
   WorkflowTransition,
   PaginatedResponse,
@@ -38,11 +39,33 @@ export interface AdminUser extends User {
   date_joined: string;
 }
 
+export interface CreateWorkflowDefinitionPayload {
+  name: string;
+  display_name: string;
+  description?: string;
+  category?: string;
+  is_active?: boolean;
+}
+
+export interface UpdateWorkflowDefinitionPayload {
+  display_name?: string;
+  description?: string;
+  category?: string;
+  is_active?: boolean;
+}
+
+export interface CloneWorkflowPayload {
+  new_name: string;
+  new_display_name: string;
+  jurisdiction_id?: string;
+}
+
 export interface CreateWorkflowStatePayload {
   name: string;
   order_index: number;
   is_initial: boolean;
   is_final: boolean;
+  workflow_definition_id?: string;
 }
 
 export interface UpdateWorkflowStatePayload {
@@ -139,8 +162,9 @@ export const adminKeys = {
   all: ["admin"] as const,
   users: (filters?: UserFilters) => [...adminKeys.all, "users", filters] as const,
   user: (id: string) => [...adminKeys.all, "users", id] as const,
-  workflowStates: () => [...adminKeys.all, "workflow-states"] as const,
-  workflowTransitions: () => [...adminKeys.all, "workflow-transitions"] as const,
+  workflowDefinitions: () => [...adminKeys.all, "workflow-definitions"] as const,
+  workflowStates: (defId?: string) => [...adminKeys.all, "workflow-states", defId] as const,
+  workflowTransitions: (defId?: string) => [...adminKeys.all, "workflow-transitions", defId] as const,
   jurisdictionRisks: () => [...adminKeys.all, "jurisdiction-risks"] as const,
   jurisdictionConfigs: () => [...adminKeys.all, "jurisdiction-configs"] as const,
 };
@@ -219,17 +243,83 @@ export function useSendMagicLink() {
 }
 
 // ---------------------------------------------------------------------------
+// Workflow Definition Queries & Mutations
+// ---------------------------------------------------------------------------
+
+export function useWorkflowDefinitions() {
+  return useQuery({
+    queryKey: adminKeys.workflowDefinitions(),
+    queryFn: async () => {
+      const response = await api.get<
+        WorkflowDefinition[] | PaginatedResponse<WorkflowDefinition>
+      >("/workflow/definitions/");
+      if (Array.isArray(response)) return response;
+      return response.results;
+    },
+  });
+}
+
+export function useCreateWorkflowDefinition() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateWorkflowDefinitionPayload) =>
+      api.post<WorkflowDefinition>("/workflow/definitions/", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.workflowDefinitions() });
+    },
+  });
+}
+
+export function useUpdateWorkflowDefinition() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...payload }: UpdateWorkflowDefinitionPayload & { id: string }) =>
+      api.patch<WorkflowDefinition>(`/workflow/definitions/${id}/`, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.workflowDefinitions() });
+    },
+  });
+}
+
+export function useDeleteWorkflowDefinition() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/workflow/definitions/${id}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.workflowDefinitions() });
+    },
+  });
+}
+
+export function useCloneWorkflow() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...payload }: CloneWorkflowPayload & { id: string }) =>
+      api.post<WorkflowDefinition>(`/workflow/definitions/${id}/clone/`, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.workflowDefinitions() });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Workflow State Queries & Mutations
 // ---------------------------------------------------------------------------
 
-export function useWorkflowStates() {
+export function useWorkflowStates(defId?: string) {
   return useQuery({
-    queryKey: adminKeys.workflowStates(),
+    queryKey: adminKeys.workflowStates(defId),
     queryFn: async () => {
+      const params: Record<string, string> = {};
+      if (defId) params.workflow_definition = defId;
       const response = await api.get<WorkflowState[] | PaginatedResponse<WorkflowState>>(
         "/workflow/states/",
+        params,
       );
-      // Handle both array and paginated response
       if (Array.isArray(response)) return response;
       return response.results;
     },
@@ -243,7 +333,8 @@ export function useCreateWorkflowState() {
     mutationFn: (payload: CreateWorkflowStatePayload) =>
       api.post<WorkflowState>("/workflow/states/", payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.workflowStates() });
+      queryClient.invalidateQueries({ queryKey: [...adminKeys.all, "workflow-states"] });
+      queryClient.invalidateQueries({ queryKey: adminKeys.workflowDefinitions() });
     },
   });
 }
@@ -255,7 +346,8 @@ export function useUpdateWorkflowState() {
     mutationFn: ({ id, ...payload }: UpdateWorkflowStatePayload & { id: string }) =>
       api.patch<WorkflowState>(`/workflow/states/${id}/`, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.workflowStates() });
+      queryClient.invalidateQueries({ queryKey: [...adminKeys.all, "workflow-states"] });
+      queryClient.invalidateQueries({ queryKey: adminKeys.workflowDefinitions() });
     },
   });
 }
@@ -266,7 +358,8 @@ export function useDeleteWorkflowState() {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/workflow/states/${id}/`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.workflowStates() });
+      queryClient.invalidateQueries({ queryKey: [...adminKeys.all, "workflow-states"] });
+      queryClient.invalidateQueries({ queryKey: adminKeys.workflowDefinitions() });
     },
   });
 }
@@ -275,9 +368,9 @@ export function useDeleteWorkflowState() {
 // Workflow Transition Queries & Mutations
 // ---------------------------------------------------------------------------
 
-export function useWorkflowTransitions() {
+export function useWorkflowTransitions(defId?: string) {
   return useQuery({
-    queryKey: adminKeys.workflowTransitions(),
+    queryKey: adminKeys.workflowTransitions(defId),
     queryFn: async () => {
       const response = await api.get<
         WorkflowTransition[] | PaginatedResponse<WorkflowTransition>
@@ -285,6 +378,12 @@ export function useWorkflowTransitions() {
       if (Array.isArray(response)) return response;
       return response.results;
     },
+    select: defId
+      ? (data) =>
+          data.filter(
+            (t) => t.from_state.workflow_definition === defId,
+          )
+      : undefined,
   });
 }
 
@@ -295,7 +394,7 @@ export function useCreateWorkflowTransition() {
     mutationFn: (payload: CreateWorkflowTransitionPayload) =>
       api.post<WorkflowTransition>("/workflow/transitions/", payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.workflowTransitions() });
+      queryClient.invalidateQueries({ queryKey: [...adminKeys.all, "workflow-transitions"] });
     },
   });
 }
@@ -310,7 +409,7 @@ export function useUpdateWorkflowTransition() {
     }: UpdateWorkflowTransitionPayload & { id: string }) =>
       api.patch<WorkflowTransition>(`/workflow/transitions/${id}/`, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.workflowTransitions() });
+      queryClient.invalidateQueries({ queryKey: [...adminKeys.all, "workflow-transitions"] });
     },
   });
 }
@@ -321,7 +420,7 @@ export function useDeleteWorkflowTransition() {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/workflow/transitions/${id}/`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminKeys.workflowTransitions() });
+      queryClient.invalidateQueries({ queryKey: [...adminKeys.all, "workflow-transitions"] });
     },
   });
 }

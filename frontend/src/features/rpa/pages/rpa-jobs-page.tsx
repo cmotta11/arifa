@@ -121,7 +121,7 @@ export default function RPAJobsPage() {
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t("rpa.title")}</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{t("rpa.title")}</h1>
         <div className="flex items-center gap-3">
           <div className="w-44">
             <Select

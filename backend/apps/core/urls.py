@@ -5,6 +5,7 @@ from .reporting import FinancialSummaryView, UserActivityReportView
 from .views import (
     ActivityCatalogViewSet,
     ClientContactViewSet,
+    ClientPortalEntityViewSet,
     ClientViewSet,
     EntityActivityViewSet,
     EntityOfficerViewSet,
@@ -35,6 +36,7 @@ router.register("source-of-funds-catalog", SourceOfFundsCatalogViewSet, basename
 router.register("sources-of-funds", SourceOfFundsViewSet, basename="source-of-funds")
 router.register("sources-of-wealth", SourceOfWealthViewSet, basename="source-of-wealth")
 router.register("saved-filters", SavedFilterViewSet, basename="saved-filter")
+router.register("portal/entities", ClientPortalEntityViewSet, basename="portal-entity")
 
 urlpatterns = router.urls + [
     path("search/", GlobalSearchView.as_view(), name="global-search"),

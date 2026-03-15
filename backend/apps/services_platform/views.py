@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from apps.authentication.permissions import IsDirector, IsInternalUser
+from apps.authentication.permissions import IsClient, IsDirector, IsInternalUser
 from common.pagination import StandardPagination
 
 from . import services
@@ -29,6 +29,8 @@ from .serializers import (
     NotaryDeedAssignInputSerializer,
     NotaryDeedBulkCreateInputSerializer,
     NotaryDeedPoolOutputSerializer,
+    PortalServiceRequestCreateInputSerializer,
+    PortalServiceRequestOutputSerializer,
     QuotationOutputSerializer,
     QuotationRejectInputSerializer,
     ServiceCatalogInputSerializer,
@@ -494,3 +496,78 @@ class ExpenseRecordViewSet(ModelViewSet):
             payment_reference=serializer.validated_data.get("payment_reference", ""),
         )
         return Response(ExpenseRecordOutputSerializer(expense).data)
+
+
+# ---------------------------------------------------------------------------
+# Portal (client-facing, read-only)
+# ---------------------------------------------------------------------------
+
+
+class ClientPortalServiceRequestViewSet(ModelViewSet):
+    """Service requests scoped to the authenticated client user (list + create)."""
+
+    permission_classes = [IsAuthenticated, IsClient]
+    pagination_class = StandardPagination
+    http_method_names = ["get", "post", "head", "options"]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return PortalServiceRequestCreateInputSerializer
+        return PortalServiceRequestOutputSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.client_id:
+            return ServiceRequest.objects.none()
+        return (
+            ServiceRequest.objects
+            .filter(client=user.client)
+            .select_related("ticket__current_state")
+            .prefetch_related("items__service")
+            .order_by("-created_at")
+        )
+
+    def create(self, request, *args, **kwargs):
+        serializer = PortalServiceRequestCreateInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        if not user.client_id:
+            return Response(
+                {"detail": "User is not linked to a client."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        service_request = services.create_service_request(
+            client_id=user.client_id,
+            requested_by=user,
+            entity_id=serializer.validated_data.get("entity_id"),
+            notes=serializer.validated_data.get("notes", ""),
+        )
+
+        # Add each requested service as a line item
+        for service_id in serializer.validated_data["service_ids"]:
+            try:
+                services.add_service_to_request(
+                    request_id=service_request.id,
+                    service_id=service_id,
+                )
+            except Exception:
+                pass  # Skip invalid services silently
+
+        # Re-fetch with relations
+        service_request.refresh_from_db()
+        output = PortalServiceRequestOutputSerializer(service_request)
+        return Response(output.data, status=status.HTTP_201_CREATED)
+
+
+class PortalServiceCatalogViewSet(ModelViewSet):
+    """Read-only service catalog for portal clients."""
+
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardPagination
+    serializer_class = ServiceCatalogOutputSerializer
+    http_method_names = ["get", "head", "options"]
+
+    def get_queryset(self):
+        return ServiceCatalog.objects.filter(is_active=True).order_by("name")

@@ -34,7 +34,7 @@ export default function ComplianceDashboardPage() {
       {/* Page Title */}
       <div className="mb-6 mt-2 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl font-semibold text-gray-900">
             {t("dashboard.title")}
           </h1>
           <p className="mt-1 text-sm text-gray-500">

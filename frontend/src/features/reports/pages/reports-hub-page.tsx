@@ -134,7 +134,7 @@ export default function ReportsHubPage() {
     <div className="space-y-6 p-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900">
           {t("reports.title")}
         </h1>
         <p className="mt-1 text-sm text-gray-500">

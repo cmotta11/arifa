@@ -147,7 +147,7 @@ export default function TicketDetailPage() {
 
       {/* Page title + status badge */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">{ticket.title}</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{ticket.title}</h1>
         <Badge color="blue">{ticket.current_state.name}</Badge>
         <Badge color={priorityColorMap[ticket.priority]}>
           {t(`priority.${ticket.priority}`)}

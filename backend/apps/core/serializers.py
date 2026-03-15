@@ -545,3 +545,63 @@ class SavedFilterInputSerializer(serializers.Serializer):
     module = serializers.CharField(max_length=50)
     filters = serializers.JSONField(default=dict)
     is_default = serializers.BooleanField(default=False)
+
+
+# ---------------------------------------------------------------------------
+# Portal Entity Serializer (client-facing, read-only)
+# ---------------------------------------------------------------------------
+
+
+class PortalEntityOutputSerializer(serializers.ModelSerializer):
+    entity_type = serializers.SerializerMethodField()
+    current_risk_level = serializers.SerializerMethodField()
+    kyc_status = serializers.SerializerMethodField()
+    es_status = serializers.SerializerMethodField()
+    ar_status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Entity
+        fields = [
+            "id",
+            "name",
+            "entity_type",
+            "jurisdiction",
+            "status",
+            "incorporation_date",
+            "current_risk_level",
+            "kyc_status",
+            "es_status",
+            "ar_status",
+            "created_at",
+        ]
+
+    def get_entity_type(self, obj):
+        return "corporation"
+
+    def get_current_risk_level(self, obj):
+        from apps.compliance.models import RiskAssessment
+
+        return RiskAssessment.objects.filter(
+            entity=obj, is_current=True,
+        ).values_list("risk_level", flat=True).first()
+
+    def get_kyc_status(self, obj):
+        from apps.compliance.models import KYCSubmission
+
+        return KYCSubmission.objects.filter(
+            ticket__entity=obj,
+        ).order_by("-created_at").values_list("status", flat=True).first()
+
+    def get_es_status(self, obj):
+        from apps.compliance.models import EconomicSubstanceSubmission
+
+        return EconomicSubstanceSubmission.objects.filter(
+            entity=obj,
+        ).order_by("-created_at").values_list("status", flat=True).first()
+
+    def get_ar_status(self, obj):
+        from apps.compliance.models import AccountingRecord
+
+        return AccountingRecord.objects.filter(
+            entity=obj,
+        ).order_by("-created_at").values_list("status", flat=True).first()

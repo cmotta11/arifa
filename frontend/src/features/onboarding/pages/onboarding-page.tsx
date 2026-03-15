@@ -45,7 +45,7 @@ export default function OnboardingPage() {
     <GuestLayout>
       <div className="mx-auto max-w-lg">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl font-semibold text-gray-900">
             {t("onboarding.title")}
           </h1>
           <p className="mt-2 text-sm text-gray-500">

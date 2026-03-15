@@ -221,7 +221,7 @@ export default function ClientDetailPage() {
         </button>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
+            <h1 className="text-xl font-semibold text-gray-900">{client.name}</h1>
             <Badge color={client.client_type === "corporate" ? "blue" : "gray"}>
               {t(`clients.form.${client.client_type}`)}
             </Badge>

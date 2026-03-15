@@ -87,7 +87,7 @@ export default function PortalKYCDetail() {
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900">
           {t("portal.detail.title")}
         </h1>
         <Badge color={kycStatusColorMap[kyc.status] ?? "gray"}>
@@ -183,15 +183,15 @@ function OverviewTab({
     <div className="grid gap-4 sm:grid-cols-3">
       <Card>
         <p className="text-sm font-medium text-gray-500">{t("portal.detail.tabs.parties")}</p>
-        <p className="mt-1 text-2xl font-bold text-gray-900">{partiesCount}</p>
+        <p className="mt-1 text-2xl font-semibold text-gray-900">{partiesCount}</p>
       </Card>
       <Card>
         <p className="text-sm font-medium text-gray-500">{t("portal.detail.tabs.rfis")}</p>
-        <p className="mt-1 text-2xl font-bold text-gray-900">{rfisCount}</p>
+        <p className="mt-1 text-2xl font-semibold text-gray-900">{rfisCount}</p>
       </Card>
       <Card>
         <p className="text-sm font-medium text-gray-500">{t("portal.detail.tabs.documents")}</p>
-        <p className="mt-1 text-2xl font-bold text-gray-900">{docsCount}</p>
+        <p className="mt-1 text-2xl font-semibold text-gray-900">{docsCount}</p>
       </Card>
     </div>
   );

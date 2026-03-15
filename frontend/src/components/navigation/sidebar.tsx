@@ -169,7 +169,7 @@ export function Sidebar({
       <aside
         className={`
           hidden h-screen flex-col border-r border-gray-200 bg-white transition-all duration-200 md:flex
-          ${collapsed ? "w-16" : "w-60"}
+          ${collapsed ? "w-16" : "w-[275px]"}
         `}
       >
         <SidebarContent

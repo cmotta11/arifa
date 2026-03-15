@@ -12,6 +12,8 @@ from rest_framework.viewsets import ModelViewSet
 from common.pagination import StandardPagination
 
 from . import selectors, services
+from apps.authentication.permissions import IsClient
+
 from .permissions import STAFF_ROLES, IsStaffOrReadOnlyOwn
 from .models import (
     ActivityCatalog,
@@ -42,6 +44,7 @@ from .serializers import (
     EntityOfficerInputSerializer,
     EntityOfficerOutputSerializer,
     EntityOutputSerializer,
+    PortalEntityOutputSerializer,
     GlobalSearchResultSerializer,
     MatterInputSerializer,
     MatterOutputSerializer,
@@ -1054,3 +1057,26 @@ class SavedFilterViewSet(ModelViewSet):
             setattr(instance, attr, value)
         instance.save()
         return Response(SavedFilterOutputSerializer(instance).data)
+
+
+# ---------------------------------------------------------------------------
+# Client Portal Entity Views
+# ---------------------------------------------------------------------------
+
+
+class ClientPortalEntityViewSet(ModelViewSet):
+    """Portal endpoints for client users to view their own entities."""
+
+    permission_classes = [IsAuthenticated, IsClient]
+    pagination_class = StandardPagination
+    http_method_names = ["get", "head", "options"]
+    serializer_class = PortalEntityOutputSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.client_id:
+            return Entity.objects.none()
+        return (
+            Entity.objects.filter(client=user.client)
+            .order_by("-created_at")
+        )

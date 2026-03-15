@@ -177,7 +177,7 @@ export default function ShareholdersCalculatorPage() {
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             &larr; {t("common.back")}
           </Button>
-          <h1 className="mt-2 text-2xl font-bold text-gray-900">
+          <h1 className="mt-2 text-xl font-semibold text-gray-900">
             {t("shareholdersCalculator.title")}
           </h1>
         </div>

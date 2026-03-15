@@ -22,7 +22,7 @@ export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
               type="button"
               onClick={() => onChange(tab.key)}
               className={`
-                whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors duration-100
+                whitespace-nowrap border-b-2 px-1 py-2 text-sm font-medium transition-colors duration-100
                 ${
                   isActive
                     ? "border-primary text-primary"

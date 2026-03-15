@@ -21,6 +21,7 @@ import { ROUTES } from "@/config/routes";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { Ticket } from "@/types";
 import {
+  getWorkflowDefinitions,
   getWorkflowStates,
   getTickets,
   transitionTicket,
@@ -59,6 +60,9 @@ function getDefaultKanbanView(role: string | undefined): KanbanView {
   }
 }
 
+const EMPTY_SET = new Set<string>();
+const NOOP = () => {};
+
 const priorityColors: Record<string, "gray" | "green" | "yellow" | "red"> = {
   low: "gray",
   medium: "green",
@@ -79,6 +83,7 @@ export default function TicketsPage() {
   const [selectedView, setSelectedView] = useState<KanbanView>(
     getDefaultKanbanView(user?.role),
   );
+  const [selectedWorkflowDefId, setSelectedWorkflowDefId] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -86,15 +91,28 @@ export default function TicketsPage() {
     }),
   );
 
+  const definitionsQuery = useQuery({
+    queryKey: ["workflow", "definitions"],
+    queryFn: getWorkflowDefinitions,
+  });
+
   const statesQuery = useQuery({
-    queryKey: ["workflow", "states"],
-    queryFn: getWorkflowStates,
+    queryKey: ["workflow", "states", selectedWorkflowDefId],
+    queryFn: () => getWorkflowStates(selectedWorkflowDefId || undefined),
   });
 
   const ticketsQuery = useQuery({
-    queryKey: ["kanban", "tickets", selectedView],
-    queryFn: () => getTickets(selectedView),
+    queryKey: ["kanban", "tickets", selectedView, selectedWorkflowDefId],
+    queryFn: () =>
+      getTickets(selectedView, selectedWorkflowDefId || undefined),
   });
+
+  const ticketsKey = [
+    "kanban",
+    "tickets",
+    selectedView,
+    selectedWorkflowDefId,
+  ];
 
   const transitionMutation = useMutation({
     mutationFn: ({
@@ -105,43 +123,30 @@ export default function TicketsPage() {
       newStateId: string;
     }) => transitionTicket(ticketId, newStateId),
     onMutate: async ({ ticketId, newStateId }) => {
-      await queryClient.cancelQueries({
-        queryKey: ["kanban", "tickets", selectedView],
+      await queryClient.cancelQueries({ queryKey: ticketsKey });
+      const previousTickets =
+        queryClient.getQueryData<Ticket[]>(ticketsKey);
+      queryClient.setQueryData<Ticket[]>(ticketsKey, (old) => {
+        if (!old) return old;
+        const targetState = statesQuery.data?.find(
+          (s) => s.id === newStateId,
+        );
+        if (!targetState) return old;
+        return old.map((ticket) =>
+          ticket.id === ticketId
+            ? { ...ticket, current_state: targetState }
+            : ticket,
+        );
       });
-      const previousTickets = queryClient.getQueryData<Ticket[]>([
-        "kanban",
-        "tickets",
-        selectedView,
-      ]);
-      queryClient.setQueryData<Ticket[]>(
-        ["kanban", "tickets", selectedView],
-        (old) => {
-          if (!old) return old;
-          const targetState = statesQuery.data?.find(
-            (s) => s.id === newStateId,
-          );
-          if (!targetState) return old;
-          return old.map((ticket) =>
-            ticket.id === ticketId
-              ? { ...ticket, current_state: targetState }
-              : ticket,
-          );
-        },
-      );
       return { previousTickets };
     },
     onError: (_err, _vars, context) => {
       if (context?.previousTickets) {
-        queryClient.setQueryData(
-          ["kanban", "tickets", selectedView],
-          context.previousTickets,
-        );
+        queryClient.setQueryData(ticketsKey, context.previousTickets);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["kanban", "tickets", selectedView],
-      });
+      queryClient.invalidateQueries({ queryKey: ticketsKey });
     },
   });
 
@@ -277,7 +282,7 @@ export default function TicketsPage() {
     <div className="flex h-full flex-col p-6">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900">
           {t("tickets.title")}
         </h1>
         <div className="flex items-center gap-3">
@@ -308,6 +313,22 @@ export default function TicketsPage() {
               {t("tickets.views.board")}
             </button>
           </div>
+
+          {/* Workflow definition selector (board view only) */}
+          {pageView === "board" && (
+            <div className="w-52">
+              <Select
+                options={[
+                  { value: "", label: t("kanban.allWorkflows") },
+                  ...(definitionsQuery.data ?? [])
+                    .filter((d) => d.is_active)
+                    .map((d) => ({ value: d.id, label: d.display_name })),
+                ]}
+                value={selectedWorkflowDefId}
+                onChange={(e) => setSelectedWorkflowDefId(e.target.value)}
+              />
+            </div>
+          )}
 
           {/* Role-based view selector */}
           <div className="w-52">
@@ -361,6 +382,8 @@ export default function TicketsPage() {
                   key={state.id}
                   state={state}
                   tickets={ticketsByState.get(state.id) ?? []}
+                  selectedTicketIds={EMPTY_SET}
+                  onToggleSelect={NOOP}
                 />
               ))}
             </div>

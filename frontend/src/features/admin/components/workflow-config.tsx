@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -11,8 +12,19 @@ import { DataTable } from "@/components/data-display/data-table";
 import { Modal } from "@/components/overlay/modal";
 import { ConfirmDialog } from "@/components/overlay/confirm-dialog";
 import { FormField } from "@/components/forms/form-field";
-import type { WorkflowState, WorkflowTransition, Role } from "@/types";
+import type {
+  WorkflowDefinition,
+  WorkflowCategory,
+  WorkflowState,
+  WorkflowTransition,
+  Role,
+} from "@/types";
 import {
+  useWorkflowDefinitions,
+  useCreateWorkflowDefinition,
+  useUpdateWorkflowDefinition,
+  useDeleteWorkflowDefinition,
+  useCloneWorkflow,
   useWorkflowStates,
   useCreateWorkflowState,
   useUpdateWorkflowState,
@@ -26,6 +38,19 @@ import {
 // ---------------------------------------------------------------------------
 // Schemas
 // ---------------------------------------------------------------------------
+
+const definitionSchema = z.object({
+  name: z.string().min(1),
+  display_name: z.string().min(1),
+  description: z.string().optional(),
+  category: z.string().min(1),
+  is_active: z.boolean(),
+});
+
+const cloneSchema = z.object({
+  new_name: z.string().min(1),
+  new_display_name: z.string().min(1),
+});
 
 const stateSchema = z.object({
   name: z.string().min(1),
@@ -41,12 +66,36 @@ const transitionSchema = z.object({
   allowed_roles: z.array(z.string()).min(1),
 });
 
+type DefinitionForm = z.infer<typeof definitionSchema>;
+type CloneForm = z.infer<typeof cloneSchema>;
 type StateForm = z.infer<typeof stateSchema>;
 type TransitionForm = z.infer<typeof transitionSchema>;
 
 // ---------------------------------------------------------------------------
-// Role badge styles
+// Constants
 // ---------------------------------------------------------------------------
+
+const CATEGORY_COLORS: Record<WorkflowCategory, string> = {
+  incorporation: "bg-blue-50 text-blue-700",
+  compliance: "bg-green-50 text-green-700",
+  documents: "bg-yellow-50 text-yellow-700",
+  legal_support: "bg-purple-50 text-purple-700",
+  registry: "bg-orange-50 text-orange-700",
+  accounting: "bg-pink-50 text-pink-700",
+  archive: "bg-gray-50 text-gray-700",
+  custom: "bg-indigo-50 text-indigo-700",
+};
+
+const CATEGORY_OPTIONS: { value: WorkflowCategory; label: string }[] = [
+  { value: "incorporation", label: "Incorporation" },
+  { value: "compliance", label: "Compliance" },
+  { value: "documents", label: "Documents" },
+  { value: "legal_support", label: "Legal Support" },
+  { value: "registry", label: "Registry" },
+  { value: "accounting", label: "Accounting" },
+  { value: "archive", label: "Archive" },
+  { value: "custom", label: "Custom" },
+];
 
 const ROLE_BADGE_CLASSES: Record<Role, string> = {
   director: "bg-purple-50 text-purple-700",
@@ -71,41 +120,94 @@ const ALL_ROLE_KEYS: { value: Role; labelKey: string }[] = [
 export function WorkflowConfig() {
   const { t } = useTranslation();
 
-  // Queries
-  const statesQuery = useWorkflowStates();
-  const transitionsQuery = useWorkflowTransitions();
+  // Master-detail state
+  const [selectedDefinitionId, setSelectedDefinitionId] = useState<
+    string | null
+  >(null);
 
-  // State mutations
+  // Definition queries & mutations
+  const definitionsQuery = useWorkflowDefinitions();
+  const createDefinition = useCreateWorkflowDefinition();
+  const updateDefinition = useUpdateWorkflowDefinition();
+  const deleteDefinition = useDeleteWorkflowDefinition();
+  const cloneWorkflow = useCloneWorkflow();
+
+  // State / transition queries (scoped when a definition is selected)
+  const statesQuery = useWorkflowStates(selectedDefinitionId ?? undefined);
+  const transitionsQuery = useWorkflowTransitions(
+    selectedDefinitionId ?? undefined,
+  );
+
   const createState = useCreateWorkflowState();
   const updateState = useUpdateWorkflowState();
   const deleteState = useDeleteWorkflowState();
 
-  // Transition mutations
   const createTransition = useCreateWorkflowTransition();
   const updateTransition = useUpdateWorkflowTransition();
   const deleteTransition = useDeleteWorkflowTransition();
 
-  // Modal state
+  // Definition modals
+  const [defModalOpen, setDefModalOpen] = useState(false);
+  const [editingDef, setEditingDef] = useState<WorkflowDefinition | null>(
+    null,
+  );
+  const [deletingDef, setDeletingDef] = useState<WorkflowDefinition | null>(
+    null,
+  );
+  const [cloningDef, setCloningDef] = useState<WorkflowDefinition | null>(
+    null,
+  );
+
+  // State / transition modals
   const [stateModalOpen, setStateModalOpen] = useState(false);
   const [editingState, setEditingState] = useState<WorkflowState | null>(null);
-  const [deletingState, setDeletingState] = useState<WorkflowState | null>(null);
+  const [deletingState, setDeletingState] = useState<WorkflowState | null>(
+    null,
+  );
   const [transitionModalOpen, setTransitionModalOpen] = useState(false);
-  const [editingTransition, setEditingTransition] = useState<WorkflowTransition | null>(null);
-  const [deletingTransition, setDeletingTransition] = useState<WorkflowTransition | null>(null);
+  const [editingTransition, setEditingTransition] =
+    useState<WorkflowTransition | null>(null);
+  const [deletingTransition, setDeletingTransition] =
+    useState<WorkflowTransition | null>(null);
 
-  // State form
+  // Forms
+  const defForm = useForm<DefinitionForm>({
+    resolver: zodResolver(definitionSchema),
+    defaultValues: {
+      name: "",
+      display_name: "",
+      description: "",
+      category: "custom",
+      is_active: true,
+    },
+  });
+
+  const cloneForm = useForm<CloneForm>({
+    resolver: zodResolver(cloneSchema),
+    defaultValues: { new_name: "", new_display_name: "" },
+  });
+
   const stateForm = useForm<StateForm>({
     resolver: zodResolver(stateSchema),
-    defaultValues: { name: "", order_index: 0, is_initial: false, is_final: false },
+    defaultValues: {
+      name: "",
+      order_index: 0,
+      is_initial: false,
+      is_final: false,
+    },
   });
 
-  // Transition form
   const transitionForm = useForm<TransitionForm>({
     resolver: zodResolver(transitionSchema),
-    defaultValues: { name: "", from_state: "", to_state: "", allowed_roles: [] },
+    defaultValues: {
+      name: "",
+      from_state: "",
+      to_state: "",
+      allowed_roles: [],
+    },
   });
 
-  // Sorted states for display and dropdowns
+  // Derived data
   const sortedStates = useMemo(
     () =>
       [...(statesQuery.data ?? [])].sort(
@@ -119,7 +221,90 @@ export function WorkflowConfig() {
     label: `${s.order_index}. ${s.name}`,
   }));
 
-  // ---- State handlers ----
+  const selectedDef = useMemo(
+    () =>
+      definitionsQuery.data?.find((d) => d.id === selectedDefinitionId) ?? null,
+    [definitionsQuery.data, selectedDefinitionId],
+  );
+
+  // =====================================================================
+  // Definition handlers
+  // =====================================================================
+
+  const openCreateDef = () => {
+    defForm.reset({
+      name: "",
+      display_name: "",
+      description: "",
+      category: "custom",
+      is_active: true,
+    });
+    setEditingDef(null);
+    setDefModalOpen(true);
+  };
+
+  const openEditDef = (def: WorkflowDefinition) => {
+    defForm.reset({
+      name: def.name,
+      display_name: def.display_name,
+      description: def.description,
+      category: def.category,
+      is_active: def.is_active,
+    });
+    setEditingDef(def);
+    setDefModalOpen(true);
+  };
+
+  const handleDefSubmit = (data: DefinitionForm) => {
+    if (editingDef) {
+      updateDefinition.mutate(
+        {
+          id: editingDef.id,
+          display_name: data.display_name,
+          description: data.description,
+          category: data.category,
+          is_active: data.is_active,
+        },
+        {
+          onSuccess: () => {
+            setDefModalOpen(false);
+            setEditingDef(null);
+          },
+        },
+      );
+    } else {
+      createDefinition.mutate(data, {
+        onSuccess: () => {
+          setDefModalOpen(false);
+          defForm.reset();
+        },
+      });
+    }
+  };
+
+  const handleDeleteDef = () => {
+    if (!deletingDef) return;
+    deleteDefinition.mutate(deletingDef.id, {
+      onSuccess: () => setDeletingDef(null),
+    });
+  };
+
+  const handleCloneSubmit = (data: CloneForm) => {
+    if (!cloningDef) return;
+    cloneWorkflow.mutate(
+      { id: cloningDef.id, ...data },
+      {
+        onSuccess: () => {
+          setCloningDef(null);
+          cloneForm.reset();
+        },
+      },
+    );
+  };
+
+  // =====================================================================
+  // State handlers
+  // =====================================================================
 
   const openCreateState = () => {
     stateForm.reset({
@@ -155,12 +340,18 @@ export function WorkflowConfig() {
         },
       );
     } else {
-      createState.mutate(data, {
-        onSuccess: () => {
-          setStateModalOpen(false);
-          stateForm.reset();
+      createState.mutate(
+        {
+          ...data,
+          workflow_definition_id: selectedDefinitionId ?? undefined,
         },
-      });
+        {
+          onSuccess: () => {
+            setStateModalOpen(false);
+            stateForm.reset();
+          },
+        },
+      );
     }
   };
 
@@ -171,7 +362,9 @@ export function WorkflowConfig() {
     });
   };
 
-  // ---- Transition handlers ----
+  // =====================================================================
+  // Transition handlers
+  // =====================================================================
 
   const openCreateTransition = () => {
     transitionForm.reset({
@@ -230,7 +423,9 @@ export function WorkflowConfig() {
     });
   };
 
-  // ---- Table columns ----
+  // =====================================================================
+  // Transition table columns
+  // =====================================================================
 
   const transitionColumns = [
     {
@@ -279,7 +474,7 @@ export function WorkflowConfig() {
     },
     {
       key: "actions",
-      header: t("admin.workflow.actions"),
+      header: t("common.actions"),
       render: (row: Record<string, unknown>) => (
         <div className="flex gap-2">
           <Button
@@ -307,8 +502,292 @@ export function WorkflowConfig() {
     },
   ];
 
+  // =====================================================================
+  // MASTER VIEW — Definitions grid
+  // =====================================================================
+
+  if (selectedDefinitionId === null) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {t("admin.workflow.definitions")}
+          </h2>
+          <Button size="sm" onClick={openCreateDef}>
+            {t("admin.workflow.addDefinition")}
+          </Button>
+        </div>
+
+        {/* Definitions grid */}
+        {definitionsQuery.data?.length === 0 && (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-6 py-12 text-center text-sm text-gray-500">
+            {t("admin.workflow.noDefinitions")}
+          </div>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {(definitionsQuery.data ?? []).map((def) => (
+            <div
+              key={def.id}
+              onClick={() => setSelectedDefinitionId(def.id)}
+              className="cursor-pointer rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+            >
+              <div className="mb-3 flex items-start justify-between">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {def.display_name}
+                </h3>
+                <Badge color={def.is_active ? "green" : "gray"}>
+                  {def.is_active
+                    ? t("admin.workflow.definitionActive")
+                    : t("admin.workflow.definitionInactive")}
+                </Badge>
+              </div>
+              <div className="mb-3 flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[def.category] ?? CATEGORY_COLORS.custom}`}
+                >
+                  {def.category_display}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {t("admin.workflow.stateCount", {
+                    count: def.state_count,
+                  })}
+                </span>
+              </div>
+              {def.description && (
+                <p className="mb-3 text-xs text-gray-500 line-clamp-2">
+                  {def.description}
+                </p>
+              )}
+              <div className="flex gap-2 border-t border-gray-100 pt-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditDef(def);
+                  }}
+                >
+                  {t("common.edit")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cloneForm.reset({
+                      new_name: `${def.name}_copy`,
+                      new_display_name: `${def.display_name} (Copy)`,
+                    });
+                    setCloningDef(def);
+                  }}
+                >
+                  {t("admin.workflow.cloneDefinition")}
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeletingDef(def);
+                  }}
+                >
+                  {t("common.delete")}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ============================================================= */}
+        {/* Create / Edit Definition Modal                                 */}
+        {/* ============================================================= */}
+        <Modal
+          isOpen={defModalOpen}
+          onClose={() => {
+            setDefModalOpen(false);
+            setEditingDef(null);
+          }}
+          title={
+            editingDef
+              ? t("admin.workflow.editDefinition")
+              : t("admin.workflow.addDefinition")
+          }
+        >
+          <form
+            onSubmit={defForm.handleSubmit(handleDefSubmit)}
+            className="space-y-4"
+          >
+            <FormField
+              label={t("admin.workflow.definitionName")}
+              error={defForm.formState.errors.name?.message}
+              required
+            >
+              <Input
+                {...defForm.register("name")}
+                disabled={!!editingDef}
+                error={defForm.formState.errors.name?.message}
+              />
+            </FormField>
+            <FormField
+              label={t("admin.workflow.definitionDisplayName")}
+              error={defForm.formState.errors.display_name?.message}
+              required
+            >
+              <Input
+                {...defForm.register("display_name")}
+                error={defForm.formState.errors.display_name?.message}
+              />
+            </FormField>
+            <FormField
+              label={t("admin.workflow.definitionDescription")}
+              error={defForm.formState.errors.description?.message}
+            >
+              <Input
+                {...defForm.register("description")}
+                error={defForm.formState.errors.description?.message}
+              />
+            </FormField>
+            <FormField
+              label={t("admin.workflow.definitionCategory")}
+              error={defForm.formState.errors.category?.message}
+              required
+            >
+              <Select
+                options={CATEGORY_OPTIONS}
+                {...defForm.register("category")}
+                error={defForm.formState.errors.category?.message}
+              />
+            </FormField>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                {...defForm.register("is_active")}
+              />
+              <span className="text-sm text-gray-700">
+                {t("admin.workflow.definitionActive")}
+              </span>
+            </label>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => {
+                  setDefModalOpen(false);
+                  setEditingDef(null);
+                }}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                loading={
+                  createDefinition.isPending || updateDefinition.isPending
+                }
+              >
+                {editingDef
+                  ? t("common.save")
+                  : t("admin.workflow.addDefinition")}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Clone Definition Modal */}
+        <Modal
+          isOpen={!!cloningDef}
+          onClose={() => setCloningDef(null)}
+          title={t("admin.workflow.cloneDefinition")}
+        >
+          <form
+            onSubmit={cloneForm.handleSubmit(handleCloneSubmit)}
+            className="space-y-4"
+          >
+            <FormField
+              label={t("admin.workflow.newName")}
+              error={cloneForm.formState.errors.new_name?.message}
+              required
+            >
+              <Input
+                {...cloneForm.register("new_name")}
+                error={cloneForm.formState.errors.new_name?.message}
+              />
+            </FormField>
+            <FormField
+              label={t("admin.workflow.newDisplayName")}
+              error={cloneForm.formState.errors.new_display_name?.message}
+              required
+            >
+              <Input
+                {...cloneForm.register("new_display_name")}
+                error={cloneForm.formState.errors.new_display_name?.message}
+              />
+            </FormField>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="ghost"
+                type="button"
+                onClick={() => setCloningDef(null)}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button type="submit" loading={cloneWorkflow.isPending}>
+                {t("admin.workflow.cloneDefinition")}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Delete Definition Confirm */}
+        <ConfirmDialog
+          isOpen={!!deletingDef}
+          title={t("admin.workflow.deleteDefinition")}
+          message={t("admin.workflow.deleteDefinitionConfirm", {
+            name: deletingDef?.display_name ?? "",
+          })}
+          confirmLabel={t("common.delete")}
+          cancelLabel={t("common.cancel")}
+          variant="danger"
+          loading={deleteDefinition.isPending}
+          onConfirm={handleDeleteDef}
+          onCancel={() => setDeletingDef(null)}
+        />
+      </div>
+    );
+  }
+
+  // =====================================================================
+  // DETAIL VIEW — States & Transitions scoped to selected definition
+  // =====================================================================
+
   return (
     <div className="space-y-8">
+      {/* Back button + definition header */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setSelectedDefinitionId(null)}
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
+        >
+          <ArrowLeftIcon className="h-4 w-4" />
+          {t("admin.workflow.backToDefinitions")}
+        </button>
+        {selectedDef && (
+          <>
+            <span className="text-lg font-semibold text-gray-900">
+              {selectedDef.display_name}
+            </span>
+            <Badge color={selectedDef.is_active ? "green" : "gray"}>
+              {selectedDef.is_active
+                ? t("admin.workflow.definitionActive")
+                : t("admin.workflow.definitionInactive")}
+            </Badge>
+          </>
+        )}
+      </div>
+
       {/* ================================================================= */}
       {/* STATES SECTION                                                     */}
       {/* ================================================================= */}
@@ -344,12 +823,12 @@ export function WorkflowConfig() {
                   <div className="mt-1 flex gap-1">
                     {state.is_initial && (
                       <Badge color="green">
-                        {t("admin.workflow.initial")}
+                        {t("admin.workflow.isInitial")}
                       </Badge>
                     )}
                     {state.is_final && (
                       <Badge color="red">
-                        {t("admin.workflow.final")}
+                        {t("admin.workflow.isFinal")}
                       </Badge>
                     )}
                   </div>
@@ -391,14 +870,26 @@ export function WorkflowConfig() {
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-600">
                   {state.order_index}
                 </span>
-                <span className="font-medium text-gray-900">{state.name}</span>
+                <span className="font-medium text-gray-900">
+                  {state.name}
+                </span>
                 <div className="flex gap-1">
-                  {state.is_initial && <Badge color="green">{t("admin.workflow.initial")}</Badge>}
-                  {state.is_final && <Badge color="red">{t("admin.workflow.final")}</Badge>}
+                  {state.is_initial && (
+                    <Badge color="green">
+                      {t("admin.workflow.isInitial")}
+                    </Badge>
+                  )}
+                  {state.is_final && (
+                    <Badge color="red">{t("admin.workflow.isFinal")}</Badge>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => openEditState(state)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => openEditState(state)}
+                >
                   {t("common.edit")}
                 </Button>
                 <Button
@@ -564,7 +1055,7 @@ export function WorkflowConfig() {
             >
               <Select
                 options={stateOptions}
-                placeholder={t("admin.workflow.selectState")}
+                placeholder={t("common.select")}
                 {...transitionForm.register("from_state")}
                 error={transitionForm.formState.errors.from_state?.message}
               />
@@ -576,7 +1067,7 @@ export function WorkflowConfig() {
             >
               <Select
                 options={stateOptions}
-                placeholder={t("admin.workflow.selectState")}
+                placeholder={t("common.select")}
                 {...transitionForm.register("to_state")}
                 error={transitionForm.formState.errors.to_state?.message}
               />

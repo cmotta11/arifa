@@ -199,7 +199,7 @@ export default function QuotationDetailPage() {
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl font-semibold text-gray-900">
                 {quotation.quotation_number}
               </h1>
               <Badge color={statusColors[quotation.status] ?? "gray"}>
