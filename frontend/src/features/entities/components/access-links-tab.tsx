@@ -286,7 +286,7 @@ export function AccessLinksTab({ entityId, clientId, entityName }: AccessLinksTa
         ) : (
           <DataTable
             columns={guestLinkColumns}
-            data={guestLinks as unknown as Record<string, unknown>[]}
+            data={guestLinks}
             emptyMessage={t("entities.accessLinks.noLinks")}
             keyExtractor={(row) => String(row.id)}
           />
@@ -303,7 +303,7 @@ export function AccessLinksTab({ entityId, clientId, entityName }: AccessLinksTa
         ) : (
           <DataTable
             columns={kycColumns}
-            data={kycSubmissions as unknown as Record<string, unknown>[]}
+            data={kycSubmissions}
             emptyMessage={t("kyc.noKyc")}
             keyExtractor={(row) => String(row.id)}
           />
@@ -366,7 +366,7 @@ export function AccessLinksTab({ entityId, clientId, entityName }: AccessLinksTa
                           type="button"
                           onClick={() => handleCreateKYCAndLink(ticket.id)}
                           disabled={createKycMutation.isPending}
-                          className="flex w-full items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-left transition-colors hover:border-arifa-navy hover:bg-gray-50 disabled:opacity-50"
+                          className="flex w-full items-center justify-between rounded-lg border border-gray-200 px-4 py-3 text-left transition-colors hover:border-primary hover:bg-gray-50 disabled:opacity-50"
                         >
                           <div>
                             <p className="text-sm font-medium text-gray-900">

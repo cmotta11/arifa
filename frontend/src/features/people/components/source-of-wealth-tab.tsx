@@ -81,7 +81,7 @@ export function SourceOfWealthTab({ personId }: SourceOfWealthTabProps) {
       <div className="rounded-lg border border-gray-200 bg-white">
         <DataTable
           columns={columns}
-          data={sources as (SourceOfWealth & Record<string, unknown>)[]}
+          data={sources}
           loading={sowQuery.isLoading}
           emptyMessage={t("common.noResults")}
           keyExtractor={(row) => row.id as string}
@@ -98,7 +98,7 @@ export function SourceOfWealthTab({ personId }: SourceOfWealthTabProps) {
                   {t("people.sourcesOfWealth.description")}
                 </label>
                 <textarea
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   rows={3}
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}

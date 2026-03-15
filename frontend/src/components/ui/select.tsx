@@ -32,7 +32,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           className={`
             block w-full rounded-md border px-3 py-2 text-sm shadow-sm
             transition-colors duration-150
-            focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy
+            focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary
             disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500
             ${error ? "border-error" : "border-gray-300"}
             ${className}

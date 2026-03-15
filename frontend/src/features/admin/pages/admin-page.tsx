@@ -5,13 +5,15 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { UserManagement } from "../components/user-management";
 import { WorkflowConfig } from "../components/workflow-config";
 import { JurisdictionRiskManagement } from "../components/jurisdiction-risk-management";
+import { JurisdictionConfigEditor } from "../components/jurisdiction-config-editor";
+import { NotificationTemplateEditor } from "../components/notification-template-editor";
 import { SystemSettings } from "../components/system-settings";
 
 // ---------------------------------------------------------------------------
 // Tabs config
 // ---------------------------------------------------------------------------
 
-type AdminTab = "users" | "workflow" | "jurisdiction" | "settings";
+type AdminTab = "users" | "workflow" | "jurisdiction" | "notifications" | "settings";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -57,6 +59,7 @@ export default function AdminPage() {
     { key: "users" as const, label: t("admin.tabs.users") },
     { key: "workflow" as const, label: t("admin.tabs.workflow") },
     { key: "jurisdiction" as const, label: t("admin.tabs.jurisdiction") },
+    { key: "notifications" as const, label: t("admin.tabs.notifications") },
     { key: "settings" as const, label: t("admin.tabs.settings") },
   ];
 
@@ -84,7 +87,14 @@ export default function AdminPage() {
       <div className="flex-1 overflow-y-auto">
         {activeTab === "users" && <UserManagement />}
         {activeTab === "workflow" && <WorkflowConfig />}
-        {activeTab === "jurisdiction" && <JurisdictionRiskManagement />}
+        {activeTab === "jurisdiction" && (
+          <div className="space-y-8">
+            <JurisdictionConfigEditor />
+            <hr className="border-gray-200" />
+            <JurisdictionRiskManagement />
+          </div>
+        )}
+        {activeTab === "notifications" && <NotificationTemplateEditor />}
         {activeTab === "settings" && <SystemSettings />}
       </div>
     </div>

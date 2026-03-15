@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { DataTable } from "@/components/data-display/data-table";
+import { Modal } from "@/components/overlay/modal";
 import { ROUTES } from "@/config/routes";
 import {
   useRiskMatrixConfigs,
@@ -134,7 +135,7 @@ export default function RiskMatrixConfigPage() {
               e.stopPropagation();
               duplicateMutation.mutate(row.id);
             }}
-            className="text-xs text-arifa-navy hover:underline"
+            className="text-xs text-primary hover:underline"
           >
             {t("riskMatrix.config.duplicate")}
           </button>
@@ -162,17 +163,26 @@ export default function RiskMatrixConfigPage() {
         </p>
       </div>
 
-      <div className="mb-4 flex justify-end">
+      {/* Summary stats */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+            {configs.length} {t("riskMatrix.config.totalConfigs")}
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+            {configs.filter((c) => c.is_active).length} {t("riskMatrix.config.active")}
+          </span>
+        </div>
         <Button onClick={() => setShowCreate(true)}>
           <PlusIcon className="mr-1 h-4 w-4" />
           {t("riskMatrix.config.create")}
         </Button>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white">
+      <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <DataTable
           columns={columns}
-          data={configs as (RiskMatrixConfig & Record<string, unknown>)[]}
+          data={configs}
           loading={configsQuery.isLoading}
           emptyMessage={t("riskMatrix.config.noConfigs")}
           keyExtractor={(row) => row.id as string}
@@ -183,101 +193,99 @@ export default function RiskMatrixConfigPage() {
       </div>
 
       {/* Create Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h3 className="mb-4 text-lg font-semibold">
-              {t("riskMatrix.config.create")}
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  {t("riskMatrix.config.name")}
-                </label>
-                <input
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((f) => ({ ...f, name: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  {t("riskMatrix.config.jurisdiction")}
-                </label>
-                <input
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
-                  placeholder={t("riskMatrix.config.global")}
-                  value={formData.jurisdiction}
-                  onChange={(e) =>
-                    setFormData((f) => ({ ...f, jurisdiction: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  {t("riskMatrix.config.entityType")}
-                </label>
-                <input
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
-                  placeholder={t("common.all")}
-                  value={formData.entity_type}
-                  onChange={(e) =>
-                    setFormData((f) => ({ ...f, entity_type: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {t("riskMatrix.config.highThreshold")}
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
-                    value={formData.high_risk_threshold}
-                    onChange={(e) =>
-                      setFormData((f) => ({
-                        ...f,
-                        high_risk_threshold: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
-                    {t("riskMatrix.config.mediumThreshold")}
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
-                    value={formData.medium_risk_threshold}
-                    onChange={(e) =>
-                      setFormData((f) => ({
-                        ...f,
-                        medium_risk_threshold: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              </div>
+      <Modal
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        title={t("riskMatrix.config.create")}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t("riskMatrix.config.name")}
+            </label>
+            <input
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData((f) => ({ ...f, name: e.target.value }))
+              }
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t("riskMatrix.config.jurisdiction")}
+            </label>
+            <input
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder={t("riskMatrix.config.global")}
+              value={formData.jurisdiction}
+              onChange={(e) =>
+                setFormData((f) => ({ ...f, jurisdiction: e.target.value }))
+              }
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t("riskMatrix.config.entityType")}
+            </label>
+            <input
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder={t("common.all")}
+              value={formData.entity_type}
+              onChange={(e) =>
+                setFormData((f) => ({ ...f, entity_type: e.target.value }))
+              }
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                {t("riskMatrix.config.highThreshold")}
+              </label>
+              <input
+                type="number"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                value={formData.high_risk_threshold}
+                onChange={(e) =>
+                  setFormData((f) => ({
+                    ...f,
+                    high_risk_threshold: e.target.value,
+                  }))
+                }
+              />
             </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowCreate(false)}>
-                {t("common.cancel")}
-              </Button>
-              <Button
-                onClick={handleCreate}
-                loading={createMutation.isPending}
-                disabled={!formData.name}
-              >
-                {t("common.create")}
-              </Button>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                {t("riskMatrix.config.mediumThreshold")}
+              </label>
+              <input
+                type="number"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                value={formData.medium_risk_threshold}
+                onChange={(e) =>
+                  setFormData((f) => ({
+                    ...f,
+                    medium_risk_threshold: e.target.value,
+                  }))
+                }
+              />
             </div>
           </div>
         </div>
-      )}
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setShowCreate(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            onClick={handleCreate}
+            loading={createMutation.isPending}
+            disabled={!formData.name}
+          >
+            {t("common.create")}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

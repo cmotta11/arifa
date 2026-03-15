@@ -15,7 +15,7 @@ function getActionType(log: TicketLog): ActionType {
 
 const actionColors: Record<ActionType, string> = {
   created: "bg-green-500",
-  transitioned: "bg-arifa-navy",
+  transitioned: "bg-primary",
   comment: "bg-gray-400",
 };
 
@@ -43,7 +43,7 @@ export function TicketTimeline({ logs }: TicketTimelineProps) {
 
   // Show logs in reverse chronological order (newest first)
   const sortedLogs = [...logs].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
   return (
@@ -111,7 +111,7 @@ export function TicketTimeline({ logs }: TicketTimelineProps) {
                     </p>
 
                     <time className="text-xs text-gray-400">
-                      {formatTimestamp(log.timestamp)}
+                      {formatTimestamp(log.created_at)}
                     </time>
                   </div>
 

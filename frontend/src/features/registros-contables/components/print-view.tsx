@@ -23,8 +23,8 @@ export function PrintView({ record, documents }: PrintViewProps) {
   return (
     <div className="mx-auto max-w-3xl bg-white p-8 print:p-0 print:max-w-none">
       {/* Header */}
-      <div className="mb-8 border-b-2 border-arifa-navy pb-4">
-        <h1 className="text-2xl font-bold text-arifa-navy">ARIFA</h1>
+      <div className="mb-8 border-b-2 border-primary pb-4">
+        <h1 className="text-2xl font-bold text-primary">ARIFA</h1>
         <p className="text-sm text-gray-500">
           {t("registrosContables.print.title")} — {t("registrosContables.print.fiscalYear")} {record.fiscal_year}
         </p>
@@ -211,7 +211,7 @@ export function PrintView({ record, documents }: PrintViewProps) {
         <button
           type="button"
           onClick={() => window.print()}
-          className="inline-flex items-center gap-2 rounded-md bg-arifa-navy px-6 py-2 text-sm font-medium text-white hover:bg-arifa-navy-dark"
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-white hover:bg-primary-dark"
         >
           {t("registrosContables.guest.printDownload")}
         </button>

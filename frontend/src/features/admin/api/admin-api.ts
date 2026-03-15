@@ -86,6 +86,51 @@ export interface UpdateJurisdictionRiskPayload {
   risk_weight?: number;
 }
 
+export interface JurisdictionConfig {
+  id: string;
+  jurisdiction: string;
+  jurisdiction_code: string;
+  jurisdiction_name: string;
+  risk_weight: number;
+  inc_workflow: string;
+  requires_notary: boolean;
+  requires_registry: boolean;
+  requires_nit_ruc: boolean;
+  requires_rbuf: boolean;
+  supports_digital_notary: boolean;
+  ubo_threshold_percent: number;
+  kyc_renewal_months: number;
+  es_required: boolean;
+  ar_required: boolean;
+  exempted_available: boolean;
+  default_risk_matrix: string | null;
+  default_risk_matrix_name: string | null;
+  entity_types: string[];
+  form_config: Record<string, unknown>;
+  es_flow_config: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JurisdictionConfigPayload {
+  jurisdiction_id: string;
+  inc_workflow?: string;
+  requires_notary?: boolean;
+  requires_registry?: boolean;
+  requires_nit_ruc?: boolean;
+  requires_rbuf?: boolean;
+  supports_digital_notary?: boolean;
+  ubo_threshold_percent?: number;
+  kyc_renewal_months?: number;
+  es_required?: boolean;
+  ar_required?: boolean;
+  exempted_available?: boolean;
+  default_risk_matrix_id?: string | null;
+  entity_types?: string[];
+  form_config?: Record<string, unknown>;
+  es_flow_config?: Record<string, unknown>;
+}
+
 // ---------------------------------------------------------------------------
 // Query Keys
 // ---------------------------------------------------------------------------
@@ -97,6 +142,7 @@ export const adminKeys = {
   workflowStates: () => [...adminKeys.all, "workflow-states"] as const,
   workflowTransitions: () => [...adminKeys.all, "workflow-transitions"] as const,
   jurisdictionRisks: () => [...adminKeys.all, "jurisdiction-risks"] as const,
+  jurisdictionConfigs: () => [...adminKeys.all, "jurisdiction-configs"] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -335,6 +381,62 @@ export function useDeleteJurisdictionRisk() {
       api.delete(`/compliance/jurisdiction-risks/${id}/`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.jurisdictionRisks() });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Jurisdiction Config Queries & Mutations
+// ---------------------------------------------------------------------------
+
+export function useJurisdictionConfigs() {
+  return useQuery({
+    queryKey: adminKeys.jurisdictionConfigs(),
+    queryFn: async () => {
+      const response = await api.get<
+        JurisdictionConfig[] | PaginatedResponse<JurisdictionConfig>
+      >("/compliance/jurisdiction-configs/");
+      if (Array.isArray(response)) return response;
+      return response.results;
+    },
+  });
+}
+
+export function useCreateJurisdictionConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: JurisdictionConfigPayload) =>
+      api.post<JurisdictionConfig>("/compliance/jurisdiction-configs/", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.jurisdictionConfigs() });
+    },
+  });
+}
+
+export function useUpdateJurisdictionConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...payload }: JurisdictionConfigPayload & { id: string }) =>
+      api.patch<JurisdictionConfig>(
+        `/compliance/jurisdiction-configs/${id}/`,
+        payload,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.jurisdictionConfigs() });
+    },
+  });
+}
+
+export function useDeleteJurisdictionConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.delete(`/compliance/jurisdiction-configs/${id}/`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.jurisdictionConfigs() });
     },
   });
 }

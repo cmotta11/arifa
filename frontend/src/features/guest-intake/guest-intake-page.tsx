@@ -122,7 +122,7 @@ export default function GuestIntakePage() {
               </p>
               <a
                 href="mailto:compliance@arifa.law"
-                className="mt-2 inline-block text-sm font-medium text-arifa-navy hover:underline"
+                className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
               >
                 compliance@arifa.law
               </a>
@@ -216,7 +216,7 @@ function InvalidLinkCard() {
           </p>
           <a
             href="mailto:compliance@arifa.law"
-            className="mt-2 inline-block text-sm font-medium text-arifa-navy hover:underline"
+            className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
           >
             compliance@arifa.law
           </a>

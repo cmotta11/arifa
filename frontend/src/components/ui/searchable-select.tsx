@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Combobox,
   ComboboxButton,
@@ -14,6 +15,7 @@ interface SearchableSelectOption {
 }
 
 interface SearchableSelectProps {
+  id?: string;
   label?: string;
   error?: string;
   options: SearchableSelectOption[];
@@ -24,6 +26,7 @@ interface SearchableSelectProps {
 }
 
 export function SearchableSelect({
+  id,
   label,
   error,
   options,
@@ -32,6 +35,7 @@ export function SearchableSelect({
   placeholder = "",
   disabled = false,
 }: SearchableSelectProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
 
   const selected = useMemo(
@@ -45,7 +49,7 @@ export function SearchableSelect({
     return options.filter((o) => o.label.toLowerCase().includes(lower));
   }, [options, query]);
 
-  const selectId = label?.toLowerCase().replace(/\s+/g, "-");
+  const selectId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
 
   return (
     <div className="w-full">
@@ -69,7 +73,7 @@ export function SearchableSelect({
               block w-full rounded-md border px-3 py-2 pr-8 text-sm shadow-sm
               transition-colors duration-150
               placeholder:text-gray-400
-              focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy
+              focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary
               disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500
               ${error ? "border-error" : "border-gray-300"}
             `}
@@ -87,12 +91,12 @@ export function SearchableSelect({
             {/* Empty/clear option */}
             <ComboboxOption
               value=""
-              className="group relative cursor-pointer select-none px-3 py-2 text-gray-400 data-[focus]:bg-arifa-navy/5 data-[focus]:text-gray-700"
+              className="group relative cursor-pointer select-none px-3 py-2 text-gray-400 data-[focus]:bg-primary/5 data-[focus]:text-gray-700"
             >
               —
             </ComboboxOption>
             {filtered.length === 0 && query !== "" ? (
-              <div className="px-3 py-2 text-gray-500">No results</div>
+              <div className="px-3 py-2 text-gray-500">{t("common.noResults")}</div>
             ) : (
               filtered
                 .filter((o) => o.value !== "")
@@ -100,12 +104,12 @@ export function SearchableSelect({
                   <ComboboxOption
                     key={option.value}
                     value={option.value}
-                    className="group relative cursor-pointer select-none py-2 pl-8 pr-3 text-gray-900 data-[focus]:bg-arifa-navy/5 data-[focus]:text-arifa-navy"
+                    className="group relative cursor-pointer select-none py-2 pl-8 pr-3 text-gray-900 data-[focus]:bg-primary/5 data-[focus]:text-primary"
                   >
                     <span className="block truncate group-data-[selected]:font-medium">
                       {option.label}
                     </span>
-                    <span className="absolute inset-y-0 left-0 hidden items-center pl-2 text-arifa-navy group-data-[selected]:flex">
+                    <span className="absolute inset-y-0 left-0 hidden items-center pl-2 text-primary group-data-[selected]:flex">
                       <CheckIcon className="h-4 w-4" />
                     </span>
                   </ComboboxOption>

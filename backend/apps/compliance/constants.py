@@ -123,3 +123,35 @@ class AccountingRecordStatus(models.TextChoices):
     SUBMITTED = "submitted", "Submitted"
     APPROVED = "approved", "Approved"
     REJECTED = "rejected", "Rejected"
+
+
+class DelegationStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    ACCEPTED = "accepted", "Accepted"
+    REVOKED = "revoked", "Revoked"
+
+
+class DelegationModule(models.TextChoices):
+    ACCOUNTING_RECORDS = "accounting_records", "Accounting Records"
+    ECONOMIC_SUBSTANCE = "economic_substance", "Economic Substance"
+    KYC = "kyc", "KYC"
+
+
+class ESStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    IN_PROGRESS = "in_progress", "In Progress"
+    IN_REVIEW = "in_review", "In Review"
+    COMPLETED = "completed", "Completed"
+
+
+class DDChecklistSection(models.TextChoices):
+    ENTITY_DETAILS = "entity_details", "Entity Details"
+    DIRECTORS_OFFICERS = "directors_officers", "Directors & Officers"
+    SHAREHOLDERS = "shareholders", "Shareholders"
+    BENEFICIAL_OWNERS = "beneficial_owners", "Beneficial Owners"
+    ATTORNEYS_IN_FACT = "attorneys_in_fact", "Attorneys-in-Fact"
+
+
+class CompletionMethod(models.TextChoices):
+    UPLOAD_INFORMATION = "upload_information", "Upload Information"
+    SEVEN_STEPS = "seven_steps", "Seven Steps"

@@ -64,7 +64,7 @@ export default function OnboardingPage() {
                 type="text"
                 value={form.contact_name}
                 onChange={(e) => updateField("contact_name", e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 required
               />
             </div>
@@ -78,7 +78,7 @@ export default function OnboardingPage() {
                 type="email"
                 value={form.contact_email}
                 onChange={(e) => updateField("contact_email", e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 required
               />
             </div>
@@ -92,7 +92,7 @@ export default function OnboardingPage() {
                 type="text"
                 value={form.client_name}
                 onChange={(e) => updateField("client_name", e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 required
               />
             </div>
@@ -105,7 +105,7 @@ export default function OnboardingPage() {
               <select
                 value={form.client_type}
                 onChange={(e) => updateField("client_type", e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="corporate">{t("onboarding.corporate")}</option>
                 <option value="natural">{t("onboarding.natural")}</option>
@@ -121,7 +121,7 @@ export default function OnboardingPage() {
                 type="text"
                 value={form.entity_name}
                 onChange={(e) => updateField("entity_name", e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 required
               />
             </div>
@@ -134,7 +134,7 @@ export default function OnboardingPage() {
               <select
                 value={form.jurisdiction}
                 onChange={(e) => updateField("jurisdiction", e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="bvi">{t("onboarding.jurisdictions.bvi")}</option>
                 <option value="panama">

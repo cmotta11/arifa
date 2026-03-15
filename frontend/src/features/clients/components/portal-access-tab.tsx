@@ -208,7 +208,7 @@ export function PortalAccessTab({ clientId }: PortalAccessTabProps) {
         ) : (
           <DataTable
             columns={userColumns}
-            data={clientUsers as unknown as Record<string, unknown>[]}
+            data={clientUsers}
             emptyMessage={t("clients.portalAccess.noUsers")}
             keyExtractor={(row) => String(row.id)}
           />
@@ -227,7 +227,7 @@ export function PortalAccessTab({ clientId }: PortalAccessTabProps) {
         ) : (
           <DataTable
             columns={guestLinkColumns}
-            data={guestLinks as unknown as Record<string, unknown>[]}
+            data={guestLinks}
             emptyMessage={t("clients.portalAccess.noLinks")}
             keyExtractor={(row) => String(row.id)}
           />
@@ -246,7 +246,7 @@ export function PortalAccessTab({ clientId }: PortalAccessTabProps) {
         ) : (
           <DataTable
             columns={kycColumns}
-            data={kycSubmissions as unknown as Record<string, unknown>[]}
+            data={kycSubmissions}
             emptyMessage={t("kyc.noKyc")}
             keyExtractor={(row) => String(row.id)}
           />

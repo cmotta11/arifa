@@ -21,29 +21,8 @@ import { RiskHistoryTimeline } from "./risk-history-timeline";
 import { WorldCheckPanel } from "./world-check-panel";
 import { RFISection } from "./rfi-section";
 import { UBOTreeViewer } from "./ubo-tree-viewer";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const statusColorMap: Record<string, "gray" | "green" | "yellow" | "red" | "blue"> = {
-  draft: "gray",
-  submitted: "blue",
-  under_review: "yellow",
-  approved: "green",
-  rejected: "red",
-};
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import { kycStatusColorMap } from "@/config/status-colors";
+import { formatDateTime } from "@/lib/format";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -167,7 +146,7 @@ export function KYCReviewPanel({ kycId }: KYCReviewPanelProps) {
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold text-gray-900">{entityName}</h2>
-              <Badge color={statusColorMap[kyc.status] ?? "gray"}>
+              <Badge color={kycStatusColorMap[kyc.status] ?? "gray"}>
                 {t(`status.${kyc.status}`)}
               </Badge>
             </div>
@@ -311,18 +290,18 @@ function OverviewTab({ kyc }: { kyc: KYCDetail }) {
         <div>
           <dt className="text-sm font-medium text-gray-500">{t("overview.status")}</dt>
           <dd className="mt-1">
-            <Badge color={statusColorMap[kyc.status] ?? "gray"}>
+            <Badge color={kycStatusColorMap[kyc.status] ?? "gray"}>
               {t(`status.${kyc.status}`)}
             </Badge>
           </dd>
         </div>
         <div>
           <dt className="text-sm font-medium text-gray-500">{t("overview.submittedAt")}</dt>
-          <dd className="mt-1 text-sm text-gray-900">{formatDate(kyc.submitted_at)}</dd>
+          <dd className="mt-1 text-sm text-gray-900">{formatDateTime(kyc.submitted_at)}</dd>
         </div>
         <div>
           <dt className="text-sm font-medium text-gray-500">{t("overview.reviewedAt")}</dt>
-          <dd className="mt-1 text-sm text-gray-900">{formatDate(kyc.reviewed_at)}</dd>
+          <dd className="mt-1 text-sm text-gray-900">{formatDateTime(kyc.reviewed_at)}</dd>
         </div>
         <div>
           <dt className="text-sm font-medium text-gray-500">{t("overview.ticketId")}</dt>
@@ -332,7 +311,7 @@ function OverviewTab({ kyc }: { kyc: KYCDetail }) {
         </div>
         <div>
           <dt className="text-sm font-medium text-gray-500">{t("overview.createdAt")}</dt>
-          <dd className="mt-1 text-sm text-gray-900">{formatDate(kyc.created_at)}</dd>
+          <dd className="mt-1 text-sm text-gray-900">{formatDateTime(kyc.created_at)}</dd>
         </div>
       </dl>
     </Card>
@@ -358,7 +337,7 @@ function DocumentsTab({ documents, loading }: { documents: KYCDocument[]; loadin
     return (
       <Card>
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <svg className="mb-3 h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <svg className="mb-3 h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
           </svg>
           <p className="text-sm font-medium text-gray-900">{t("documents.empty")}</p>
@@ -374,13 +353,13 @@ function DocumentsTab({ documents, loading }: { documents: KYCDocument[]; loadin
         {documents.map((doc) => (
           <li key={doc.id} className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
-              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
               </svg>
               <div>
                 <p className="text-sm font-medium text-gray-900">{doc.file_name}</p>
                 <p className="text-xs text-gray-500">
-                  {doc.document_type} &middot; {formatDate(doc.created_at)}
+                  {doc.document_type} &middot; {formatDateTime(doc.created_at)}
                 </p>
               </div>
             </div>
@@ -388,7 +367,7 @@ function DocumentsTab({ documents, loading }: { documents: KYCDocument[]; loadin
               href={doc.file_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium text-arifa-navy hover:underline"
+              className="text-sm font-medium text-primary hover:underline"
             >
               {t("documents.download")}
             </a>

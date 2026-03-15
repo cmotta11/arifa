@@ -35,7 +35,7 @@ export function ActivityFeed({ logs }: ActivityFeedProps) {
               <div className="relative flex items-start gap-3">
                 {/* Timeline dot */}
                 <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center">
-                  <span className="h-2.5 w-2.5 rounded-full bg-arifa-navy ring-4 ring-white" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-white" />
                 </div>
 
                 {/* Content */}

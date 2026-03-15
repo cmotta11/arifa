@@ -12,6 +12,7 @@ import {
 } from "@/features/documents/api/documents-api";
 import { ExtractionPreview } from "./extraction-preview";
 import type { DocumentUpload } from "@/types";
+import { formatDate } from "@/lib/format";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -64,14 +65,6 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -270,7 +263,7 @@ export function DocumentList({ kycId, className = "" }: DocumentListProps) {
                       <button
                         type="button"
                         onClick={() => handleDownload(doc)}
-                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-arifa-navy"
+                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-primary"
                         title={t("documents.list.download")}
                       >
                         <svg

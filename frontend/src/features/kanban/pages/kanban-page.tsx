@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -10,14 +10,20 @@ import {
 } from "@dnd-kit/core";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import type { Ticket } from "@/types";
+import type { Ticket, WorkflowState } from "@/types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { TicketCreateModal } from "@/features/tickets/components/ticket-create-modal";
-import { getWorkflowStates, getTickets, transitionTicket, type KanbanView } from "../api/kanban-api";
+import {
+  getWorkflowDefinitions,
+  getWorkflowStates,
+  getTickets,
+  transitionTicket,
+  bulkTransitionTickets,
+  type KanbanView,
+} from "../api/kanban-api";
 import { KanbanColumn } from "../components/kanban-column";
 import { KanbanCard } from "../components/kanban-card";
 
@@ -59,24 +65,38 @@ export default function KanbanPage() {
   const [selectedView, setSelectedView] = useState<KanbanView>(
     getDefaultView(user?.role),
   );
+  const [selectedWorkflowDefId, setSelectedWorkflowDefId] = useState("");
+  const [selectedTicketIds, setSelectedTicketIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [bulkTargetStateId, setBulkTargetStateId] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
       },
-    })
+    }),
   );
 
+  // Workflow definitions query
+  const definitionsQuery = useQuery({
+    queryKey: ["workflow", "definitions"],
+    queryFn: getWorkflowDefinitions,
+  });
+
   const statesQuery = useQuery({
-    queryKey: ["workflow", "states"],
-    queryFn: getWorkflowStates,
+    queryKey: ["workflow", "states", selectedWorkflowDefId],
+    queryFn: () => getWorkflowStates(selectedWorkflowDefId || undefined),
   });
 
   const ticketsQuery = useQuery({
-    queryKey: ["kanban", "tickets", selectedView],
-    queryFn: () => getTickets(selectedView),
+    queryKey: ["kanban", "tickets", selectedView, selectedWorkflowDefId],
+    queryFn: () =>
+      getTickets(selectedView, selectedWorkflowDefId || undefined),
   });
+
+  const ticketsKey = ["kanban", "tickets", selectedView, selectedWorkflowDefId];
 
   const transitionMutation = useMutation({
     mutationFn: ({
@@ -87,18 +107,11 @@ export default function KanbanPage() {
       newStateId: string;
     }) => transitionTicket(ticketId, newStateId),
     onMutate: async ({ ticketId, newStateId }) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["kanban", "tickets", selectedView] });
+      await queryClient.cancelQueries({ queryKey: ticketsKey });
 
-      // Snapshot previous value
-      const previousTickets = queryClient.getQueryData<Ticket[]>([
-        "kanban",
-        "tickets",
-        selectedView,
-      ]);
+      const previousTickets = queryClient.getQueryData<Ticket[]>(ticketsKey);
 
-      // Optimistically update the ticket's current state
-      queryClient.setQueryData<Ticket[]>(["kanban", "tickets", selectedView], (old) => {
+      queryClient.setQueryData<Ticket[]>(ticketsKey, (old) => {
         if (!old) return old;
         const targetState = statesQuery.data?.find((s) => s.id === newStateId);
         if (!targetState) return old;
@@ -106,24 +119,37 @@ export default function KanbanPage() {
         return old.map((ticket) =>
           ticket.id === ticketId
             ? { ...ticket, current_state: targetState }
-            : ticket
+            : ticket,
         );
       });
 
       return { previousTickets };
     },
     onError: (_err, _vars, context) => {
-      // Rollback on error
       if (context?.previousTickets) {
-        queryClient.setQueryData(
-          ["kanban", "tickets", selectedView],
-          context.previousTickets
-        );
+        queryClient.setQueryData(ticketsKey, context.previousTickets);
       }
     },
     onSettled: () => {
-      // Refetch after mutation
-      queryClient.invalidateQueries({ queryKey: ["kanban", "tickets", selectedView] });
+      queryClient.invalidateQueries({ queryKey: ticketsKey });
+    },
+  });
+
+  const transitionMutationRef = useRef(transitionMutation);
+  transitionMutationRef.current = transitionMutation;
+
+  const bulkTransitionMutation = useMutation({
+    mutationFn: ({
+      ticketIds,
+      newStateId,
+    }: {
+      ticketIds: string[];
+      newStateId: string;
+    }) => bulkTransitionTickets(ticketIds, newStateId),
+    onSuccess: () => {
+      setSelectedTicketIds(new Set());
+      setBulkTargetStateId("");
+      queryClient.invalidateQueries({ queryKey: ticketsKey });
     },
   });
 
@@ -154,7 +180,7 @@ export default function KanbanPage() {
         setActiveTicket(ticket);
       }
     },
-    [ticketsQuery.data]
+    [ticketsQuery.data],
   );
 
   const handleDragEnd = useCallback(
@@ -164,13 +190,11 @@ export default function KanbanPage() {
       const { active, over } = event;
       if (!over) return;
 
-      // Determine the target column's state ID
       let targetStateId: string | null = null;
 
       if (typeof over.id === "string" && over.id.startsWith("column-")) {
         targetStateId = over.id.replace("column-", "");
       } else {
-        // Dropped over another ticket card - find its column
         const overTicket = ticketsQuery.data?.find((t) => t.id === over.id);
         if (overTicket) {
           targetStateId = overTicket.current_state.id;
@@ -179,24 +203,51 @@ export default function KanbanPage() {
 
       if (!targetStateId) return;
 
-      const draggedTicket = ticketsQuery.data?.find((t) => t.id === active.id);
+      const draggedTicket = ticketsQuery.data?.find(
+        (t) => t.id === active.id,
+      );
       if (!draggedTicket) return;
 
-      // Only transition if the state actually changed
       if (draggedTicket.current_state.id === targetStateId) return;
 
-      transitionMutation.mutate({
+      transitionMutationRef.current.mutate({
         ticketId: draggedTicket.id,
         newStateId: targetStateId,
       });
     },
-    [ticketsQuery.data, transitionMutation]
+    [ticketsQuery.data],
   );
+
+  const toggleTicketSelection = useCallback((ticketId: string) => {
+    setSelectedTicketIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(ticketId)) {
+        next.delete(ticketId);
+      } else {
+        next.add(ticketId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleBulkTransition = () => {
+    if (selectedTicketIds.size === 0 || !bulkTargetStateId) return;
+    bulkTransitionMutation.mutate({
+      ticketIds: Array.from(selectedTicketIds),
+      newStateId: bulkTargetStateId,
+    });
+  };
+
+  const handleWorkflowChange = (defId: string) => {
+    setSelectedWorkflowDefId(defId);
+    setSelectedTicketIds(new Set());
+    setBulkTargetStateId("");
+  };
 
   const isLoading = statesQuery.isLoading || ticketsQuery.isLoading;
   const isError = statesQuery.isError || ticketsQuery.isError;
 
-  if (isLoading) {
+  if (isLoading && !statesQuery.data) {
     return (
       <div className="flex h-full items-center justify-center p-6">
         <Spinner size="lg" />
@@ -215,18 +266,36 @@ export default function KanbanPage() {
   }
 
   const sortedStates = [...(statesQuery.data ?? [])].sort(
-    (a, b) => a.order_index - b.order_index
+    (a, b) => a.order_index - b.order_index,
+  );
+
+  const definitionOptions = [
+    { value: "", label: t("kanban.allWorkflows") },
+    ...(definitionsQuery.data ?? [])
+      .filter((d) => d.is_active)
+      .map((d) => ({ value: d.id, label: d.display_name })),
+  ];
+
+  const stateOptions: { value: string; label: string }[] = sortedStates.map(
+    (s) => ({ value: s.id, label: s.name }),
   );
 
   return (
     <div className="flex h-full flex-col p-6">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-gray-900">
           {t("kanban.title")}
         </h1>
-        <div className="flex items-center gap-4">
-          <div className="w-52">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="w-56">
+            <Select
+              options={definitionOptions}
+              value={selectedWorkflowDefId}
+              onChange={(e) => handleWorkflowChange(e.target.value)}
+            />
+          </div>
+          <div className="w-44">
             <Select
               options={viewOptions}
               value={selectedView}
@@ -242,6 +311,41 @@ export default function KanbanPage() {
         </div>
       </div>
 
+      {/* Bulk Actions Toolbar */}
+      {selectedTicketIds.size > 0 && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2">
+          <span className="text-sm font-medium text-gray-700">
+            {t("kanban.bulkSelected", { count: selectedTicketIds.size })}
+          </span>
+          <div className="w-48">
+            <Select
+              options={[
+                { value: "", label: t("kanban.bulkMoveTo") },
+                ...stateOptions,
+              ]}
+              value={bulkTargetStateId}
+              onChange={(e) => setBulkTargetStateId(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleBulkTransition}
+            disabled={!bulkTargetStateId}
+            loading={bulkTransitionMutation.isPending}
+          >
+            {t("kanban.bulkMove")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedTicketIds(new Set())}
+          >
+            {t("common.cancel")}
+          </Button>
+        </div>
+      )}
+
       {/* Board */}
       <div className="flex-1 overflow-x-auto">
         <DndContext
@@ -249,22 +353,27 @@ export default function KanbanPage() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-4 pb-4" style={{ minHeight: "calc(100% - 2rem)" }}>
+          <div
+            className="flex gap-4 pb-4"
+            style={{ minHeight: "calc(100% - 2rem)" }}
+          >
             {sortedStates.map((state) => (
               <KanbanColumn
                 key={state.id}
                 state={state}
                 tickets={ticketsByState.get(state.id) ?? []}
+                selectedTicketIds={selectedTicketIds}
+                onToggleSelect={toggleTicketSelection}
               />
             ))}
           </div>
 
-          {/* Drag overlay - shows a ghost card while dragging */}
           <DragOverlay>
             {activeTicket ? <KanbanCard ticket={activeTicket} /> : null}
           </DragOverlay>
         </DndContext>
       </div>
+
       {/* Create Ticket Modal */}
       <TicketCreateModal
         isOpen={showCreateModal}

@@ -1,9 +1,13 @@
 import base64
+import hashlib
+import hmac
 import logging
 
 from celery.result import AsyncResult
+from django.conf import settings as django_settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -23,10 +27,15 @@ from .models import (
     AccountingRecord,
     AccountingRecordDocument,
     AutomaticTriggerRule,
+    ComplianceDelegation,
     ComplianceSnapshot,
     DocumentUpload,
+    DueDiligenceChecklist,
+    EconomicSubstanceSubmission,
+    JurisdictionConfig,
     JurisdictionRisk,
     KYCSubmission,
+    OwnershipSnapshot,
     Party,
     RFI,
     RiskAssessment,
@@ -37,6 +46,7 @@ from .permissions import CanManageKYC, CanManageRFI, CanReviewKYC, CanScreenPart
 from .serializers import (
     AccountingRecordDocumentOutputSerializer,
     AccountingRecordDocumentUploadInputSerializer,
+    AccountingRecordListOutputSerializer,
     AccountingRecordOutputSerializer,
     AccountingRecordReviewInputSerializer,
     AccountingRecordSaveDraftInputSerializer,
@@ -46,12 +56,28 @@ from .serializers import (
     AutomaticTriggerRuleOutputSerializer,
     BulkCreateAccountingRecordsInputSerializer,
     CalculateRiskInputSerializer,
+    ComplianceDelegationCreateInputSerializer,
+    ComplianceDelegationOutputSerializer,
     ComplianceSnapshotInputSerializer,
     ComplianceSnapshotOutputSerializer,
+    CreateForEntityInputSerializer,
     DocumentUploadInputSerializer,
     DocumentUploadOutputSerializer,
+    DueDiligenceChecklistInputSerializer,
+    DueDiligenceChecklistOutputSerializer,
+    EconomicSubstanceCreateInputSerializer,
+    EconomicSubstanceListOutputSerializer,
+    EconomicSubstanceOutputSerializer,
+    EconomicSubstanceSaveDraftInputSerializer,
+    ESAdvanceStepInputSerializer,
+    ESBulkCreateInputSerializer,
+    ESRejectInputSerializer,
     EntitySnapshotOutputSerializer,
     ExtractDocumentInputSerializer,
+    FieldCommentInputSerializer,
+    HelpRequestInputSerializer,
+    JurisdictionConfigInputSerializer,
+    JurisdictionConfigOutputSerializer,
     JurisdictionRiskInputSerializer,
     JurisdictionRiskOutputSerializer,
     KYCSubmissionInputSerializer,
@@ -59,6 +85,7 @@ from .serializers import (
     LinkPersonInputSerializer,
     OnboardingInputSerializer,
     OnboardingOutputSerializer,
+    OwnershipSnapshotOutputSerializer,
     PartyInputSerializer,
     PartyOutputSerializer,
     ProposeChangesInputSerializer,
@@ -70,9 +97,9 @@ from .serializers import (
     RiskFactorOutputSerializer,
     RiskMatrixConfigInputSerializer,
     RiskMatrixConfigOutputSerializer,
+    SaveOwnershipTreeInputSerializer,
     SendBackInputSerializer,
     WorldCheckCaseOutputSerializer,
-    WorldCheckResolveInputSerializer,
 )
 
 
@@ -87,6 +114,14 @@ logger = logging.getLogger(__name__)
 # ===========================================================================
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List KYC submissions"),
+    retrieve=extend_schema(summary="Retrieve a KYC submission"),
+    create=extend_schema(summary="Create a KYC submission"),
+    update=extend_schema(summary="Update a KYC submission"),
+    partial_update=extend_schema(summary="Partially update a KYC submission"),
+    destroy=extend_schema(summary="Delete a KYC submission"),
+)
 class KYCSubmissionViewSet(ModelViewSet):
     queryset = KYCSubmission.objects.select_related("ticket", "reviewed_by").all()
     permission_classes = [IsAuthenticated, CanManageKYC]
@@ -123,8 +158,10 @@ class KYCSubmissionViewSet(ModelViewSet):
         instance = self.get_object()
         serializer = KYCSubmissionInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance.ticket_id = serializer.validated_data["ticket_id"]
-        instance.save(update_fields=["ticket_id", "updated_at"])
+        instance = services.update_kyc_submission(
+            submission_id=instance.id,
+            ticket_id=serializer.validated_data["ticket_id"],
+        )
         output = KYCSubmissionOutputSerializer(instance)
         return Response(output.data)
 
@@ -132,14 +169,20 @@ class KYCSubmissionViewSet(ModelViewSet):
         instance = self.get_object()
         serializer = KYCSubmissionInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        if "ticket_id" in serializer.validated_data:
-            instance.ticket_id = serializer.validated_data["ticket_id"]
-            instance.save(update_fields=["ticket_id", "updated_at"])
+        instance = services.update_kyc_submission(
+            submission_id=instance.id,
+            **serializer.validated_data,
+        )
         output = KYCSubmissionOutputSerializer(instance)
         return Response(output.data)
 
     # ---- Lifecycle actions ----
 
+    @extend_schema(
+        summary="Submit a KYC submission for review",
+        request=None,
+        responses={200: KYCSubmissionOutputSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="submit")
     def submit(self, request, pk=None):
         kyc = services.submit_kyc(kyc_id=pk, submitted_by=request.user)
@@ -147,6 +190,10 @@ class KYCSubmissionViewSet(ModelViewSet):
 
     # ---- Guest-facing entity actions ----
 
+    @extend_schema(
+        summary="Get entity data snapshot for the guest form",
+        responses={200: EntitySnapshotOutputSerializer},
+    )
     @action(
         detail=True,
         methods=["get"],
@@ -168,6 +215,11 @@ class KYCSubmissionViewSet(ModelViewSet):
         snapshot["proposed_entity_data"] = kyc.proposed_entity_data or {}
         return Response(EntitySnapshotOutputSerializer(snapshot).data)
 
+    @extend_schema(
+        summary="Save proposed entity changes from the guest form",
+        request=ProposeChangesInputSerializer,
+        responses={200: KYCSubmissionOutputSerializer},
+    )
     @action(
         detail=True,
         methods=["post"],
@@ -183,6 +235,11 @@ class KYCSubmissionViewSet(ModelViewSet):
         kyc.save(update_fields=["proposed_entity_data", "updated_at"])
         return Response(KYCSubmissionOutputSerializer(kyc).data)
 
+    @extend_schema(
+        summary="Send back KYC to guest with field-level comments",
+        request=SendBackInputSerializer,
+        responses={200: KYCSubmissionOutputSerializer},
+    )
     @action(
         detail=True,
         methods=["post"],
@@ -213,22 +270,40 @@ class KYCSubmissionViewSet(ModelViewSet):
                     token=guest_token, is_active=True, kyc_submission_id=kyc_id
                 )
                 if link.is_expired:
-                    from rest_framework.exceptions import PermissionDenied
                     raise PermissionDenied("Guest link has expired.")
                 return link.kyc_submission
             except GuestLink.DoesNotExist:
-                from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied("Invalid guest token.")
         elif request.user and request.user.is_authenticated:
             return KYCSubmission.objects.select_related(
                 "ticket__entity"
             ).get(id=kyc_id)
         else:
-            from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Authentication required.")
 
     # ---- Guest person creation ----
 
+    @extend_schema(
+        summary="Create a new person and link as EntityOfficer from the guest form",
+        request=inline_serializer(
+            name="CreatePersonGuestInput",
+            fields={
+                "first_name": serializers.CharField(),
+                "last_name": serializers.CharField(),
+                "email": serializers.EmailField(required=False),
+                "positions": serializers.ListField(child=serializers.CharField(), required=False),
+            },
+        ),
+        responses={201: inline_serializer(
+            name="PersonOutputInline",
+            fields={
+                "id": serializers.UUIDField(),
+                "first_name": serializers.CharField(),
+                "last_name": serializers.CharField(),
+                "email": serializers.EmailField(),
+            },
+        )},
+    )
     @action(
         detail=True,
         methods=["post"],
@@ -254,7 +329,23 @@ class KYCSubmissionViewSet(ModelViewSet):
         validated = serializer.validated_data
         validated.pop("client_id", None)
 
-        positions = request.data.get("positions", ["director"])
+        # Validate positions through a dedicated serializer
+        VALID_POSITIONS = [
+            "director", "officer", "secretary", "president",
+            "treasurer", "registered_agent", "authorized_signatory",
+            "nominee_director", "protector", "enforcer",
+        ]
+        positions_serializer = inline_serializer(
+            name="PositionsInput",
+            fields={
+                "positions": serializers.ListField(
+                    child=serializers.ChoiceField(choices=[(p, p) for p in VALID_POSITIONS]),
+                    default=["director"],
+                ),
+            },
+        )(data=request.data)
+        positions_serializer.is_valid(raise_exception=True)
+        positions = positions_serializer.validated_data["positions"]
 
         with transaction.atomic():
             person = core_services.create_person(**validated)
@@ -277,6 +368,11 @@ class KYCSubmissionViewSet(ModelViewSet):
 
     # ---- Approval/rejection actions ----
 
+    @extend_schema(
+        summary="Approve a KYC submission with optional entity data modifications",
+        request=ApproveWithChangesInputSerializer,
+        responses={200: KYCSubmissionOutputSerializer},
+    )
     @action(
         detail=True,
         methods=["post"],
@@ -292,6 +388,11 @@ class KYCSubmissionViewSet(ModelViewSet):
         )
         return Response(KYCSubmissionOutputSerializer(kyc).data)
 
+    @extend_schema(
+        summary="Reject a KYC submission",
+        request=None,
+        responses={200: KYCSubmissionOutputSerializer},
+    )
     @action(
         detail=True,
         methods=["post"],
@@ -302,6 +403,11 @@ class KYCSubmissionViewSet(ModelViewSet):
         kyc = services.reject_kyc(kyc_id=pk, reviewed_by=request.user)
         return Response(KYCSubmissionOutputSerializer(kyc).data)
 
+    @extend_schema(
+        summary="Escalate a KYC submission to a higher authority",
+        request=None,
+        responses={200: KYCSubmissionOutputSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="escalate")
     def escalate(self, request, pk=None):
         kyc = services.escalate_kyc(kyc_id=pk, escalated_by=request.user)
@@ -309,6 +415,11 @@ class KYCSubmissionViewSet(ModelViewSet):
 
     # ---- Risk actions ----
 
+    @extend_schema(
+        summary="Calculate risk score for a KYC submission",
+        request=CalculateRiskInputSerializer,
+        responses={200: RiskAssessmentOutputSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="calculate-risk")
     def calculate_risk(self, request, pk=None):
         serializer = CalculateRiskInputSerializer(data=request.data)
@@ -319,6 +430,10 @@ class KYCSubmissionViewSet(ModelViewSet):
         )
         return Response(RiskAssessmentOutputSerializer(assessment).data)
 
+    @extend_schema(
+        summary="Get the current risk assessment for a KYC submission",
+        responses={200: RiskAssessmentOutputSerializer},
+    )
     @action(detail=True, methods=["get"], url_path="risk-assessment")
     def risk_assessment(self, request, pk=None):
         assessment = selectors.get_current_risk_assessment(kyc_id=pk)
@@ -329,6 +444,10 @@ class KYCSubmissionViewSet(ModelViewSet):
             )
         return Response(RiskAssessmentOutputSerializer(assessment).data)
 
+    @extend_schema(
+        summary="Get the risk assessment history for a KYC submission",
+        responses={200: RiskAssessmentOutputSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="risk-history")
     def risk_history(self, request, pk=None):
         history = selectors.get_risk_history(kyc_id=pk)
@@ -341,6 +460,11 @@ class KYCSubmissionViewSet(ModelViewSet):
 
     # ---- Document actions ----
 
+    @extend_schema(
+        summary="Upload a document for a KYC submission",
+        request=DocumentUploadInputSerializer,
+        responses={201: DocumentUploadOutputSerializer},
+    )
     @action(
         detail=True,
         methods=["post"],
@@ -356,6 +480,7 @@ class KYCSubmissionViewSet(ModelViewSet):
             "original_filename": uploaded_file.name,
             "file_size": uploaded_file.size,
             "mime_type": uploaded_file.content_type or "",
+            "file_bytes_b64": base64.b64encode(uploaded_file.read()).decode("utf-8"),
         }
 
         doc = services.upload_kyc_document(
@@ -370,6 +495,10 @@ class KYCSubmissionViewSet(ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @extend_schema(
+        summary="List documents for a KYC submission",
+        responses={200: DocumentUploadOutputSerializer(many=True)},
+    )
     @action(
         detail=True,
         methods=["get"],
@@ -391,6 +520,11 @@ class KYCSubmissionViewSet(ModelViewSet):
 
     # ---- Nested RFIs (list + create) ----
 
+    @extend_schema(
+        summary="List or create RFIs for a KYC submission",
+        request=RFIInputSerializer,
+        responses={200: RFIOutputSerializer(many=True), 201: RFIOutputSerializer},
+    )
     @action(
         detail=True,
         methods=["get", "post"],
@@ -422,6 +556,11 @@ class KYCSubmissionViewSet(ModelViewSet):
 
     # ---- Nested parties (list + create) ----
 
+    @extend_schema(
+        summary="List or create parties for a KYC submission",
+        request=PartyInputSerializer,
+        responses={200: PartyOutputSerializer(many=True), 201: PartyOutputSerializer},
+    )
     @action(detail=True, methods=["get", "post"], url_path="parties", url_name="parties")
     def parties(self, request, pk=None):
         if request.method == "GET":
@@ -452,6 +591,14 @@ class KYCSubmissionViewSet(ModelViewSet):
 # ===========================================================================
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List parties"),
+    retrieve=extend_schema(summary="Retrieve a party"),
+    create=extend_schema(summary="Create a party"),
+    update=extend_schema(summary="Update a party"),
+    partial_update=extend_schema(summary="Partially update a party"),
+    destroy=extend_schema(summary="Delete a party"),
+)
 class PartyViewSet(ModelViewSet):
     queryset = Party.objects.select_related("kyc_submission", "person").all()
     permission_classes = [IsAuthenticated, CanManageKYC]
@@ -468,14 +615,10 @@ class PartyViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data.copy()
         person_id = data.pop("person_id", None)
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        if person_id:
-            instance = services.link_existing_person_to_party(
-                party_id=instance.id, person_id=person_id
-            )
-        return Response(PartyOutputSerializer(instance).data)
+        party = services.update_party(
+            party_id=instance.id, person_id=person_id, **data
+        )
+        return Response(PartyOutputSerializer(party).data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -483,15 +626,23 @@ class PartyViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data.copy()
         person_id = data.pop("person_id", None)
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        if person_id:
-            instance = services.link_existing_person_to_party(
-                party_id=instance.id, person_id=person_id
-            )
-        return Response(PartyOutputSerializer(instance).data)
+        party = services.update_party(
+            party_id=instance.id, person_id=person_id, **data
+        )
+        return Response(PartyOutputSerializer(party).data)
 
+    @extend_schema(
+        summary="Dispatch a World-Check screening task for this party",
+        request=None,
+        responses={202: inline_serializer(
+            name="ScreenPartyResponse",
+            fields={
+                "task_id": serializers.CharField(),
+                "party_id": serializers.UUIDField(),
+                "status": serializers.CharField(),
+            },
+        )},
+    )
     @action(
         detail=True,
         methods=["post"],
@@ -504,11 +655,21 @@ class PartyViewSet(ModelViewSet):
 
         party = self.get_object()
         task = screen_party_worldcheck.delay(str(party.id))
+
+        # Register task ownership for TaskStatusView validation
+        from django.core.cache import cache
+
+        cache.set(f"celery_task_owner:{task.id}", str(request.user.id), timeout=3600)
+
         return Response(
             {"task_id": task.id, "party_id": str(party.id), "status": "dispatched"},
             status=status.HTTP_202_ACCEPTED,
         )
 
+    @extend_schema(
+        summary="Get World-Check screening results for this party",
+        responses={200: WorldCheckCaseOutputSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="worldcheck")
     def worldcheck(self, request, pk=None):
         """Return World-Check screening results for this party."""
@@ -519,6 +680,11 @@ class PartyViewSet(ModelViewSet):
             return self.get_paginated_response(serializer.data)
         return Response(WorldCheckCaseOutputSerializer(cases, many=True).data)
 
+    @extend_schema(
+        summary="Link an existing Person to this party",
+        request=LinkPersonInputSerializer,
+        responses={200: PartyOutputSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="link-person")
     def link_person(self, request, pk=None):
         """Link an existing core.Person to this party."""
@@ -535,6 +701,14 @@ class PartyViewSet(ModelViewSet):
 # ===========================================================================
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List RFIs"),
+    retrieve=extend_schema(summary="Retrieve an RFI"),
+    create=extend_schema(summary="Create an RFI"),
+    update=extend_schema(summary="Update an RFI"),
+    partial_update=extend_schema(summary="Partially update an RFI"),
+    destroy=extend_schema(summary="Delete an RFI"),
+)
 class RFIViewSet(ModelViewSet):
     queryset = RFI.objects.select_related(
         "kyc_submission", "requested_by"
@@ -557,6 +731,11 @@ class RFIViewSet(ModelViewSet):
             qs = qs.filter(kyc_submission_id=kyc_id)
         return qs
 
+    @extend_schema(
+        summary="Respond to an RFI",
+        request=RFIRespondInputSerializer,
+        responses={200: RFIOutputSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="respond")
     def respond(self, request, pk=None):
         serializer = RFIRespondInputSerializer(data=request.data)
@@ -573,6 +752,14 @@ class RFIViewSet(ModelViewSet):
 # ===========================================================================
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List jurisdiction risks"),
+    retrieve=extend_schema(summary="Retrieve a jurisdiction risk"),
+    create=extend_schema(summary="Create a jurisdiction risk"),
+    update=extend_schema(summary="Update a jurisdiction risk"),
+    partial_update=extend_schema(summary="Partially update a jurisdiction risk"),
+    destroy=extend_schema(summary="Delete a jurisdiction risk"),
+)
 class JurisdictionRiskViewSet(ModelViewSet):
     queryset = JurisdictionRisk.objects.all()
     permission_classes = [IsAuthenticated]
@@ -598,30 +785,31 @@ class JurisdictionRiskViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = JurisdictionRiskInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         jurisdiction_risk = JurisdictionRisk.objects.create(
             **serializer.validated_data
         )
-
         return Response(
             JurisdictionRiskOutputSerializer(jurisdiction_risk).data,
             status=status.HTTP_201_CREATED,
         )
 
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = JurisdictionRiskInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        jr = services.update_jurisdiction_risk(
+            jurisdiction_risk_id=instance.id, **serializer.validated_data
+        )
+        return Response(JurisdictionRiskOutputSerializer(jr).data)
+
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = JurisdictionRiskInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-
-        for attr, value in serializer.validated_data.items():
-            setattr(instance, attr, value)
-
-        update_fields = list(serializer.validated_data.keys())
-        if update_fields:
-            update_fields.append("updated_at")
-            instance.save(update_fields=update_fields)
-
-        return Response(JurisdictionRiskOutputSerializer(instance).data)
+        jr = services.update_jurisdiction_risk(
+            jurisdiction_risk_id=instance.id, **serializer.validated_data
+        )
+        return Response(JurisdictionRiskOutputSerializer(jr).data)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -668,6 +856,18 @@ class ExtractDocumentView(GuestOrAuthMixin, APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        summary="Upload a document and dispatch LLM extraction",
+        request=ExtractDocumentInputSerializer,
+        responses={202: inline_serializer(
+            name="ExtractDocumentResponse",
+            fields={
+                "task_id": serializers.CharField(),
+                "document_upload_id": serializers.UUIDField(),
+                "status": serializers.CharField(),
+            },
+        )},
+    )
     def post(self, request):
         uploader = self._get_uploader(request)
 
@@ -694,6 +894,13 @@ class ExtractDocumentView(GuestOrAuthMixin, APIView):
 
         task = extract_document_data.delay(str(doc.id), file_b64)
 
+        # Register task ownership for TaskStatusView validation
+        from django.core.cache import cache
+
+        guest_token = request.headers.get("X-Guest-Token", "")
+        caller_id = guest_token if guest_token else str(getattr(request.user, "id", ""))
+        cache.set(f"celery_task_owner:{task.id}", caller_id, timeout=3600)
+
         return Response(
             {
                 "task_id": task.id,
@@ -713,7 +920,49 @@ class WorldCheckWebhookView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        summary="Receive World-Check webhook notification",
+        request=inline_serializer(
+            name="WorldCheckWebhookInput",
+            fields={
+                "event": serializers.CharField(required=False),
+                "data": serializers.DictField(required=False),
+            },
+        ),
+        responses={202: inline_serializer(
+            name="WorldCheckWebhookResponse",
+            fields={
+                "message": serializers.CharField(),
+                "task_id": serializers.CharField(),
+            },
+        )},
+    )
     def post(self, request):
+        # HMAC signature verification
+        webhook_secret = getattr(django_settings, "WORLDCHECK_WEBHOOK_SECRET", "")
+        if webhook_secret:
+            signature = request.headers.get("X-Signature", "")
+            expected = hmac.new(
+                webhook_secret.encode(),
+                request.body,
+                hashlib.sha256,
+            ).hexdigest()
+            if not hmac.compare_digest(signature, expected):
+                return Response(
+                    {"message": "Invalid webhook signature."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        else:
+            if not django_settings.DEBUG:
+                return Response(
+                    {"message": "Webhook secret not configured"},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+            logger.warning(
+                "WORLDCHECK_WEBHOOK_SECRET not configured — "
+                "accepting in DEBUG mode"
+            )
+
         payload = request.data
 
         if not payload:
@@ -748,8 +997,31 @@ class TaskStatusView(GuestOrAuthMixin, APIView):
         "RETRY": "running",
     }
 
+    @extend_schema(
+        summary="Check the status of a Celery task",
+        responses={200: inline_serializer(
+            name="TaskStatusResponse",
+            fields={
+                "task_id": serializers.CharField(),
+                "status": serializers.ChoiceField(choices=["pending", "running", "completed", "failed"]),
+                "data": serializers.DictField(required=False),
+                "error": serializers.CharField(required=False),
+            },
+        )},
+    )
     def get(self, request, task_id):
         self._validate_guest_or_auth(request)
+
+        # Validate task ownership: only the session that dispatched the task can poll it
+        from django.core.cache import cache
+
+        owner_key = f"celery_task_owner:{task_id}"
+        expected_owner = cache.get(owner_key)
+        if expected_owner is not None:
+            guest_token = request.headers.get("X-Guest-Token", "")
+            caller_id = guest_token if guest_token else str(getattr(request.user, "id", ""))
+            if caller_id != expected_owner:
+                raise PermissionDenied("You do not have access to this task.")
 
         result = AsyncResult(task_id)
         mapped_status = self._STATUS_MAP.get(result.status, "pending")
@@ -775,6 +1047,10 @@ class TaskStatusView(GuestOrAuthMixin, APIView):
 # ===========================================================================
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List client portal KYC submissions"),
+    retrieve=extend_schema(summary="Retrieve a client portal KYC submission"),
+)
 class ClientPortalViewSet(ModelViewSet):
     """Portal endpoints for client users to view their own KYC submissions."""
 
@@ -795,6 +1071,10 @@ class ClientPortalViewSet(ModelViewSet):
             .order_by("-created_at")
         )
 
+    @extend_schema(
+        summary="List parties for a client's KYC submission",
+        responses={200: PartyOutputSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="parties", url_name="parties")
     def parties(self, request, pk=None):
         kyc = self.get_object()
@@ -805,6 +1085,10 @@ class ClientPortalViewSet(ModelViewSet):
             return self.get_paginated_response(serializer.data)
         return Response(PartyOutputSerializer(parties, many=True).data)
 
+    @extend_schema(
+        summary="List RFIs for a client's KYC submission",
+        responses={200: RFIOutputSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="rfis", url_name="rfis")
     def rfis(self, request, pk=None):
         kyc = self.get_object()
@@ -815,6 +1099,11 @@ class ClientPortalViewSet(ModelViewSet):
             return self.get_paginated_response(serializer.data)
         return Response(RFIOutputSerializer(rfis, many=True).data)
 
+    @extend_schema(
+        summary="Respond to an RFI as a client",
+        request=RFIRespondInputSerializer,
+        responses={200: RFIOutputSerializer},
+    )
     @action(
         detail=True,
         methods=["post"],
@@ -837,6 +1126,10 @@ class ClientPortalViewSet(ModelViewSet):
         )
         return Response(RFIOutputSerializer(rfi).data)
 
+    @extend_schema(
+        summary="List documents for a client's KYC submission",
+        responses={200: DocumentUploadOutputSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="documents", url_name="documents")
     def documents(self, request, pk=None):
         kyc = self.get_object()
@@ -849,6 +1142,11 @@ class ClientPortalViewSet(ModelViewSet):
             return self.get_paginated_response(serializer.data)
         return Response(DocumentUploadOutputSerializer(documents, many=True).data)
 
+    @extend_schema(
+        summary="Upload a document for a client's KYC submission",
+        request=DocumentUploadInputSerializer,
+        responses={201: DocumentUploadOutputSerializer},
+    )
     @action(
         detail=True,
         methods=["post"],
@@ -865,6 +1163,7 @@ class ClientPortalViewSet(ModelViewSet):
             "original_filename": uploaded_file.name,
             "file_size": uploaded_file.size,
             "mime_type": uploaded_file.content_type or "",
+            "file_bytes_b64": base64.b64encode(uploaded_file.read()).decode("utf-8"),
         }
 
         doc = services.upload_kyc_document(
@@ -895,6 +1194,11 @@ class SelfServiceOnboardingView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [OnboardingRateThrottle]
 
+    @extend_schema(
+        summary="Initiate a self-service KYC onboarding",
+        request=OnboardingInputSerializer,
+        responses={201: OnboardingOutputSerializer},
+    )
     def post(self, request):
         serializer = OnboardingInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -918,6 +1222,14 @@ class SelfServiceOnboardingView(APIView):
 # ===========================================================================
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List risk matrix configs"),
+    retrieve=extend_schema(summary="Retrieve a risk matrix config"),
+    create=extend_schema(summary="Create a risk matrix config"),
+    update=extend_schema(summary="Update a risk matrix config"),
+    partial_update=extend_schema(summary="Partially update a risk matrix config"),
+    destroy=extend_schema(summary="Delete a risk matrix config"),
+)
 class RiskMatrixConfigViewSet(ModelViewSet):
     queryset = RiskMatrixConfig.objects.prefetch_related("factors", "trigger_rules").all()
     permission_classes = [IsAuthenticated, CanReviewKYC]
@@ -951,73 +1263,74 @@ class RiskMatrixConfigViewSet(ModelViewSet):
         instance = self.get_object()
         serializer = RiskMatrixConfigInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        for attr, value in serializer.validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return Response(RiskMatrixConfigOutputSerializer(instance).data)
+        config = services.update_risk_matrix_config(
+            config_id=instance.id, **serializer.validated_data
+        )
+        return Response(RiskMatrixConfigOutputSerializer(config).data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = RiskMatrixConfigInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        for attr, value in serializer.validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return Response(RiskMatrixConfigOutputSerializer(instance).data)
+        config = services.update_risk_matrix_config(
+            config_id=instance.id, **serializer.validated_data
+        )
+        return Response(RiskMatrixConfigOutputSerializer(config).data)
 
+    @extend_schema(
+        summary="Duplicate a risk matrix config with a new version",
+        request=None,
+        responses={201: RiskMatrixConfigOutputSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="duplicate")
     def duplicate(self, request, pk=None):
         """Clone this config with a new version number."""
         config = self.get_object()
-        new_version = config.version + 1
-        new_config = RiskMatrixConfig.objects.create(
-            name=config.name,
-            jurisdiction=config.jurisdiction,
-            entity_type=config.entity_type,
-            version=new_version,
-            is_active=False,
-            high_risk_threshold=config.high_risk_threshold,
-            medium_risk_threshold=config.medium_risk_threshold,
-            created_by=request.user,
-            notes=f"Duplicated from v{config.version}",
+        new_config = services.duplicate_risk_matrix_config(
+            config_id=config.id, performed_by=request.user,
         )
-        for factor in config.factors.all():
-            RiskFactor.objects.create(
-                matrix_config=new_config,
-                code=factor.code,
-                category=factor.category,
-                max_score=factor.max_score,
-                description=factor.description,
-                scoring_rules_json=factor.scoring_rules_json,
-            )
-        for rule in config.trigger_rules.all():
-            AutomaticTriggerRule.objects.create(
-                matrix_config=new_config,
-                condition=rule.condition,
-                forced_risk_level=rule.forced_risk_level,
-                is_active=rule.is_active,
-                description=rule.description,
-            )
         return Response(
             RiskMatrixConfigOutputSerializer(new_config).data,
             status=status.HTTP_201_CREATED,
         )
 
+    @extend_schema(
+        summary="Activate this risk matrix config and deactivate others in same scope",
+        request=None,
+        responses={200: RiskMatrixConfigOutputSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="activate")
     def activate(self, request, pk=None):
         """Activate this config (deactivate others with same scope)."""
         config = self.get_object()
-        RiskMatrixConfig.objects.filter(
-            jurisdiction=config.jurisdiction,
-            entity_type=config.entity_type,
-            is_active=True,
-        ).exclude(id=config.id).update(is_active=False)
-        config.is_active = True
-        config.save(update_fields=["is_active", "updated_at"])
-        return Response(RiskMatrixConfigOutputSerializer(config).data)
+        config = services.activate_risk_matrix_config(config_id=config.id)
+
+        # Dispatch batch recalculation for entities in this scope
+        recalc_warning = None
+        try:
+            services.batch_recalculate_on_config_change(config_id=config.id)
+        except Exception as exc:
+            logger.warning(
+                "Failed to dispatch batch recalculation for config %s: %s",
+                config.id, exc, exc_info=True,
+            )
+            recalc_warning = (
+                f"Config activated successfully, but batch recalculation "
+                f"dispatch failed: {exc}"
+            )
+
+        data = RiskMatrixConfigOutputSerializer(config).data
+        if recalc_warning:
+            data["warning"] = recalc_warning
+        return Response(data)
 
     # ---- Nested factors CRUD ----
 
+    @extend_schema(
+        summary="List or create risk factors for a matrix config",
+        request=RiskFactorInputSerializer,
+        responses={200: RiskFactorOutputSerializer(many=True), 201: RiskFactorOutputSerializer},
+    )
     @action(detail=True, methods=["get", "post"], url_path="factors")
     def factors(self, request, pk=None):
         config = self.get_object()
@@ -1035,6 +1348,11 @@ class RiskMatrixConfigViewSet(ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @extend_schema(
+        summary="Update or delete a specific risk factor",
+        request=RiskFactorInputSerializer,
+        responses={200: RiskFactorOutputSerializer, 204: None},
+    )
     @action(detail=True, methods=["put", "delete"], url_path="factors/(?P<factor_id>[^/.]+)")
     def factor_detail(self, request, pk=None, factor_id=None):
         config = self.get_object()
@@ -1053,6 +1371,11 @@ class RiskMatrixConfigViewSet(ModelViewSet):
 
     # ---- Nested trigger rules CRUD ----
 
+    @extend_schema(
+        summary="List or create automatic trigger rules for a matrix config",
+        request=AutomaticTriggerRuleInputSerializer,
+        responses={200: AutomaticTriggerRuleOutputSerializer(many=True), 201: AutomaticTriggerRuleOutputSerializer},
+    )
     @action(detail=True, methods=["get", "post"], url_path="trigger-rules")
     def trigger_rules(self, request, pk=None):
         config = self.get_object()
@@ -1070,6 +1393,11 @@ class RiskMatrixConfigViewSet(ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @extend_schema(
+        summary="Update or delete a specific trigger rule",
+        request=AutomaticTriggerRuleInputSerializer,
+        responses={200: AutomaticTriggerRuleOutputSerializer, 204: None},
+    )
     @action(detail=True, methods=["put", "delete"], url_path="trigger-rules/(?P<rule_id>[^/.]+)")
     def trigger_rule_detail(self, request, pk=None, rule_id=None):
         config = self.get_object()
@@ -1095,6 +1423,19 @@ class RiskMatrixConfigViewSet(ModelViewSet):
 class RiskStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Get aggregated risk statistics",
+        responses={200: inline_serializer(
+            name="RiskStatsResponse",
+            fields={
+                "total_assessments": serializers.IntegerField(),
+                "high_risk_count": serializers.IntegerField(),
+                "medium_risk_count": serializers.IntegerField(),
+                "low_risk_count": serializers.IntegerField(),
+                "average_score": serializers.FloatField(),
+            },
+        )},
+    )
     def get(self, request):
         stats = selectors.get_risk_stats()
         return Response(stats)
@@ -1108,6 +1449,10 @@ class RiskStatsView(APIView):
 class EntityRiskView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Get the current risk assessment for an entity",
+        responses={200: RiskAssessmentOutputSerializer},
+    )
     def get(self, request, entity_id):
         assessment = selectors.get_current_entity_risk(entity_id=entity_id)
         if assessment is None:
@@ -1120,15 +1465,30 @@ class EntityRiskView(APIView):
 
 class EntityRiskHistoryView(APIView):
     permission_classes = [IsAuthenticated, CanReviewKYC]
+    pagination_class = StandardPagination
 
+    @extend_schema(
+        summary="Get the risk assessment history for an entity",
+        responses={200: RiskAssessmentOutputSerializer(many=True)},
+    )
     def get(self, request, entity_id):
         history = selectors.get_entity_risk_history(entity_id=entity_id)
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(history, request)
+        if page is not None:
+            serializer = RiskAssessmentOutputSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
         return Response(RiskAssessmentOutputSerializer(history, many=True).data)
 
 
 class EntityCalculateRiskView(APIView):
     permission_classes = [IsAuthenticated, CanReviewKYC]
 
+    @extend_schema(
+        summary="Calculate risk score for an entity",
+        request=CalculateRiskInputSerializer,
+        responses={200: RiskAssessmentOutputSerializer},
+    )
     def post(self, request, entity_id):
         serializer = CalculateRiskInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1143,6 +1503,10 @@ class EntityCalculateRiskView(APIView):
 class PersonRiskView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Get the current risk assessment for a person",
+        responses={200: RiskAssessmentOutputSerializer},
+    )
     def get(self, request, person_id):
         assessment = selectors.get_current_person_risk(person_id=person_id)
         if assessment is None:
@@ -1155,15 +1519,30 @@ class PersonRiskView(APIView):
 
 class PersonRiskHistoryView(APIView):
     permission_classes = [IsAuthenticated, CanReviewKYC]
+    pagination_class = StandardPagination
 
+    @extend_schema(
+        summary="Get the risk assessment history for a person",
+        responses={200: RiskAssessmentOutputSerializer(many=True)},
+    )
     def get(self, request, person_id):
         history = selectors.get_person_risk_history(person_id=person_id)
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(history, request)
+        if page is not None:
+            serializer = RiskAssessmentOutputSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
         return Response(RiskAssessmentOutputSerializer(history, many=True).data)
 
 
 class PersonCalculateRiskView(APIView):
     permission_classes = [IsAuthenticated, CanReviewKYC]
 
+    @extend_schema(
+        summary="Calculate risk score for a person",
+        request=CalculateRiskInputSerializer,
+        responses={200: RiskAssessmentOutputSerializer},
+    )
     def post(self, request, person_id):
         serializer = CalculateRiskInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1180,6 +1559,11 @@ class PersonCalculateRiskView(APIView):
 # ===========================================================================
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List compliance snapshots"),
+    retrieve=extend_schema(summary="Retrieve a compliance snapshot"),
+    create=extend_schema(summary="Create a compliance snapshot"),
+)
 class ComplianceSnapshotViewSet(ModelViewSet):
     queryset = ComplianceSnapshot.objects.all().order_by("-snapshot_date")
     permission_classes = [IsAuthenticated, CanReviewKYC]
@@ -1204,6 +1588,10 @@ class ComplianceSnapshotViewSet(ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @extend_schema(
+        summary="List risk assessments for a compliance snapshot",
+        responses={200: RiskAssessmentOutputSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="assessments")
     def assessments(self, request, pk=None):
         assessments = selectors.get_snapshot_assessments(snapshot_id=pk)
@@ -1212,6 +1600,10 @@ class ComplianceSnapshotViewSet(ModelViewSet):
             assessments = assessments.filter(risk_level=risk_level)
         return Response(RiskAssessmentOutputSerializer(assessments, many=True).data)
 
+    @extend_schema(
+        summary="Export a compliance snapshot as PDF",
+        responses={(200, "application/pdf"): bytes},
+    )
     @action(detail=True, methods=["get"], url_path="export-pdf")
     def export_pdf(self, request, pk=None):
         try:
@@ -1234,6 +1626,10 @@ class ComplianceSnapshotViewSet(ModelViewSet):
 class RiskAssessmentExportPDFView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Export a risk assessment as PDF",
+        responses={(200, "application/pdf"): bytes},
+    )
     def get(self, request, assessment_id):
         try:
             pdf_bytes = services.generate_risk_pdf(assessment_id=assessment_id)
@@ -1257,21 +1653,10 @@ class RiskAssessmentExportPDFView(APIView):
 # ===========================================================================
 
 
-class AccountingRecordListOutputSerializer(AccountingRecordOutputSerializer):
-    """List serializer that excludes PII (signature_data, form_data)."""
-
-    class Meta(AccountingRecordOutputSerializer.Meta):
-        fields = [
-            f for f in AccountingRecordOutputSerializer.Meta.fields
-            if f not in ("signature_data", "form_data")
-        ]
-
-
-class CreateForEntityInputSerializer(serializers.Serializer):
-    entity_id = serializers.UUIDField()
-    fiscal_year = serializers.IntegerField(default=lambda: __import__("datetime").date.today().year - 1)
-
-
+@extend_schema_view(
+    list=extend_schema(summary="List accounting records"),
+    retrieve=extend_schema(summary="Retrieve an accounting record"),
+)
 class AccountingRecordViewSet(ModelViewSet):
     queryset = AccountingRecord.objects.select_related(
         "entity__client", "reviewed_by"
@@ -1295,6 +1680,11 @@ class AccountingRecordViewSet(ModelViewSet):
             qs = qs.filter(status=status_filter)
         return qs.order_by("-created_at")
 
+    @extend_schema(
+        summary="Bulk create accounting records for all active entities",
+        request=BulkCreateAccountingRecordsInputSerializer,
+        responses={201: AccountingRecordListOutputSerializer(many=True)},
+    )
     @action(detail=False, methods=["post"], url_path="bulk-create")
     def bulk_create(self, request):
         serializer = BulkCreateAccountingRecordsInputSerializer(data=request.data)
@@ -1306,6 +1696,11 @@ class AccountingRecordViewSet(ModelViewSet):
         output = AccountingRecordListOutputSerializer(records, many=True, context={"request": request})
         return Response(output.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        summary="Create a single accounting record with guest link for a specific entity",
+        request=CreateForEntityInputSerializer,
+        responses={201: AccountingRecordOutputSerializer},
+    )
     @action(detail=False, methods=["post"], url_path="create-for-entity")
     def create_for_entity(self, request):
         """Create a single accounting record + guest link for a specific entity."""
@@ -1333,6 +1728,10 @@ class AccountingRecordViewSet(ModelViewSet):
         output = AccountingRecordOutputSerializer(record, context={"request": request})
         return Response(output.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        summary="Get accounting records summary for a fiscal year",
+        responses={200: AccountingRecordSummaryOutputSerializer},
+    )
     @action(detail=False, methods=["get"], url_path="summary")
     def summary(self, request):
         fiscal_year = int(request.query_params.get(
@@ -1341,6 +1740,11 @@ class AccountingRecordViewSet(ModelViewSet):
         data = selectors.get_accounting_records_summary(fiscal_year=fiscal_year)
         return Response(AccountingRecordSummaryOutputSerializer(data).data)
 
+    @extend_schema(
+        summary="Approve an accounting record",
+        request=AccountingRecordReviewInputSerializer,
+        responses={200: AccountingRecordOutputSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="approve")
     def approve(self, request, pk=None):
         serializer = AccountingRecordReviewInputSerializer(data=request.data)
@@ -1352,6 +1756,11 @@ class AccountingRecordViewSet(ModelViewSet):
         )
         return Response(AccountingRecordOutputSerializer(record, context={"request": request}).data)
 
+    @extend_schema(
+        summary="Reject an accounting record",
+        request=AccountingRecordReviewInputSerializer,
+        responses={200: AccountingRecordOutputSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="reject")
     def reject(self, request, pk=None):
         serializer = AccountingRecordReviewInputSerializer(data=request.data)
@@ -1363,6 +1772,10 @@ class AccountingRecordViewSet(ModelViewSet):
         )
         return Response(AccountingRecordOutputSerializer(record, context={"request": request}).data)
 
+    @extend_schema(
+        summary="List documents for an accounting record",
+        responses={200: AccountingRecordDocumentOutputSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="documents")
     def documents(self, request, pk=None):
         docs = AccountingRecordDocument.objects.filter(
@@ -1415,10 +1828,19 @@ class AccountingRecordGuestView(AccountingRecordGuestMixin, APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AccountingRecordGuestThrottle]
 
+    @extend_schema(
+        summary="Get accounting record data for guest form",
+        responses={200: AccountingRecordOutputSerializer},
+    )
     def get(self, request, pk):
         record = self._validate_guest_accounting(request, pk)
         return Response(AccountingRecordOutputSerializer(record, context={"request": request}).data)
 
+    @extend_schema(
+        summary="Auto-save draft data for an accounting record",
+        request=AccountingRecordSaveDraftInputSerializer,
+        responses={200: AccountingRecordOutputSerializer},
+    )
     def patch(self, request, pk):
         record = self._validate_guest_accounting(request, pk)
         serializer = AccountingRecordSaveDraftInputSerializer(data=request.data)
@@ -1436,6 +1858,11 @@ class AccountingRecordGuestSubmitView(AccountingRecordGuestMixin, APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AccountingRecordGuestThrottle]
 
+    @extend_schema(
+        summary="Submit an accounting record with signature",
+        request=None,
+        responses={200: AccountingRecordOutputSerializer},
+    )
     def post(self, request, pk):
         self._validate_guest_accounting(request, pk)
         record = services.submit_accounting_record(record_id=pk)
@@ -1448,6 +1875,10 @@ class AccountingRecordGuestDocumentView(AccountingRecordGuestMixin, APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AccountingRecordGuestThrottle]
 
+    @extend_schema(
+        summary="List uploaded documents for an accounting record",
+        responses={200: AccountingRecordDocumentOutputSerializer(many=True)},
+    )
     def get(self, request, pk):
         self._validate_guest_accounting(request, pk)
         docs = AccountingRecordDocument.objects.filter(
@@ -1457,6 +1888,11 @@ class AccountingRecordGuestDocumentView(AccountingRecordGuestMixin, APIView):
             AccountingRecordDocumentOutputSerializer(docs, many=True, context={"request": request}).data
         )
 
+    @extend_schema(
+        summary="Upload a supporting document for an accounting record",
+        request=AccountingRecordDocumentUploadInputSerializer,
+        responses={201: AccountingRecordDocumentOutputSerializer},
+    )
     def post(self, request, pk):
         self._validate_guest_accounting(request, pk)
         serializer = AccountingRecordDocumentUploadInputSerializer(data=request.data)
@@ -1470,3 +1906,575 @@ class AccountingRecordGuestDocumentView(AccountingRecordGuestMixin, APIView):
             AccountingRecordDocumentOutputSerializer(doc, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+# ===========================================================================
+# Jurisdiction Configuration ViewSet
+# ===========================================================================
+
+
+@extend_schema_view(
+    list=extend_schema(summary="List jurisdiction configurations"),
+    retrieve=extend_schema(summary="Retrieve a jurisdiction configuration"),
+    create=extend_schema(summary="Create a jurisdiction configuration"),
+    update=extend_schema(summary="Update a jurisdiction configuration"),
+    partial_update=extend_schema(summary="Partially update a jurisdiction configuration"),
+    destroy=extend_schema(summary="Delete a jurisdiction configuration"),
+)
+class JurisdictionConfigViewSet(ModelViewSet):
+    queryset = JurisdictionConfig.objects.select_related(
+        "jurisdiction", "default_risk_matrix",
+    ).all()
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.action in ("create", "partial_update", "update", "destroy"):
+            return [IsAuthenticated(), IsDirector()]
+        return [IsAuthenticated()]
+
+    def get_serializer_class(self):
+        if self.action in ("create", "partial_update", "update"):
+            return JurisdictionConfigInputSerializer
+        return JurisdictionConfigOutputSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = JurisdictionConfigInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        jurisdiction_id = data.pop("jurisdiction_id")
+        default_risk_matrix_id = data.pop("default_risk_matrix_id", None)
+        config = JurisdictionConfig.objects.create(
+            jurisdiction_id=jurisdiction_id,
+            default_risk_matrix_id=default_risk_matrix_id,
+            **data,
+        )
+        return Response(
+            JurisdictionConfigOutputSerializer(config).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = JurisdictionConfigInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        jurisdiction_id = data.pop("jurisdiction_id")
+        default_risk_matrix_id = data.pop("default_risk_matrix_id", None)
+        instance.jurisdiction_id = jurisdiction_id
+        instance.default_risk_matrix_id = default_risk_matrix_id
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return Response(JurisdictionConfigOutputSerializer(instance).data)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = JurisdictionConfigInputSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        jurisdiction_id = data.pop("jurisdiction_id", None)
+        if jurisdiction_id:
+            instance.jurisdiction_id = jurisdiction_id
+        default_risk_matrix_id = data.pop("default_risk_matrix_id", None)
+        if default_risk_matrix_id is not None:
+            instance.default_risk_matrix_id = default_risk_matrix_id
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return Response(JurisdictionConfigOutputSerializer(instance).data)
+
+
+# ===========================================================================
+# Compliance Delegation ViewSet
+# ===========================================================================
+
+
+@extend_schema_view(
+    list=extend_schema(summary="List compliance delegations"),
+    retrieve=extend_schema(summary="Retrieve a compliance delegation"),
+)
+class ComplianceDelegationViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardPagination
+    http_method_names = ["get", "post", "head", "options"]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return ComplianceDelegationCreateInputSerializer
+        return ComplianceDelegationOutputSerializer
+
+    def get_queryset(self):
+        from django.db.models import Q
+
+        qs = ComplianceDelegation.objects.select_related(
+            "entity", "delegated_by", "delegate_user",
+        ).order_by("-created_at")
+        # Scope: directors see all; others only see delegations they created or received
+        user = self.request.user
+        if getattr(user, "role", None) != "director":
+            qs = qs.filter(
+                Q(delegated_by=user) | Q(delegate_email__iexact=user.email)
+            )
+        entity_id = self.request.query_params.get("entity")
+        if entity_id:
+            qs = qs.filter(entity_id=entity_id)
+        module = self.request.query_params.get("module")
+        if module:
+            qs = qs.filter(module=module)
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        serializer = ComplianceDelegationCreateInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        delegation = services.delegate_entity(
+            entity_id=serializer.validated_data["entity_id"],
+            module=serializer.validated_data["module"],
+            fiscal_year=serializer.validated_data["fiscal_year"],
+            delegate_email=serializer.validated_data["delegate_email"],
+            delegated_by=request.user,
+        )
+        return Response(
+            ComplianceDelegationOutputSerializer(delegation).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @extend_schema(summary="Revoke a delegation")
+    @action(detail=True, methods=["post"])
+    def revoke(self, request, pk=None):
+        delegation = services.revoke_delegation(
+            delegation_id=pk, revoked_by=request.user,
+        )
+        return Response(ComplianceDelegationOutputSerializer(delegation).data)
+
+    @extend_schema(summary="Accept a pending delegation")
+    @action(detail=True, methods=["post"])
+    def accept(self, request, pk=None):
+        delegation = services.accept_delegation(
+            delegation_id=pk, user=request.user,
+        )
+        return Response(ComplianceDelegationOutputSerializer(delegation).data)
+
+
+# ===========================================================================
+# Due Diligence Checklist endpoints
+# ===========================================================================
+
+
+class DueDiligenceChecklistView(APIView):
+    """GET: List checklists for a KYC. POST: Create/update a checklist."""
+
+    permission_classes = [IsAuthenticated, CanReviewKYC]
+
+    @extend_schema(
+        summary="List due diligence checklists for a KYC submission",
+        responses={200: DueDiligenceChecklistOutputSerializer(many=True)},
+    )
+    def get(self, request, kyc_id):
+        checklists = DueDiligenceChecklist.objects.filter(
+            kyc_submission_id=kyc_id
+        ).select_related("completed_by").order_by("section")
+        return Response(DueDiligenceChecklistOutputSerializer(checklists, many=True).data)
+
+    @extend_schema(
+        summary="Create or update a due diligence checklist",
+        request=DueDiligenceChecklistInputSerializer,
+        responses={200: DueDiligenceChecklistOutputSerializer},
+    )
+    def post(self, request, kyc_id):
+        serializer = DueDiligenceChecklistInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        checklist = services.create_or_update_checklist(
+            kyc_id=kyc_id,
+            section=serializer.validated_data["section"],
+            items=serializer.validated_data["items"],
+        )
+        return Response(DueDiligenceChecklistOutputSerializer(checklist).data)
+
+
+class DueDiligenceChecklistCompleteView(APIView):
+    """POST: Mark a checklist as complete."""
+
+    permission_classes = [IsAuthenticated, CanReviewKYC]
+
+    @extend_schema(
+        summary="Mark a due diligence checklist as complete",
+        request=None,
+        responses={200: DueDiligenceChecklistOutputSerializer},
+    )
+    def post(self, request, checklist_id):
+        checklist = services.complete_checklist(
+            checklist_id=checklist_id,
+            completed_by=request.user,
+        )
+        return Response(DueDiligenceChecklistOutputSerializer(checklist).data)
+
+
+# ===========================================================================
+# Field Comments endpoints
+# ===========================================================================
+
+
+class FieldCommentView(APIView):
+    """POST: Add a field comment to a KYC submission."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Add a field-level comment to a KYC submission",
+        request=FieldCommentInputSerializer,
+        responses={201: serializers.DictField()},
+    )
+    def post(self, request, kyc_id):
+        serializer = FieldCommentInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        comment = services.add_field_comment(
+            kyc_id=kyc_id,
+            field_name=serializer.validated_data["field_name"],
+            text=serializer.validated_data["text"],
+            author=request.user,
+            parent_id=serializer.validated_data.get("parent_id"),
+        )
+        return Response(comment, status=status.HTTP_201_CREATED)
+
+
+class FieldCommentResolveView(APIView):
+    """POST: Resolve all comments for a field."""
+
+    permission_classes = [IsAuthenticated, CanReviewKYC]
+
+    @extend_schema(
+        summary="Resolve all comments for a field on a KYC submission",
+        request=None,
+        responses={200: inline_serializer(
+            name="FieldCommentResolveResponse",
+            fields={"detail": serializers.CharField()},
+        )},
+    )
+    def post(self, request, kyc_id, field_name):
+        services.resolve_field_comments(
+            kyc_id=kyc_id,
+            field_name=field_name,
+            resolved_by=request.user,
+        )
+        return Response({"detail": "Comments resolved."})
+
+
+# ===========================================================================
+# Economic Substance ViewSet
+# ===========================================================================
+
+
+@extend_schema_view(
+    list=extend_schema(summary="List Economic Substance submissions"),
+    retrieve=extend_schema(summary="Retrieve an ES submission"),
+)
+class EconomicSubstanceViewSet(ModelViewSet):
+    queryset = EconomicSubstanceSubmission.objects.select_related(
+        "entity__client", "reviewed_by",
+    ).all()
+    permission_classes = [IsAuthenticated, CanManageKYC]
+    pagination_class = StandardPagination
+    http_method_names = ["get", "post", "patch", "head", "options"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return EconomicSubstanceListOutputSerializer
+        if self.action in ("create",):
+            return EconomicSubstanceCreateInputSerializer
+        if self.action in ("partial_update",):
+            return EconomicSubstanceSaveDraftInputSerializer
+        return EconomicSubstanceOutputSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        fiscal_year = self.request.query_params.get("fiscal_year")
+        if fiscal_year:
+            qs = qs.filter(fiscal_year=fiscal_year)
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        entity_id = self.request.query_params.get("entity_id")
+        if entity_id:
+            qs = qs.filter(entity_id=entity_id)
+        return qs.order_by("-created_at")
+
+    def create(self, request, *args, **kwargs):
+        serializer = EconomicSubstanceCreateInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        sub = services.create_es_submission(
+            entity_id=serializer.validated_data["entity_id"],
+            fiscal_year=serializer.validated_data["fiscal_year"],
+        )
+        return Response(
+            EconomicSubstanceOutputSerializer(sub).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = EconomicSubstanceSaveDraftInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        sub = services.save_es_draft(
+            submission_id=instance.id,
+            **serializer.validated_data,
+        )
+        return Response(EconomicSubstanceOutputSerializer(sub).data)
+
+    @extend_schema(
+        summary="Advance the ES flow by one step",
+        request=ESAdvanceStepInputSerializer,
+        responses={200: inline_serializer(
+            name="ESAdvanceStepResponse",
+            fields={
+                "next_step": serializers.CharField(allow_null=True),
+                "terminal": serializers.BooleanField(),
+                "result": serializers.CharField(),
+                "reason": serializers.CharField(),
+            },
+        )},
+    )
+    @action(detail=True, methods=["post"], url_path="advance-step")
+    def advance_step(self, request, pk=None):
+        serializer = ESAdvanceStepInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = services.advance_es_step(
+            submission_id=pk,
+            step_key=serializer.validated_data["step_key"],
+            answer=serializer.validated_data["answer"],
+        )
+        return Response(result)
+
+    @extend_schema(
+        summary="Submit an ES submission for review",
+        request=None,
+        responses={200: EconomicSubstanceOutputSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="submit")
+    def submit(self, request, pk=None):
+        sub = services.submit_es(submission_id=pk)
+        return Response(EconomicSubstanceOutputSerializer(sub).data)
+
+    @extend_schema(
+        summary="Approve an ES submission",
+        request=None,
+        responses={200: EconomicSubstanceOutputSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="approve")
+    def approve(self, request, pk=None):
+        sub = services.approve_es(submission_id=pk, reviewed_by=request.user)
+        return Response(EconomicSubstanceOutputSerializer(sub).data)
+
+    @extend_schema(
+        summary="Reject an ES submission",
+        request=ESRejectInputSerializer,
+        responses={200: EconomicSubstanceOutputSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="reject")
+    def reject(self, request, pk=None):
+        serializer = ESRejectInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        sub = services.reject_es(
+            submission_id=pk,
+            reviewed_by=request.user,
+            field_comments=serializer.validated_data.get("field_comments"),
+        )
+        return Response(EconomicSubstanceOutputSerializer(sub).data)
+
+    @extend_schema(
+        summary="Bulk create ES submissions for a fiscal year",
+        request=ESBulkCreateInputSerializer,
+        responses={201: EconomicSubstanceListOutputSerializer(many=True)},
+    )
+    @action(detail=False, methods=["post"], url_path="bulk-create")
+    def bulk_create(self, request):
+        serializer = ESBulkCreateInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        submissions = services.bulk_create_es_submissions(
+            fiscal_year=serializer.validated_data["fiscal_year"],
+            created_by=request.user,
+        )
+        return Response(
+            EconomicSubstanceListOutputSerializer(submissions, many=True).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+# ===========================================================================
+# ES Guest Views
+# ===========================================================================
+
+
+class ESGuestMixin:
+    """Validate guest token for ES submission access."""
+
+    def _validate_guest_es(self, request, submission_id):
+        from apps.authentication.models import GuestLink
+
+        guest_token = request.headers.get("X-Guest-Token")
+        if guest_token:
+            try:
+                link = GuestLink.objects.get(
+                    token=guest_token, is_active=True,
+                    es_submission_id=submission_id,
+                )
+                if link.is_expired:
+                    raise PermissionDenied("Guest link has expired.")
+                return link.es_submission
+            except GuestLink.DoesNotExist:
+                raise PermissionDenied("Invalid guest token.")
+        elif request.user and request.user.is_authenticated:
+            return EconomicSubstanceSubmission.objects.select_related(
+                "entity__client"
+            ).get(id=submission_id)
+        else:
+            raise PermissionDenied("Authentication required.")
+
+
+class ESGuestView(ESGuestMixin, APIView):
+    """GET: Get ES data for form. PATCH: Auto-save draft."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        sub = self._validate_guest_es(request, pk)
+        return Response(EconomicSubstanceOutputSerializer(sub).data)
+
+    def patch(self, request, pk):
+        self._validate_guest_es(request, pk)
+        serializer = EconomicSubstanceSaveDraftInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        sub = services.save_es_draft(submission_id=pk, **serializer.validated_data)
+        return Response(EconomicSubstanceOutputSerializer(sub).data)
+
+
+class ESGuestSubmitView(ESGuestMixin, APIView):
+    """POST: Submit ES from guest form."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request, pk):
+        self._validate_guest_es(request, pk)
+        sub = services.submit_es(submission_id=pk)
+        return Response(EconomicSubstanceOutputSerializer(sub).data)
+
+
+# ===========================================================================
+# Help Request
+# ===========================================================================
+
+
+class HelpRequestThrottle(AnonRateThrottle):
+    rate = "12/hour"
+
+
+class HelpRequestView(GuestOrAuthMixin, APIView):
+    """POST: Send a help request to the compliance team."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [HelpRequestThrottle]
+
+    @extend_schema(
+        summary="Send a help request to the compliance team",
+        request=HelpRequestInputSerializer,
+        responses={200: inline_serializer(
+            name="HelpRequestResponse",
+            fields={"detail": serializers.CharField()},
+        )},
+    )
+    def post(self, request):
+        user = self._validate_guest_or_auth(request)
+        serializer = HelpRequestInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_or_email = user if user else request.headers.get("X-Guest-Token", "guest")
+        services.request_help(
+            user_or_email=user_or_email,
+            entity_id=serializer.validated_data.get("entity_id"),
+            module=serializer.validated_data["module"],
+            current_page=serializer.validated_data["current_page"],
+            message=serializer.validated_data.get("message", ""),
+        )
+        return Response({"detail": "Help request sent."})
+
+
+# ===========================================================================
+# Ownership Tree endpoints
+# ===========================================================================
+
+
+class OwnershipTreeView(APIView):
+    """GET: Calculate and return the ownership tree for an entity."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Calculate UBO ownership tree for an entity",
+        responses={200: inline_serializer(
+            name="OwnershipTreeResponse",
+            fields={
+                "nodes": serializers.ListField(),
+                "edges": serializers.ListField(),
+                "reportable_ubos": serializers.ListField(),
+                "warnings": serializers.ListField(),
+                "threshold": serializers.CharField(),
+            },
+        )},
+    )
+    def get(self, request, entity_id):
+        jurisdiction_code = request.query_params.get("jurisdiction")
+        tree = services.calculate_ubo_tree(
+            entity_id=entity_id,
+            jurisdiction_code=jurisdiction_code,
+        )
+        return Response(tree)
+
+
+class OwnershipTreeSaveView(APIView):
+    """POST: Save an ownership tree snapshot."""
+
+    permission_classes = [IsAuthenticated, CanReviewKYC]
+
+    @extend_schema(
+        summary="Save an ownership tree snapshot for audit",
+        request=SaveOwnershipTreeInputSerializer,
+        responses={201: OwnershipSnapshotOutputSerializer},
+    )
+    def post(self, request, entity_id):
+        serializer = SaveOwnershipTreeInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        snapshot = services.save_ownership_tree(
+            entity_id=entity_id,
+            nodes=serializer.validated_data["nodes"],
+            edges=serializer.validated_data["edges"],
+            saved_by=request.user,
+        )
+        return Response(
+            OwnershipSnapshotOutputSerializer(snapshot).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class OwnershipTreeAuditView(APIView):
+    """GET: Get ownership tree audit log."""
+
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardPagination
+
+    @extend_schema(
+        summary="Get ownership tree audit log for an entity",
+        responses={200: OwnershipSnapshotOutputSerializer(many=True)},
+    )
+    def get(self, request, entity_id):
+        snapshots = OwnershipSnapshot.objects.filter(
+            entity_id=entity_id
+        ).select_related("saved_by").order_by("-created_at")
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(snapshots, request)
+        if page is not None:
+            serializer = OwnershipSnapshotOutputSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        return Response(OwnershipSnapshotOutputSerializer(snapshots, many=True).data)

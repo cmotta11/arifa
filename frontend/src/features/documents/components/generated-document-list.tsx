@@ -186,9 +186,9 @@ export function GeneratedDocumentList() {
           description={t("documents.generated.emptyDescription")}
         />
       ) : (
-        <DataTable<GeneratedDocument & Record<string, unknown>>
+        <DataTable
           columns={columns}
-          data={documents as (GeneratedDocument & Record<string, unknown>)[]}
+          data={documents}
           loading={isLoading}
           emptyMessage={t("documents.generated.empty")}
           keyExtractor={(row) => row.id}

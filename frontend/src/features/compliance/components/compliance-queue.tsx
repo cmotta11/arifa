@@ -7,33 +7,18 @@ import { Tabs } from "@/components/navigation/tabs";
 import { EmptyState } from "@/components/data-display/empty-state";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useComplianceQueue, type KYCDetail } from "../api/compliance-api";
+import { kycStatusColorMap } from "@/config/status-colors";
+import { formatDate } from "@/lib/format";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const statusColorMap: Record<string, "gray" | "green" | "yellow" | "red" | "blue"> = {
-  draft: "gray",
-  submitted: "blue",
-  under_review: "yellow",
-  approved: "green",
-  rejected: "red",
-};
 
 const riskColorMap: Record<string, "green" | "yellow" | "red"> = {
   low: "green",
   medium: "yellow",
   high: "red",
 };
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Props
@@ -177,7 +162,7 @@ function QueueItem({ kyc, isSelected, onSelect }: QueueItemProps) {
           hover:shadow-md
           ${
             isSelected
-              ? "border-arifa-navy ring-2 ring-arifa-navy/30 shadow-md"
+              ? "border-primary ring-2 ring-primary/30 shadow-md"
               : "border-gray-200 hover:border-gray-300"
           }
         `}
@@ -190,7 +175,7 @@ function QueueItem({ kyc, isSelected, onSelect }: QueueItemProps) {
             </p>
             <p className="truncate text-xs text-gray-500">{clientName}</p>
           </div>
-          <Badge color={statusColorMap[kyc.status] ?? "gray"}>
+          <Badge color={kycStatusColorMap[kyc.status] ?? "gray"}>
             {t(`status.${kyc.status}`)}
           </Badge>
         </div>
@@ -199,14 +184,14 @@ function QueueItem({ kyc, isSelected, onSelect }: QueueItemProps) {
         <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
           {jurisdiction && (
             <span className="inline-flex items-center gap-1">
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {jurisdiction}
             </span>
           )}
           <span className="inline-flex items-center gap-1">
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             {formatDate(kyc.submitted_at ?? kyc.created_at)}

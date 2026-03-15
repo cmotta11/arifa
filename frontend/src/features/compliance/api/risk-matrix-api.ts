@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
-import { ENV } from "@/config/env";
 import type {
   RiskAssessment,
   RiskMatrixConfig,
@@ -16,6 +15,9 @@ export const riskMatrixKeys = {
   all: ["riskMatrix"] as const,
   configs: () => [...riskMatrixKeys.all, "configs"] as const,
   config: (id: string) => [...riskMatrixKeys.all, "config", id] as const,
+  assessment: (id: string) => [...riskMatrixKeys.all, "assessment", id] as const,
+  assessmentHistory: (entityId: string, personId: string) =>
+    [...riskMatrixKeys.all, "assessmentHistory", entityId, personId] as const,
   entityRisk: (entityId: string) => [...riskMatrixKeys.all, "entityRisk", entityId] as const,
   entityRiskHistory: (entityId: string) => [...riskMatrixKeys.all, "entityRiskHistory", entityId] as const,
   personRisk: (personId: string) => [...riskMatrixKeys.all, "personRisk", personId] as const,
@@ -168,24 +170,53 @@ export function useCalculatePersonRisk() {
 }
 
 // ---------------------------------------------------------------------------
+// Single Risk Assessment
+// ---------------------------------------------------------------------------
+
+export function fetchRiskAssessment(id: string) {
+  return api.get<RiskAssessment>(`/compliance/risk-assessments/${id}/`);
+}
+
+export function useRiskAssessment(id: string) {
+  return useQuery({
+    queryKey: riskMatrixKeys.assessment(id),
+    queryFn: () => fetchRiskAssessment(id),
+    enabled: !!id,
+  });
+}
+
+export function fetchRiskAssessmentHistory(entityId: string | null, personId: string | null) {
+  if (entityId) {
+    return api.get<PaginatedResponse<RiskAssessment>>(
+      `/compliance/entities/${entityId}/risk-history/`,
+      { per_page: "50" },
+    );
+  }
+  if (personId) {
+    return api.get<PaginatedResponse<RiskAssessment>>(
+      `/compliance/persons/${personId}/risk-history/`,
+      { per_page: "50" },
+    );
+  }
+  return Promise.resolve({ count: 0, results: [] } as PaginatedResponse<RiskAssessment>);
+}
+
+export function useRiskAssessmentHistory(entityId: string | null, personId: string | null) {
+  return useQuery({
+    queryKey: riskMatrixKeys.assessmentHistory(entityId ?? "", personId ?? ""),
+    queryFn: () => fetchRiskAssessmentHistory(entityId, personId),
+    enabled: !!entityId || !!personId,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // PDF Export
 // ---------------------------------------------------------------------------
 
 export function useExportRiskPDF() {
   return useMutation({
-    mutationFn: async (assessmentId: string) => {
-      const response = await fetch(
-        `${ENV.API_BASE_URL}/compliance/risk-assessments/${assessmentId}/export-pdf/`,
-        {
-          credentials: "include",
-          headers: {
-            "X-CSRFToken": document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? "",
-          },
-        },
-      );
-      if (!response.ok) throw new Error("PDF export failed");
-      return response.blob();
-    },
+    mutationFn: (assessmentId: string) =>
+      api.blob(`/compliance/risk-assessments/${assessmentId}/export-pdf/`),
   });
 }
 
@@ -236,19 +267,8 @@ export function useCreateComplianceSnapshot() {
 
 export function useExportSnapshotPDF() {
   return useMutation({
-    mutationFn: async (snapshotId: string) => {
-      const response = await fetch(
-        `${ENV.API_BASE_URL}/compliance/snapshots/${snapshotId}/export-pdf/`,
-        {
-          credentials: "include",
-          headers: {
-            "X-CSRFToken": document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? "",
-          },
-        },
-      );
-      if (!response.ok) throw new Error("Snapshot PDF export failed");
-      return response.blob();
-    },
+    mutationFn: (snapshotId: string) =>
+      api.blob(`/compliance/snapshots/${snapshotId}/export-pdf/`),
   });
 }
 

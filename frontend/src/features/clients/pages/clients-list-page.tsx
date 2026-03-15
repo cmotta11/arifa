@@ -174,7 +174,7 @@ export default function ClientsListPage() {
       <div className="flex-1 overflow-auto rounded-lg border border-gray-200 bg-white">
         <DataTable
           columns={columns}
-          data={(data?.results ?? []) as (Client & Record<string, unknown>)[]}
+          data={data?.results ?? []}
           loading={isLoading}
           emptyMessage={t("clients.noClients")}
           onRowClick={(row) => navigate(ROUTES.CLIENT_DETAIL.replace(":id", row.id as string))}

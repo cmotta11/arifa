@@ -42,10 +42,10 @@ export function FileDropzone({
         px-6 py-8 transition-colors duration-150
         ${
           isDragActive && !isDragReject
-            ? "border-arifa-navy bg-arifa-navy/5"
+            ? "border-primary bg-primary/5"
             : isDragReject
               ? "border-error bg-red-50"
-              : "border-gray-300 hover:border-arifa-navy/50 hover:bg-gray-50"
+              : "border-gray-300 hover:border-primary/50 hover:bg-gray-50"
         }
         ${className}
       `}
@@ -53,12 +53,12 @@ export function FileDropzone({
       <input {...getInputProps()} />
       <ArrowUpTrayIcon
         className={`mb-3 h-8 w-8 ${
-          isDragActive ? "text-arifa-navy" : "text-gray-400"
+          isDragActive ? "text-primary" : "text-gray-400"
         }`}
       />
       <p
         className={`text-sm ${
-          isDragActive ? "text-arifa-navy font-medium" : "text-gray-500"
+          isDragActive ? "text-primary font-medium" : "text-gray-500"
         }`}
       >
         {isDragActive && !isDragReject

@@ -7,13 +7,26 @@ from .views import (
     AccountingRecordGuestView,
     AccountingRecordViewSet,
     ClientPortalViewSet,
+    ComplianceDelegationViewSet,
     ComplianceSnapshotViewSet,
+    DueDiligenceChecklistCompleteView,
+    DueDiligenceChecklistView,
+    EconomicSubstanceViewSet,
     EntityCalculateRiskView,
     EntityRiskHistoryView,
     EntityRiskView,
+    ESGuestSubmitView,
+    ESGuestView,
     ExtractDocumentView,
+    FieldCommentResolveView,
+    FieldCommentView,
+    HelpRequestView,
+    JurisdictionConfigViewSet,
     JurisdictionRiskViewSet,
     KYCSubmissionViewSet,
+    OwnershipTreeAuditView,
+    OwnershipTreeSaveView,
+    OwnershipTreeView,
     PartyViewSet,
     PersonCalculateRiskView,
     PersonRiskHistoryView,
@@ -38,6 +51,9 @@ router.register(r"portal/kyc", ClientPortalViewSet, basename="portal-kyc")
 router.register(r"risk-matrix-configs", RiskMatrixConfigViewSet, basename="risk-matrix-config")
 router.register(r"snapshots", ComplianceSnapshotViewSet, basename="snapshot")
 router.register(r"accounting-records", AccountingRecordViewSet, basename="accounting-record")
+router.register(r"jurisdiction-configs", JurisdictionConfigViewSet, basename="jurisdiction-config")
+router.register(r"delegations", ComplianceDelegationViewSet, basename="delegation")
+router.register(r"es-submissions", EconomicSubstanceViewSet, basename="es-submission")
 
 urlpatterns = router.urls + [
     # Standalone endpoints
@@ -120,5 +136,60 @@ urlpatterns = router.urls + [
         "accounting-records/<uuid:pk>/guest/documents/",
         AccountingRecordGuestDocumentView.as_view(),
         name="accounting-record-guest-documents",
+    ),
+    # Due Diligence Checklists
+    path(
+        "kyc/<uuid:kyc_id>/checklists/",
+        DueDiligenceChecklistView.as_view(),
+        name="kyc-checklists",
+    ),
+    path(
+        "checklists/<uuid:checklist_id>/complete/",
+        DueDiligenceChecklistCompleteView.as_view(),
+        name="checklist-complete",
+    ),
+    # Field Comments
+    path(
+        "kyc/<uuid:kyc_id>/field-comments/",
+        FieldCommentView.as_view(),
+        name="kyc-field-comments",
+    ),
+    path(
+        "kyc/<uuid:kyc_id>/field-comments/<str:field_name>/resolve/",
+        FieldCommentResolveView.as_view(),
+        name="kyc-field-comment-resolve",
+    ),
+    # ES Guest endpoints
+    path(
+        "es-submissions/<uuid:pk>/guest/",
+        ESGuestView.as_view(),
+        name="es-guest",
+    ),
+    path(
+        "es-submissions/<uuid:pk>/guest/submit/",
+        ESGuestSubmitView.as_view(),
+        name="es-guest-submit",
+    ),
+    # Help request
+    path(
+        "help-request/",
+        HelpRequestView.as_view(),
+        name="help-request",
+    ),
+    # Ownership Tree
+    path(
+        "entities/<uuid:entity_id>/ownership-tree/",
+        OwnershipTreeView.as_view(),
+        name="entity-ownership-tree",
+    ),
+    path(
+        "entities/<uuid:entity_id>/ownership-tree/save/",
+        OwnershipTreeSaveView.as_view(),
+        name="entity-ownership-tree-save",
+    ),
+    path(
+        "entities/<uuid:entity_id>/ownership-tree/audit-log/",
+        OwnershipTreeAuditView.as_view(),
+        name="entity-ownership-tree-audit",
     ),
 ]

@@ -6,8 +6,25 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { api } from "@/lib/api-client";
+import {
+  api,
+  ApiError,
+  setTokens,
+  clearTokens,
+  setOnAuthFailure,
+} from "@/lib/api-client";
 import type { User } from "@/types";
+
+interface TokenResponse {
+  access: string;
+  refresh: string;
+}
+
+interface MagicLinkTokenResponse {
+  user: User;
+  access: string;
+  refresh: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -40,20 +57,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, [fetchUser]);
 
-  const login = async (email: string, password: string) => {
-    await api.post("/auth/login/", { email, password });
-    await fetchUser();
-  };
+  // Register global auth failure callback
+  useEffect(() => {
+    setOnAuthFailure(() => {
+      clearTokens();
+      setUser(null);
+    });
+    return () => setOnAuthFailure(null);
+  }, []);
 
-  const loginWithMagicToken = async (token: string) => {
-    await api.post("/auth/magic-link/validate/", { token });
+  const login = useCallback(async (email: string, password: string) => {
+    // Try JWT login first
+    try {
+      const tokens = await api.post<TokenResponse>("/auth/token/", {
+        email,
+        password,
+      });
+      setTokens(tokens.access, tokens.refresh);
+    } catch (err) {
+      // Bad credentials — re-throw immediately, don't fall back to session
+      if (err instanceof ApiError && (err.status === 400 || err.status === 401)) {
+        throw err;
+      }
+      // Network error or 404 (JWT endpoint not deployed) — fall back to session login
+      await api.post("/auth/login/", { email, password });
+    }
     await fetchUser();
-  };
+  }, [fetchUser]);
 
-  const logout = async () => {
-    await api.post("/auth/logout/");
+  const loginWithMagicToken = useCallback(async (token: string) => {
+    const response = await api.post<MagicLinkTokenResponse>(
+      "/auth/magic-link/validate/",
+      { token },
+    );
+    if (response.access && response.refresh) {
+      setTokens(response.access, response.refresh);
+    }
+    setUser(response.user);
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await api.post("/auth/logout/");
+    } catch {
+      // Ignore logout errors
+    }
+    clearTokens();
     setUser(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider

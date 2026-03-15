@@ -1,4 +1,6 @@
 from django.http import FileResponse
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers as drf_serializers
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -9,7 +11,9 @@ from common.pagination import StandardPagination
 
 from . import selectors, services
 from .models import DocumentTemplate, GeneratedDocument
+from .builders import DocumentBuilderRegistry
 from .serializers import (
+    AssembleDocumentInputSerializer,
     ConvertPDFInputSerializer,
     DocumentTemplateCreateInputSerializer,
     DocumentTemplateOutputSerializer,
@@ -56,6 +60,11 @@ class DocumentTemplateViewSet(ModelViewSet):
         output = DocumentTemplateOutputSerializer(template)
         return Response(output.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        summary="Toggle template active status",
+        request=None,
+        responses={200: DocumentTemplateOutputSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="toggle-active")
     def toggle_active(self, request, pk=None):
         """POST /templates/<id>/toggle-active/ - Activate or deactivate a template."""
@@ -82,6 +91,11 @@ class GeneratedDocumentViewSet(ViewSet):
             return ConvertPDFInputSerializer
         return GeneratedDocumentOutputSerializer
 
+    @extend_schema(
+        summary="Generate a document from a template",
+        request=GenerateDocumentInputSerializer,
+        responses={201: GeneratedDocumentOutputSerializer},
+    )
     def create(self, request):
         """POST /generate/ - Dispatch document generation."""
         serializer = GenerateDocumentInputSerializer(data=request.data)
@@ -96,6 +110,10 @@ class GeneratedDocumentViewSet(ViewSet):
         output = GeneratedDocumentOutputSerializer(document)
         return Response(output.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        summary="Retrieve a generated document",
+        responses={200: GeneratedDocumentOutputSerializer},
+    )
     def retrieve(self, request, pk=None):
         """GET /generated/<id>/ - Retrieve a generated document."""
         try:
@@ -110,6 +128,10 @@ class GeneratedDocumentViewSet(ViewSet):
         output = GeneratedDocumentOutputSerializer(document)
         return Response(output.data)
 
+    @extend_schema(
+        summary="List generated documents",
+        responses={200: GeneratedDocumentOutputSerializer(many=True)},
+    )
     def list(self, request):
         """GET /generated/ - List generated documents, filtered by ticket."""
         ticket_id = request.query_params.get("ticket_id")
@@ -129,6 +151,19 @@ class GeneratedDocumentViewSet(ViewSet):
         serializer = GeneratedDocumentOutputSerializer(documents, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Convert a generated document to PDF",
+        request=ConvertPDFInputSerializer,
+        responses={
+            202: inline_serializer(
+                name="ConvertPDFResponse",
+                fields={
+                    "detail": drf_serializers.CharField(),
+                    "document_id": drf_serializers.CharField(),
+                },
+            ),
+        },
+    )
     @action(detail=True, methods=["post"], url_path="convert-pdf")
     def convert_pdf(self, request, pk=None):
         """POST /generated/<id>/convert-pdf/ - Dispatch Celery task for Gotenberg conversion."""
@@ -146,6 +181,10 @@ class GeneratedDocumentViewSet(ViewSet):
             status=status.HTTP_202_ACCEPTED,
         )
 
+    @extend_schema(
+        summary="Download a generated document file",
+        responses={(200, "application/octet-stream"): bytes},
+    )
     @action(detail=True, methods=["get"])
     def download(self, request, pk=None):
         """GET /generated/<id>/download/ - Return the file as a download response."""
@@ -166,3 +205,58 @@ class GeneratedDocumentViewSet(ViewSet):
             f'attachment; filename="{file.name.split("/")[-1]}"'
         )
         return response
+
+
+class AssembleDocumentViewSet(ViewSet):
+    """Endpoints for the Document Assembly Engine.
+
+    POST /documents/assemble/          - assemble a document using a registered builder
+    GET  /documents/assemble/builders/  - list available builder names
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return AssembleDocumentInputSerializer
+        return GeneratedDocumentOutputSerializer
+
+    @extend_schema(
+        summary="Assemble a document using a registered builder",
+        request=AssembleDocumentInputSerializer,
+        responses={201: GeneratedDocumentOutputSerializer},
+    )
+    def create(self, request):
+        """POST /documents/assemble/ - Build and persist a DOCX document."""
+        serializer = AssembleDocumentInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        document = services.assemble_document(
+            ticket_id=serializer.validated_data["ticket_id"],
+            builder_name=serializer.validated_data["builder_name"],
+            context_data=serializer.validated_data["context_data"],
+            generated_by=request.user,
+        )
+        output = GeneratedDocumentOutputSerializer(document)
+        return Response(output.data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        summary="List available document builders",
+        responses={
+            200: inline_serializer(
+                name="BuilderListResponse",
+                fields={
+                    "builders": drf_serializers.ListField(
+                        child=drf_serializers.CharField()
+                    ),
+                },
+            ),
+        },
+    )
+    @action(detail=False, methods=["get"])
+    def builders(self, request):
+        """GET /documents/assemble/builders/ - Return names of all registered builders."""
+        return Response(
+            {"builders": DocumentBuilderRegistry.list_builders()},
+            status=status.HTTP_200_OK,
+        )

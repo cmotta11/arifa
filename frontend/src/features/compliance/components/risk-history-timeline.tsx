@@ -4,6 +4,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RiskAssessment } from "@/types";
 import { useKYCRiskHistory } from "../api/compliance-api";
+import { formatDateTime } from "@/lib/format";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -20,16 +21,6 @@ const riskDotColor: Record<string, string> = {
   medium: "bg-yellow-500",
   high: "bg-red-500",
 };
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Props
@@ -154,7 +145,7 @@ function TimelineEntry({ assessment, scoreDelta, isLast, isCurrent }: TimelineEn
         <div
           className={`
             min-w-0 flex-1 rounded-lg border p-4
-            ${isCurrent ? "border-arifa-navy/20 bg-arifa-navy/5" : "border-gray-200 bg-white"}
+            ${isCurrent ? "border-primary/20 bg-primary/5" : "border-gray-200 bg-white"}
           `}
         >
           {/* Top row: score + badge + delta */}
@@ -174,11 +165,11 @@ function TimelineEntry({ assessment, scoreDelta, isLast, isCurrent }: TimelineEn
                 }`}
               >
                 {scoreDelta > 0 ? (
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" />
                   </svg>
                 ) : (
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
                   </svg>
                 )}
@@ -201,7 +192,7 @@ function TimelineEntry({ assessment, scoreDelta, isLast, isCurrent }: TimelineEn
                 })}
               </span>
             </span>
-            <time>{formatDate(assessment.assessed_at)}</time>
+            <time>{formatDateTime(assessment.assessed_at)}</time>
           </div>
 
           {/* Breakdown mini-summary */}

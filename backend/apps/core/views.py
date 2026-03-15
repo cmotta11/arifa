@@ -1,13 +1,18 @@
+from django.db.models import Q
+
+from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
 from rest_framework import serializers as drf_serializers
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from common.pagination import StandardPagination
 
 from . import selectors, services
+from .permissions import STAFF_ROLES, IsStaffOrReadOnlyOwn
 from .models import (
     ActivityCatalog,
     Client,
@@ -17,6 +22,7 @@ from .models import (
     EntityOfficer,
     Matter,
     Person,
+    SavedFilter,
     ShareClass,
     ShareIssuance,
     SourceOfFunds,
@@ -31,15 +37,20 @@ from .serializers import (
     ClientOutputSerializer,
     EntityActivityInputSerializer,
     EntityActivityOutputSerializer,
+    EntityAuditLogOutputSerializer,
     EntityInputSerializer,
     EntityOfficerInputSerializer,
     EntityOfficerOutputSerializer,
     EntityOutputSerializer,
+    GlobalSearchResultSerializer,
     MatterInputSerializer,
     MatterOutputSerializer,
+    PersonAuditLogOutputSerializer,
     PersonInputSerializer,
     PersonOutputSerializer,
     PersonSearchSerializer,
+    SavedFilterInputSerializer,
+    SavedFilterOutputSerializer,
     ShareClassInputSerializer,
     ShareClassOutputSerializer,
     ShareIssuanceInputSerializer,
@@ -52,9 +63,17 @@ from .serializers import (
 )
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List clients"),
+    retrieve=extend_schema(summary="Retrieve a client"),
+    create=extend_schema(summary="Create a client"),
+    update=extend_schema(summary="Update a client"),
+    partial_update=extend_schema(summary="Partially update a client"),
+    destroy=extend_schema(summary="Delete a client"),
+)
 class ClientViewSet(ModelViewSet):
     queryset = Client.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnlyOwn]
     pagination_class = StandardPagination
 
     def get_serializer_class(self):
@@ -64,6 +83,10 @@ class ClientViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        # Client-role users can only see their own client record
+        user = self.request.user
+        if user.role not in STAFF_ROLES and hasattr(user, "client") and user.client:
+            qs = qs.filter(id=user.client_id)
         client_type = self.request.query_params.get("client_type")
         if client_type:
             qs = selectors.get_clients_by_type(client_type=client_type)
@@ -89,23 +112,25 @@ class ClientViewSet(ModelViewSet):
         instance = self.get_object()
         serializer = ClientInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        for attr, value in serializer.validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = ClientOutputSerializer(instance)
-        return Response(output.data)
+        client = services.update_client(client_id=instance.id, **serializer.validated_data)
+        return Response(ClientOutputSerializer(client).data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = ClientInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        for attr, value in serializer.validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = ClientOutputSerializer(instance)
-        return Response(output.data)
+        client = services.update_client(client_id=instance.id, **serializer.validated_data)
+        return Response(ClientOutputSerializer(client).data)
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List client contacts"),
+    retrieve=extend_schema(summary="Retrieve a client contact"),
+    create=extend_schema(summary="Create a client contact"),
+    update=extend_schema(summary="Update a client contact"),
+    partial_update=extend_schema(summary="Partially update a client contact"),
+    destroy=extend_schema(summary="Delete a client contact"),
+)
 class ClientContactViewSet(ModelViewSet):
     queryset = ClientContact.objects.select_related("user").all()
     permission_classes = [IsAuthenticated]
@@ -136,11 +161,8 @@ class ClientContactViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         data.pop("client_id", None)
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = ClientContactOutputSerializer(instance)
-        return Response(output.data)
+        contact = services.update_client_contact(contact_id=instance.id, **data)
+        return Response(ClientContactOutputSerializer(contact).data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -148,28 +170,36 @@ class ClientContactViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         data.pop("client_id", None)
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = ClientContactOutputSerializer(instance)
-        return Response(output.data)
+        contact = services.update_client_contact(contact_id=instance.id, **data)
+        return Response(ClientContactOutputSerializer(contact).data)
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List entities"),
+    retrieve=extend_schema(summary="Retrieve an entity"),
+    create=extend_schema(summary="Create an entity"),
+    update=extend_schema(summary="Update an entity"),
+    partial_update=extend_schema(summary="Partially update an entity"),
+    destroy=extend_schema(summary="Delete an entity"),
+)
 class EntityViewSet(ModelViewSet):
     queryset = Entity.objects.select_related("client").all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnlyOwn]
     pagination_class = StandardPagination
 
     def get_serializer_class(self):
         if self.action in ("create", "update", "partial_update"):
             return EntityInputSerializer
         if self.action == "audit_log":
-            from .serializers import EntityAuditLogOutputSerializer
             return EntityAuditLogOutputSerializer
         return EntityOutputSerializer
 
     def get_queryset(self):
         qs = super().get_queryset()
+        # Client-role users can only see their own client's entities
+        user = self.request.user
+        if user.role not in STAFF_ROLES and hasattr(user, "client") and user.client:
+            qs = qs.filter(client_id=user.client_id)
         jurisdiction = self.request.query_params.get("jurisdiction")
         client_id = self.request.query_params.get("client_id")
         if jurisdiction:
@@ -191,59 +221,33 @@ class EntityViewSet(ModelViewSet):
         output = EntityOutputSerializer(entity)
         return Response(output.data, status=status.HTTP_201_CREATED)
 
-    def _snapshot_entity(self, instance):
-        return {
-            "name": instance.name,
-            "jurisdiction": instance.jurisdiction,
-            "incorporation_date": str(instance.incorporation_date) if instance.incorporation_date else None,
-            "status": instance.status,
-        }
-
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        old_data = self._snapshot_entity(instance)
         serializer = EntityInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        client_id = data.pop("client_id", None)
-        if client_id:
-            instance.client_id = client_id
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        new_data = self._snapshot_entity(instance)
-        services.log_entity_changes(
-            entity=instance, model_name="entity", old_data=old_data,
-            new_data=new_data, changed_by=request.user,
+        entity = services.update_entity(
+            entity_id=instance.id, changed_by=request.user, **serializer.validated_data
         )
-        output = EntityOutputSerializer(instance)
-        return Response(output.data)
+        return Response(EntityOutputSerializer(entity).data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        old_data = self._snapshot_entity(instance)
         serializer = EntityInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        client_id = data.pop("client_id", None)
-        if client_id:
-            instance.client_id = client_id
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        new_data = self._snapshot_entity(instance)
-        services.log_entity_changes(
-            entity=instance, model_name="entity", old_data=old_data,
-            new_data=new_data, changed_by=request.user,
+        entity = services.update_entity(
+            entity_id=instance.id, changed_by=request.user, **serializer.validated_data
         )
-        output = EntityOutputSerializer(instance)
-        return Response(output.data)
+        return Response(EntityOutputSerializer(entity).data)
 
+    @extend_schema(
+        summary="List audit log entries for an entity",
+        request=None,
+        responses={200: EntityAuditLogOutputSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="audit-log")
     def audit_log(self, request, pk=None):
         """Return paginated audit log entries for this entity."""
         from .models import EntityAuditLog
-        from .serializers import EntityAuditLogOutputSerializer
 
         entity = self.get_object()
         qs = EntityAuditLog.objects.filter(entity=entity).select_related(
@@ -264,11 +268,22 @@ class EntityViewSet(ModelViewSet):
         serializer = EntityAuditLogOutputSerializer(qs, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Get ownership tree and UBOs for an entity",
+        request=None,
+        responses={200: inline_serializer(
+            name="OwnershipTreeResponse",
+            fields={
+                "tree": drf_serializers.ListField(child=drf_serializers.DictField()),
+                "ubos": drf_serializers.ListField(child=drf_serializers.DictField()),
+            },
+        )},
+    )
     @action(detail=True, methods=["get"], url_path="ownership-tree")
     def ownership_tree(self, request, pk=None):
         entity = self.get_object()
-        tree = services.get_ownership_tree(entity.id)
-        ubos = services.compute_ubos(entity.id)
+        tree = services.get_ownership_tree(entity_id=entity.id)
+        ubos = services.compute_ubos(entity_id=entity.id)
 
         person_serializer = PersonOutputSerializer
 
@@ -299,9 +314,17 @@ class EntityViewSet(ModelViewSet):
         )
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List matters"),
+    retrieve=extend_schema(summary="Retrieve a matter"),
+    create=extend_schema(summary="Create a matter"),
+    update=extend_schema(summary="Update a matter"),
+    partial_update=extend_schema(summary="Partially update a matter"),
+    destroy=extend_schema(summary="Delete a matter"),
+)
 class MatterViewSet(ModelViewSet):
     queryset = Matter.objects.select_related("client", "entity").all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnlyOwn]
     pagination_class = StandardPagination
 
     def get_serializer_class(self):
@@ -311,6 +334,9 @@ class MatterViewSet(ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        user = self.request.user
+        if user.role not in STAFF_ROLES and hasattr(user, "client") and user.client:
+            qs = qs.filter(client_id=user.client_id)
         client_id = self.request.query_params.get("client_id")
         if client_id:
             qs = qs.filter(client_id=client_id)
@@ -330,42 +356,30 @@ class MatterViewSet(ModelViewSet):
         instance = self.get_object()
         serializer = MatterInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        client_id = data.pop("client_id", None)
-        entity_id = data.pop("entity_id", None)
-        if client_id:
-            instance.client_id = client_id
-        if entity_id is not None:
-            instance.entity_id = entity_id
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = MatterOutputSerializer(instance)
-        return Response(output.data)
+        matter = services.update_matter(matter_id=instance.id, **serializer.validated_data)
+        return Response(MatterOutputSerializer(matter).data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = MatterInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        client_id = data.pop("client_id", None)
-        entity_id = data.pop("entity_id", None)
-        if client_id:
-            instance.client_id = client_id
-        if entity_id is not None:
-            instance.entity_id = entity_id
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = MatterOutputSerializer(instance)
-        return Response(output.data)
+        matter = services.update_matter(matter_id=instance.id, **serializer.validated_data)
+        return Response(MatterOutputSerializer(matter).data)
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List persons"),
+    retrieve=extend_schema(summary="Retrieve a person"),
+    create=extend_schema(summary="Create a person"),
+    update=extend_schema(summary="Update a person"),
+    partial_update=extend_schema(summary="Partially update a person"),
+    destroy=extend_schema(summary="Delete a person"),
+)
 class PersonViewSet(ModelViewSet):
     queryset = Person.objects.select_related(
         "client", "nationality", "country_of_residence"
     ).all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnlyOwn]
     pagination_class = StandardPagination
 
     def get_serializer_class(self):
@@ -391,7 +405,6 @@ class PersonViewSet(ModelViewSet):
             qs = qs.filter(status=status_filter)
         search = self.request.query_params.get("search")
         if search:
-            from django.db.models import Q
             qs = qs.filter(Q(full_name__icontains=search) | Q(last_name__icontains=search))
         return qs
 
@@ -406,86 +419,33 @@ class PersonViewSet(ModelViewSet):
         output = PersonOutputSerializer(person)
         return Response(output.data, status=status.HTTP_201_CREATED)
 
-    def _snapshot_person(self, instance):
-        return {
-            "full_name": instance.full_name,
-            "last_name": instance.last_name,
-            "person_type": instance.person_type,
-            "nationality_id": str(instance.nationality_id) if instance.nationality_id else None,
-            "country_of_residence_id": str(instance.country_of_residence_id) if instance.country_of_residence_id else None,
-            "date_of_birth": str(instance.date_of_birth) if instance.date_of_birth else None,
-            "identification_number": instance.identification_number,
-            "identification_type": instance.identification_type,
-            "pep_status": instance.pep_status,
-            "status": instance.status,
-        }
-
-    def _apply_person_fk_updates(self, instance, data):
-        for key in ("client_id", "nationality_id", "country_of_residence_id"):
-            val = data.pop(key, None)
-            if val is not None:
-                setattr(instance, key, val)
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-
-    def _trigger_recalc_if_risk_fields_changed(self, old_data, new_data, person_id):
-        """Trigger risk recalculation if PEP, nationality, or residence changed."""
-        risk_fields = ("pep_status", "nationality_id", "country_of_residence_id")
-        changed = any(old_data.get(f) != new_data.get(f) for f in risk_fields)
-        if changed:
-            from apps.compliance.services import request_risk_recalculation
-            request_risk_recalculation(person_id=person_id)
-            # Also recalc entities this person is linked to
-            from apps.core.models import EntityOfficer, ShareIssuance
-            entity_ids = set()
-            entity_ids.update(
-                EntityOfficer.objects.filter(officer_person_id=person_id).values_list("entity_id", flat=True)
-            )
-            entity_ids.update(
-                ShareIssuance.objects.filter(shareholder_person_id=person_id).values_list("share_class__entity_id", flat=True)
-            )
-            for eid in entity_ids:
-                request_risk_recalculation(entity_id=eid)
-
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        old_data = self._snapshot_person(instance)
         serializer = PersonInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        self._apply_person_fk_updates(instance, data)
-        instance.save()
-        new_data = self._snapshot_person(instance)
-        services.log_person_changes(
-            person=instance, model_name="person", old_data=old_data,
-            new_data=new_data, changed_by=request.user,
+        person = services.update_person(
+            person_id=instance.id, changed_by=request.user, **serializer.validated_data
         )
-        self._trigger_recalc_if_risk_fields_changed(old_data, new_data, instance.id)
-        output = PersonOutputSerializer(instance)
-        return Response(output.data)
+        return Response(PersonOutputSerializer(person).data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        old_data = self._snapshot_person(instance)
         serializer = PersonInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        self._apply_person_fk_updates(instance, data)
-        instance.save()
-        new_data = self._snapshot_person(instance)
-        services.log_person_changes(
-            person=instance, model_name="person", old_data=old_data,
-            new_data=new_data, changed_by=request.user,
+        person = services.update_person(
+            person_id=instance.id, changed_by=request.user, **serializer.validated_data
         )
-        self._trigger_recalc_if_risk_fields_changed(old_data, new_data, instance.id)
-        output = PersonOutputSerializer(instance)
-        return Response(output.data)
+        return Response(PersonOutputSerializer(person).data)
 
+    @extend_schema(
+        summary="List audit log entries for a person",
+        request=None,
+        responses={200: PersonAuditLogOutputSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="audit-log")
     def audit_log(self, request, pk=None):
         """Return paginated audit log entries for this person."""
         from .models import PersonAuditLog
-        from .serializers import PersonAuditLogOutputSerializer
 
         person = self.get_object()
         qs = PersonAuditLog.objects.filter(person=person).select_related(
@@ -503,6 +463,11 @@ class PersonViewSet(ModelViewSet):
         serializer = PersonAuditLogOutputSerializer(qs, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Search persons by name",
+        request=None,
+        responses={200: PersonOutputSerializer(many=True)},
+    )
     @action(detail=False, methods=["get"])
     def search(self, request):
         query = request.query_params.get("q", "")
@@ -519,6 +484,14 @@ class PersonViewSet(ModelViewSet):
         return Response(serializer.data)
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List entity officers"),
+    retrieve=extend_schema(summary="Retrieve an entity officer"),
+    create=extend_schema(summary="Create an entity officer"),
+    update=extend_schema(summary="Update an entity officer"),
+    partial_update=extend_schema(summary="Partially update an entity officer"),
+    destroy=extend_schema(summary="Delete an entity officer"),
+)
 class EntityOfficerViewSet(ModelViewSet):
     queryset = EntityOfficer.objects.select_related(
         "entity",
@@ -594,6 +567,14 @@ class EntityOfficerViewSet(ModelViewSet):
         return Response(output.data)
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List share classes"),
+    retrieve=extend_schema(summary="Retrieve a share class"),
+    create=extend_schema(summary="Create a share class"),
+    update=extend_schema(summary="Update a share class"),
+    partial_update=extend_schema(summary="Partially update a share class"),
+    destroy=extend_schema(summary="Delete a share class"),
+)
 class ShareClassViewSet(ModelViewSet):
     queryset = ShareClass.objects.prefetch_related(
         "issuances__shareholder_person__client",
@@ -627,31 +608,25 @@ class ShareClassViewSet(ModelViewSet):
         instance = self.get_object()
         serializer = ShareClassInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        entity_id = data.pop("entity_id", None)
-        if entity_id:
-            instance.entity_id = entity_id
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = ShareClassOutputSerializer(instance)
-        return Response(output.data)
+        sc = services.update_share_class(share_class_id=instance.id, **serializer.validated_data)
+        return Response(ShareClassOutputSerializer(sc).data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = ShareClassInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        entity_id = data.pop("entity_id", None)
-        if entity_id:
-            instance.entity_id = entity_id
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = ShareClassOutputSerializer(instance)
-        return Response(output.data)
+        sc = services.update_share_class(share_class_id=instance.id, **serializer.validated_data)
+        return Response(ShareClassOutputSerializer(sc).data)
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List share issuances"),
+    retrieve=extend_schema(summary="Retrieve a share issuance"),
+    create=extend_schema(summary="Create a share issuance"),
+    update=extend_schema(summary="Update a share issuance"),
+    partial_update=extend_schema(summary="Partially update a share issuance"),
+    destroy=extend_schema(summary="Delete a share issuance"),
+)
 class ShareIssuanceViewSet(ModelViewSet):
     queryset = ShareIssuance.objects.select_related(
         "share_class",
@@ -689,33 +664,25 @@ class ShareIssuanceViewSet(ModelViewSet):
         instance = self.get_object()
         serializer = ShareIssuanceInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        for key in ("share_class_id", "shareholder_person_id", "shareholder_entity_id"):
-            val = data.pop(key, None)
-            if val is not None:
-                setattr(instance, key, val)
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = ShareIssuanceOutputSerializer(instance)
-        return Response(output.data)
+        issuance = services.update_share_issuance(
+            share_issuance_id=instance.id, **serializer.validated_data
+        )
+        return Response(ShareIssuanceOutputSerializer(issuance).data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = ShareIssuanceInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        for key in ("share_class_id", "shareholder_person_id", "shareholder_entity_id"):
-            val = data.pop(key, None)
-            if val is not None:
-                setattr(instance, key, val)
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = ShareIssuanceOutputSerializer(instance)
-        return Response(output.data)
+        issuance = services.update_share_issuance(
+            share_issuance_id=instance.id, **serializer.validated_data
+        )
+        return Response(ShareIssuanceOutputSerializer(issuance).data)
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List activity catalog entries"),
+    retrieve=extend_schema(summary="Retrieve an activity catalog entry"),
+)
 class ActivityCatalogViewSet(ModelViewSet):
     queryset = ActivityCatalog.objects.all()
     permission_classes = [IsAuthenticated]
@@ -726,6 +693,14 @@ class ActivityCatalogViewSet(ModelViewSet):
         return ActivityCatalogOutputSerializer
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List entity activities"),
+    retrieve=extend_schema(summary="Retrieve an entity activity"),
+    create=extend_schema(summary="Create an entity activity"),
+    update=extend_schema(summary="Update an entity activity"),
+    partial_update=extend_schema(summary="Partially update an entity activity"),
+    destroy=extend_schema(summary="Delete an entity activity"),
+)
 class EntityActivityViewSet(ModelViewSet):
     queryset = EntityActivity.objects.select_related("activity").prefetch_related("countries").all()
     permission_classes = [IsAuthenticated]
@@ -751,8 +726,6 @@ class EntityActivityViewSet(ModelViewSet):
         return Response(output.data, status=status.HTTP_201_CREATED)
 
     def _apply_update(self, instance, data):
-        from apps.compliance.models import JurisdictionRisk
-
         country_ids = data.pop("country_ids", None)
         for key in ("entity_id", "activity_id"):
             val = data.pop(key, None)
@@ -763,11 +736,9 @@ class EntityActivityViewSet(ModelViewSet):
         instance.save()
 
         if country_ids is not None:
-            jurisdictions = list(JurisdictionRisk.objects.filter(id__in=country_ids))
-            instance.countries.set(jurisdictions)
-            max_weight = max((j.risk_weight for j in jurisdictions), default=1)
-            instance.country_risk_level = services._risk_weight_to_level(max_weight)
-            instance.save(update_fields=["country_risk_level"])
+            services.update_record_country_risk(
+                instance=instance, country_ids=country_ids,
+            )
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -786,6 +757,10 @@ class EntityActivityViewSet(ModelViewSet):
         return Response(output.data)
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List source of funds catalog entries"),
+    retrieve=extend_schema(summary="Retrieve a source of funds catalog entry"),
+)
 class SourceOfFundsCatalogViewSet(ModelViewSet):
     queryset = SourceOfFundsCatalog.objects.all()
     permission_classes = [IsAuthenticated]
@@ -796,6 +771,14 @@ class SourceOfFundsCatalogViewSet(ModelViewSet):
         return SourceOfFundsCatalogOutputSerializer
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List sources of funds"),
+    retrieve=extend_schema(summary="Retrieve a source of funds"),
+    create=extend_schema(summary="Create a source of funds"),
+    update=extend_schema(summary="Update a source of funds"),
+    partial_update=extend_schema(summary="Partially update a source of funds"),
+    destroy=extend_schema(summary="Delete a source of funds"),
+)
 class SourceOfFundsViewSet(ModelViewSet):
     queryset = SourceOfFunds.objects.select_related("source").prefetch_related("countries").all()
     permission_classes = [IsAuthenticated]
@@ -821,8 +804,6 @@ class SourceOfFundsViewSet(ModelViewSet):
         return Response(output.data, status=status.HTTP_201_CREATED)
 
     def _apply_update(self, instance, data):
-        from apps.compliance.models import JurisdictionRisk
-
         country_ids = data.pop("country_ids", None)
         for key in ("entity_id", "source_id"):
             val = data.pop(key, None)
@@ -833,11 +814,9 @@ class SourceOfFundsViewSet(ModelViewSet):
         instance.save()
 
         if country_ids is not None:
-            jurisdictions = list(JurisdictionRisk.objects.filter(id__in=country_ids))
-            instance.countries.set(jurisdictions)
-            max_weight = max((j.risk_weight for j in jurisdictions), default=1)
-            instance.country_risk_level = services._risk_weight_to_level(max_weight)
-            instance.save(update_fields=["country_risk_level"])
+            services.update_record_country_risk(
+                instance=instance, country_ids=country_ids,
+            )
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -856,6 +835,14 @@ class SourceOfFundsViewSet(ModelViewSet):
         return Response(output.data)
 
 
+@extend_schema_view(
+    list=extend_schema(summary="List sources of wealth"),
+    retrieve=extend_schema(summary="Retrieve a source of wealth"),
+    create=extend_schema(summary="Create a source of wealth"),
+    update=extend_schema(summary="Update a source of wealth"),
+    partial_update=extend_schema(summary="Partially update a source of wealth"),
+    destroy=extend_schema(summary="Delete a source of wealth"),
+)
 class SourceOfWealthViewSet(ModelViewSet):
     queryset = SourceOfWealth.objects.all()
     permission_classes = [IsAuthenticated]
@@ -884,26 +871,186 @@ class SourceOfWealthViewSet(ModelViewSet):
         instance = self.get_object()
         serializer = SourceOfWealthInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        person_id = data.pop("person_id", None)
-        if person_id:
-            instance.person_id = person_id
-        for attr, value in data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        output = SourceOfWealthOutputSerializer(instance)
-        return Response(output.data)
+        sow = services.update_source_of_wealth(
+            source_of_wealth_id=instance.id, **serializer.validated_data
+        )
+        return Response(SourceOfWealthOutputSerializer(sow).data)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = SourceOfWealthInputSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+        sow = services.update_source_of_wealth(
+            source_of_wealth_id=instance.id, **serializer.validated_data
+        )
+        return Response(SourceOfWealthOutputSerializer(sow).data)
+
+
+# ---------------------------------------------------------------------------
+# Global Search
+# ---------------------------------------------------------------------------
+
+
+class GlobalSearchView(APIView):
+    """Cross-module search across entities, people, clients, and tickets."""
+
+    permission_classes = [IsAuthenticated]
+
+    RESULT_LIMIT = 5
+
+    @extend_schema(
+        summary="Global search across modules",
+        parameters=[
+            {
+                "name": "q",
+                "in": "query",
+                "required": True,
+                "schema": {"type": "string"},
+                "description": "Search query (min 2 characters)",
+            }
+        ],
+        responses={200: GlobalSearchResultSerializer(many=True)},
+    )
+    def get(self, request):
+        query = request.query_params.get("q", "").strip()
+        if len(query) < 2:
+            return Response({"results": []})
+
+        results = []
+
+        # Search entities by name
+        entities = Entity.objects.filter(
+            name__icontains=query,
+        ).select_related("client")[:self.RESULT_LIMIT]
+        for entity in entities:
+            results.append({
+                "id": str(entity.id),
+                "type": "entity",
+                "title": entity.name,
+                "subtitle": f"Entity - {entity.get_jurisdiction_display()}",
+                "url": f"/entities/{entity.id}",
+            })
+
+        # Search people by full_name, last_name
+        persons = Person.objects.filter(
+            Q(full_name__icontains=query) | Q(last_name__icontains=query),
+        )[:self.RESULT_LIMIT]
+        for person in persons:
+            results.append({
+                "id": str(person.id),
+                "type": "person",
+                "title": person.display_name,
+                "subtitle": f"Person - {person.get_person_type_display()}",
+                "url": f"/people/{person.id}",
+            })
+
+        # Search clients by name
+        clients = Client.objects.filter(
+            name__icontains=query,
+        )[:self.RESULT_LIMIT]
+        for client in clients:
+            results.append({
+                "id": str(client.id),
+                "type": "client",
+                "title": client.name,
+                "subtitle": f"Client - {client.get_client_type_display()}",
+                "url": f"/clients/{client.id}",
+            })
+
+        # Search tickets by title
+        from apps.workflow.models import Ticket
+
+        tickets = Ticket.objects.filter(
+            title__icontains=query,
+        ).select_related("current_state")[:self.RESULT_LIMIT]
+        for ticket in tickets:
+            results.append({
+                "id": str(ticket.id),
+                "type": "ticket",
+                "title": ticket.title,
+                "subtitle": f"Ticket - {ticket.current_state.name}",
+                "url": f"/tickets/{ticket.id}",
+            })
+
+        return Response({"results": results})
+
+
+# ---------------------------------------------------------------------------
+# Saved Filters
+# ---------------------------------------------------------------------------
+
+
+@extend_schema_view(
+    list=extend_schema(summary="List saved filters for the current user"),
+    retrieve=extend_schema(summary="Retrieve a saved filter"),
+    create=extend_schema(summary="Create a saved filter"),
+    update=extend_schema(summary="Update a saved filter"),
+    partial_update=extend_schema(summary="Partially update a saved filter"),
+    destroy=extend_schema(summary="Delete a saved filter"),
+)
+class SavedFilterViewSet(ModelViewSet):
+    """CRUD for user-scoped saved filters."""
+
+    queryset = SavedFilter.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ("create", "update", "partial_update"):
+            return SavedFilterInputSerializer
+        return SavedFilterOutputSerializer
+
+    def get_queryset(self):
+        qs = SavedFilter.objects.filter(user=self.request.user)
+        module = self.request.query_params.get("module")
+        if module:
+            qs = qs.filter(module=module)
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        serializer = SavedFilterInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        person_id = data.pop("person_id", None)
-        if person_id:
-            instance.person_id = person_id
+
+        # If this filter is set as default, clear other defaults in same module
+        if data.get("is_default"):
+            SavedFilter.objects.filter(
+                user=request.user, module=data["module"], is_default=True,
+            ).update(is_default=False)
+
+        saved_filter = SavedFilter.objects.create(user=request.user, **data)
+        return Response(
+            SavedFilterOutputSerializer(saved_filter).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = SavedFilterInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        if data.get("is_default"):
+            SavedFilter.objects.filter(
+                user=request.user, module=data["module"], is_default=True,
+            ).exclude(id=instance.id).update(is_default=False)
+
         for attr, value in data.items():
             setattr(instance, attr, value)
         instance.save()
-        output = SourceOfWealthOutputSerializer(instance)
-        return Response(output.data)
+        return Response(SavedFilterOutputSerializer(instance).data)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = SavedFilterInputSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        if data.get("is_default"):
+            SavedFilter.objects.filter(
+                user=request.user, module=instance.module, is_default=True,
+            ).exclude(id=instance.id).update(is_default=False)
+
+        for attr, value in data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return Response(SavedFilterOutputSerializer(instance).data)

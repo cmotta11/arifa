@@ -73,9 +73,9 @@ function StepIndicator({
                     text-sm font-medium transition-colors duration-150
                     ${
                       isCompleted
-                        ? "bg-arifa-navy text-white"
+                        ? "bg-primary text-white"
                         : isCurrent
-                          ? "border-2 border-arifa-navy bg-white text-arifa-navy"
+                          ? "border-2 border-primary bg-white text-primary"
                           : "border-2 border-gray-300 bg-white text-gray-500"
                     }
                   `}
@@ -86,6 +86,7 @@ function StepIndicator({
                       className="h-4 w-4"
                       fill="currentColor"
                       viewBox="0 0 20 20"
+                      aria-hidden="true"
                     >
                       <path
                         fillRule="evenodd"
@@ -100,7 +101,7 @@ function StepIndicator({
                 {index < steps.length - 1 && (
                   <div
                     className={`ml-2 hidden h-0.5 flex-1 sm:block ${
-                      isCompleted ? "bg-arifa-navy" : "bg-gray-300"
+                      isCompleted ? "bg-primary" : "bg-gray-300"
                     }`}
                   />
                 )}
@@ -108,9 +109,9 @@ function StepIndicator({
               <span
                 className={`mt-2 hidden text-xs sm:block ${
                   isCurrent
-                    ? "font-semibold text-arifa-navy"
+                    ? "font-semibold text-primary"
                     : isCompleted
-                      ? "text-arifa-navy"
+                      ? "text-primary"
                       : "text-gray-500"
                 }`}
               >
@@ -334,6 +335,7 @@ function DocumentsStep({ kycId }: { kycId: string }) {
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                   strokeWidth={1.5}
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -391,6 +393,7 @@ function DocumentUploadArea({
         viewBox="0 0 24 24"
         stroke="currentColor"
         strokeWidth={1.5}
+        aria-hidden="true"
       >
         <path
           strokeLinecap="round"
@@ -401,7 +404,7 @@ function DocumentUploadArea({
       <div className="mt-3">
         <label
           htmlFor={`file-upload-${kycId}`}
-          className="cursor-pointer text-sm font-medium text-arifa-navy hover:text-arifa-navy/80"
+          className="cursor-pointer text-sm font-medium text-primary hover:text-primary/80"
         >
           {t("documents.uploadLabel")}
           <input

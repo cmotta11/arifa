@@ -113,7 +113,7 @@ def get_ticket_logs(*, ticket_id):
             "changed_by", "previous_state", "new_state"
         )
         .filter(ticket_id=ticket_id)
-        .order_by("-timestamp")
+        .order_by("-created_at")
     )
 
 

@@ -17,11 +17,17 @@ class UserOutputSerializer(serializers.ModelSerializer):
 
 
 class RegisterInputSerializer(serializers.Serializer):
+    """Public self-registration — only 'client' role is allowed."""
+
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
-    role = serializers.ChoiceField(choices=ROLE_CHOICES)
     first_name = serializers.CharField(required=False, default="", allow_blank=True)
     last_name = serializers.CharField(required=False, default="", allow_blank=True)
+
+    def validate(self, attrs):
+        # Public registration is always client role — prevent privilege escalation
+        attrs["role"] = "client"
+        return attrs
 
     def create(self, validated_data):
         raise NotImplementedError("Use the register_user service instead.")

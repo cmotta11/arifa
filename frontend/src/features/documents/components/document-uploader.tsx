@@ -138,7 +138,7 @@ export function DocumentUploader({
           <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
             <div className="flex items-center gap-3">
               <svg
-                className="h-8 w-8 text-arifa-navy"
+                className="h-8 w-8 text-primary"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -216,7 +216,7 @@ export function DocumentUploader({
               type="checkbox"
               checked={runExtraction}
               onChange={(e) => setRunExtraction(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-arifa-navy focus:ring-arifa-navy"
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
             />
             {t("documents.upload.runExtraction")}
           </label>

@@ -5,20 +5,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ROUTES } from "@/config/routes";
-import type { KYCSubmission } from "@/types";
 import { usePortalKYCList } from "../api/portal-api";
-
-const STATUS_BADGE_COLOR: Record<
-  KYCSubmission["status"],
-  "gray" | "blue" | "yellow" | "green" | "red"
-> = {
-  draft: "gray",
-  submitted: "blue",
-  under_review: "yellow",
-  sent_back: "yellow",
-  approved: "green",
-  rejected: "red",
-};
+import { kycStatusColorMap } from "@/config/status-colors";
 
 export default function PortalDashboard() {
   const { t } = useTranslation();
@@ -86,7 +74,7 @@ export default function PortalDashboard() {
                       })}
                     </p>
                   </div>
-                  <Badge color={STATUS_BADGE_COLOR[kyc.status]}>
+                  <Badge color={kycStatusColorMap[kyc.status] ?? "gray"}>
                     {kyc.status.replace("_", " ")}
                   </Badge>
                 </div>

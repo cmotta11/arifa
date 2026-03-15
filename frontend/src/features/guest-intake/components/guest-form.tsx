@@ -53,16 +53,16 @@ const STEPS: { step: Step; labelKey: string }[] = [
   { step: 5, labelKey: "guest.steps.documentsReview" },
 ];
 
-const POSITION_OPTIONS = [
-  { value: "director", label: "Director" },
-  { value: "president", label: "President" },
-  { value: "secretary", label: "Secretary" },
-  { value: "treasurer", label: "Treasurer" },
-  { value: "registered_agent", label: "Registered Agent" },
-  { value: "protector", label: "Protector" },
-  { value: "authorized_signatory", label: "Authorized Signatory" },
-  { value: "other", label: "Other" },
-];
+const POSITION_KEYS = [
+  { value: "director", labelKey: "entities.officers.positions.director" },
+  { value: "president", labelKey: "entities.officers.positions.president" },
+  { value: "secretary", labelKey: "entities.officers.positions.secretary" },
+  { value: "treasurer", labelKey: "entities.officers.positions.treasurer" },
+  { value: "registered_agent", labelKey: "entities.officers.positions.registered_agent" },
+  { value: "protector", labelKey: "entities.officers.positions.protector" },
+  { value: "authorized_signatory", labelKey: "entities.officers.positions.authorized_signatory" },
+  { value: "other", labelKey: "entities.officers.positions.other" },
+] as const;
 
 const DOC_TYPE_OPTIONS: Array<{
   value: DocumentUpload["document_type"];
@@ -406,9 +406,9 @@ function ProgressBar({ currentStep, onStepClick }: { currentStep: Step; onStepCl
                 <span
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors duration-150 ${
                     isCompleted
-                      ? "bg-arifa-navy text-white"
+                      ? "bg-primary text-white"
                       : isActive
-                        ? "border-2 border-arifa-navy bg-white text-arifa-navy"
+                        ? "border-2 border-primary bg-white text-primary"
                         : "border-2 border-gray-300 bg-white text-gray-400"
                   }`}
                 >
@@ -420,13 +420,13 @@ function ProgressBar({ currentStep, onStepClick }: { currentStep: Step; onStepCl
                     s.step
                   )}
                 </span>
-                <span className={`mt-2 text-xs font-medium ${isActive ? "text-arifa-navy" : isCompleted ? "text-gray-700" : "text-gray-400"}`}>
+                <span className={`mt-2 text-xs font-medium ${isActive ? "text-primary" : isCompleted ? "text-gray-700" : "text-gray-400"}`}>
                   {t(s.labelKey)}
                 </span>
               </button>
               {index < STEPS.length - 1 && (
                 <div
-                  className={`absolute right-0 top-4 h-0.5 w-full -translate-y-1/2 ${isCompleted ? "bg-arifa-navy" : "bg-gray-200"}`}
+                  className={`absolute right-0 top-4 h-0.5 w-full -translate-y-1/2 ${isCompleted ? "bg-primary" : "bg-gray-200"}`}
                   style={{ left: "calc(50% + 16px)", width: "calc(100% - 32px)" }}
                 />
               )}
@@ -519,16 +519,16 @@ function StepGeneral({
 
 // ─── Step 2: Officers & Directors ───────────────────────────────────────────
 
-const PERSON_TYPE_OPTIONS = [
-  { value: "natural", label: "Natural" },
-  { value: "corporate", label: "Corporate" },
-];
+const PERSON_TYPE_KEYS = [
+  { value: "natural", labelKey: "people.form.natural" },
+  { value: "corporate", labelKey: "people.form.corporate" },
+] as const;
 
-const ID_TYPE_OPTIONS = [
-  { value: "passport", label: "Passport" },
-  { value: "cedula", label: "Cedula" },
-  { value: "corporate_registry", label: "Corporate Registry" },
-];
+const ID_TYPE_KEYS = [
+  { value: "passport", labelKey: "people.documentTypes.passport" },
+  { value: "cedula", labelKey: "people.documentTypes.cedula" },
+  { value: "corporate_registry", labelKey: "people.documentTypes.corporateRegistry" },
+] as const;
 
 function StepOfficers({
   officers,
@@ -670,7 +670,7 @@ function StepOfficers({
             type="checkbox"
             checked={nominalDirectors}
             onChange={(e) => onNominalDirectorsChange(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-arifa-navy"
+            className="h-4 w-4 rounded border-gray-300 text-primary"
           />
           {t("guest.nominalDirectors.toggle")}
         </label>
@@ -736,7 +736,7 @@ function StepOfficers({
                     </div>
                     <Select
                       label={t("people.form.personType")}
-                      options={PERSON_TYPE_OPTIONS}
+                      options={PERSON_TYPE_KEYS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
                       value={personForm.person_type}
                       onChange={(e) => setPersonForm((f) => ({ ...f, person_type: e.target.value }))}
                     />
@@ -763,7 +763,7 @@ function StepOfficers({
                     <div className="grid grid-cols-2 gap-3">
                       <Select
                         label={t("people.form.idType")}
-                        options={[{ value: "", label: "—" }, ...ID_TYPE_OPTIONS]}
+                        options={[{ value: "", label: "—" }, ...ID_TYPE_KEYS.map((o) => ({ value: o.value, label: t(o.labelKey) }))]}
                         value={personForm.identification_type}
                         onChange={(e) => setPersonForm((f) => ({ ...f, identification_type: e.target.value }))}
                       />
@@ -778,7 +778,7 @@ function StepOfficers({
                         type="checkbox"
                         checked={personForm.pep_status}
                         onChange={(e) => setPersonForm((f) => ({ ...f, pep_status: e.target.checked }))}
-                        className="h-4 w-4 rounded border-gray-300 text-arifa-navy"
+                        className="h-4 w-4 rounded border-gray-300 text-primary"
                       />
                       {t("people.form.pepStatus")}
                     </label>
@@ -806,14 +806,14 @@ function StepOfficers({
                       <button
                         type="button"
                         onClick={() => handleStartQuickCreate(idx)}
-                        className="mt-1 text-xs font-medium text-arifa-navy hover:underline"
+                        className="mt-1 text-xs font-medium text-primary hover:underline"
                       >
                         + {t("people.quickCreate.title")}
                       </button>
                     </div>
                     <Select
                       label={t("entities.officers.position")}
-                      options={POSITION_OPTIONS}
+                      options={POSITION_KEYS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
                       value={officer.positions[0] ?? "director"}
                       onChange={(e) => handleUpdate(idx, "positions", [e.target.value])}
                     />
@@ -977,7 +977,7 @@ function StepShares({
         <button
           type="button"
           onClick={() => setShowClassForm(true)}
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-arifa-navy text-white hover:bg-arifa-navy/90"
+          className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -1020,7 +1020,7 @@ function StepShares({
               type="checkbox"
               checked={classForm.voting_rights}
               onChange={(e) => setClassForm((f) => ({ ...f, voting_rights: e.target.checked }))}
-              className="h-4 w-4 rounded border-gray-300 text-arifa-navy"
+              className="h-4 w-4 rounded border-gray-300 text-primary"
             />
             {t("entities.shareRegister.votingRights")}
           </label>
@@ -1144,7 +1144,7 @@ function StepShares({
                         type="checkbox"
                         checked={issuanceForm.is_jtwros}
                         onChange={(e) => setIssuanceForm((f) => ({ ...f, is_jtwros: e.target.checked, jtwros_partner_name: e.target.checked ? f.jtwros_partner_name : "" }))}
-                        className="h-4 w-4 rounded border-gray-300 text-arifa-navy"
+                        className="h-4 w-4 rounded border-gray-300 text-primary"
                       />
                       {t("entities.shareRegister.isJtwros")}
                     </label>
@@ -1165,7 +1165,7 @@ function StepShares({
                         type="checkbox"
                         checked={issuanceForm.is_trustee}
                         onChange={(e) => setIssuanceForm((f) => ({ ...f, is_trustee: e.target.checked, trustee_for: e.target.checked ? f.trustee_for : "" }))}
-                        className="h-4 w-4 rounded border-gray-300 text-arifa-navy"
+                        className="h-4 w-4 rounded border-gray-300 text-primary"
                       />
                       {t("entities.shareRegister.isTrustee")}
                     </label>
@@ -1193,7 +1193,7 @@ function StepShares({
                 <button
                   type="button"
                   onClick={() => { resetIssuanceForm(); setIssuanceForClassIdx(scIdx); }}
-                  className="mt-2 text-xs font-medium text-arifa-navy hover:underline"
+                  className="mt-2 text-xs font-medium text-primary hover:underline"
                 >
                   + {t("entities.shareRegister.addIssuance")}
                 </button>
@@ -1314,7 +1314,7 @@ function StepRiskProfile({
           <button
             type="button"
             onClick={() => setShowActivityForm(true)}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-arifa-navy text-white hover:bg-arifa-navy/90"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -1350,7 +1350,7 @@ function StepRiskProfile({
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">{t("entities.activities.description")}</label>
               <textarea
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-arifa-navy focus:ring-1 focus:ring-arifa-navy"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
                 rows={2}
                 value={activityForm.description}
                 onChange={(e) => setActivityForm((f) => ({ ...f, description: e.target.value }))}
@@ -1407,7 +1407,7 @@ function StepRiskProfile({
           <button
             type="button"
             onClick={() => setShowSofForm(true)}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-arifa-navy text-white hover:bg-arifa-navy/90"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -1443,7 +1443,7 @@ function StepRiskProfile({
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">{t("entities.sourcesOfFunds.description")}</label>
               <textarea
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-arifa-navy focus:ring-1 focus:ring-arifa-navy"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
                 rows={2}
                 value={sofForm.description}
                 onChange={(e) => setSofForm((f) => ({ ...f, description: e.target.value }))}

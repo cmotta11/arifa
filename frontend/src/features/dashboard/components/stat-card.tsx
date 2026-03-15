@@ -11,7 +11,7 @@ export function StatCard({ title, value, icon, className = "" }: StatCardProps) 
   return (
     <Card className={`flex items-start gap-4 ${className}`}>
       {icon && (
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-arifa-navy/10 text-arifa-navy">
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           {icon}
         </div>
       )}

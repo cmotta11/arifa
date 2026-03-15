@@ -29,6 +29,9 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.microsoft",
     "django_celery_beat",
+    "drf_spectacular",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
 ]
 
 LOCAL_APPS = [
@@ -37,6 +40,10 @@ LOCAL_APPS = [
     "apps.workflow",
     "apps.compliance",
     "apps.documents",
+    "apps.rpa",
+    "apps.notifications",
+    "apps.services_platform",
+    "apps.ai_assistant",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -126,6 +133,7 @@ MEDIA_ROOT = BASE_DIR / "mediafiles"
 # ---------- DRF ----------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
@@ -136,9 +144,40 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "common.pagination.StandardPagination",
     "PAGE_SIZE": 25,
     "EXCEPTION_HANDLER": "common.exceptions.custom_exception_handler",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "10/minute",
+        "registration": "5/hour",
+    },
+}
+
+# ---------- drf-spectacular ----------
+SPECTACULAR_SETTINGS = {
+    "TITLE": "ARIFA API",
+    "DESCRIPTION": "Legal services platform API for client onboarding, KYC compliance, workflow management, and document generation.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": r"/api/v1/",
+}
+
+# ---------- Simple JWT ----------
+from datetime import timedelta  # noqa: E402
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
 }
 
 # ---------- CORS ----------
@@ -166,11 +205,22 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "America/Panama"
+CELERY_TASK_ROUTES = {
+    "apps.rpa.tasks.*": {"queue": "rpa"},
+}
 
 CELERY_BEAT_SCHEDULE = {
     "recalculate-risks-weekly": {
         "task": "apps.compliance.tasks.recalculate_all_risks",
         "schedule": 604800.0,  # Weekly (seconds) - overridden by crontab in prod
+    },
+    "process-reminders": {
+        "task": "apps.notifications.tasks.process_reminders",
+        "schedule": 900.0,  # Every 15 minutes
+    },
+    "send-daily-digest": {
+        "task": "apps.notifications.tasks.send_daily_digest",
+        "schedule": 3600.0,  # Hourly (task checks digest_hour per user)
     },
 }
 
@@ -201,10 +251,16 @@ LLM_API_URL = os.environ.get("LLM_API_URL", "")
 LLM_AUTH_TYPE = os.environ.get("LLM_AUTH_TYPE", "bearer")
 LLM_MODEL_NAME = os.environ.get("LLM_MODEL_NAME", "gpt-4o")
 
-# ---------- Aderant ERP ----------
+# ---------- Aderant ERP (REST) ----------
 ADERANT_API_URL = os.environ.get("ADERANT_API_URL", "")
 ADERANT_API_KEY = os.environ.get("ADERANT_API_KEY", "")
 ADERANT_API_SECRET = os.environ.get("ADERANT_API_SECRET", "")
+
+# ---------- Aderant ERP (SOAP) ----------
+ADERANT_SOAP_WSDL_URL = os.environ.get("ADERANT_SOAP_WSDL_URL", "")
+ADERANT_SOAP_USERNAME = os.environ.get("ADERANT_SOAP_USERNAME", "")
+ADERANT_SOAP_PASSWORD = os.environ.get("ADERANT_SOAP_PASSWORD", "")
+ADERANT_SOAP_DOMAIN = os.environ.get("ADERANT_SOAP_DOMAIN", "")
 
 # ---------- Gotenberg ----------
 GOTENBERG_URL = os.environ.get("GOTENBERG_URL", "http://gotenberg:3000")
@@ -220,3 +276,9 @@ EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "25"))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "False").lower() == "true"
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+
+# ---------- AI Assistant ----------
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+AI_MODEL = os.environ.get("AI_MODEL", "claude-haiku-4-5-20251001")
+AI_MAX_TOKENS = int(os.environ.get("AI_MAX_TOKENS", "1024"))
+AI_MOCK_MODE = os.environ.get("AI_MOCK_MODE", "true").lower() == "true"  # Mock by default

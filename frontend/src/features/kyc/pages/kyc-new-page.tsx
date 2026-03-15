@@ -84,7 +84,7 @@ export default function KYCNewPage() {
         <button
           type="button"
           onClick={() => setCreatedKycId(null)}
-          className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-arifa-navy"
+          className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-primary"
         >
           <svg
             className="h-4 w-4"
@@ -92,6 +92,7 @@ export default function KYCNewPage() {
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -127,7 +128,7 @@ export default function KYCNewPage() {
       <button
         type="button"
         onClick={() => navigate(ROUTES.KYC)}
-        className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-arifa-navy"
+        className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-primary"
       >
         <svg
           className="h-4 w-4"

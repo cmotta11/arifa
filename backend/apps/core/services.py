@@ -24,6 +24,15 @@ from .models import (
 )
 
 
+def _values_differ(old, new):
+    """Compare two values for audit logging, treating None and "" as equivalent."""
+    if old is None and new == "":
+        return False
+    if old == "" and new is None:
+        return False
+    return old != new
+
+
 def log_entity_changes(
     *,
     entity,
@@ -37,8 +46,7 @@ def log_entity_changes(
     """Compare old_data and new_data dicts, create audit entries for each difference."""
     for field, new_val in new_data.items():
         old_val = old_data.get(field)
-        # Normalize for comparison
-        if str(old_val) != str(new_val):
+        if _values_differ(old_val, new_val):
             EntityAuditLog.objects.create(
                 entity=entity,
                 model_name=model_name,
@@ -65,7 +73,7 @@ def log_person_changes(
     """Compare old_data and new_data dicts, create audit entries for each difference."""
     for field, new_val in new_data.items():
         old_val = old_data.get(field)
-        if str(old_val) != str(new_val):
+        if _values_differ(old_val, new_val):
             PersonAuditLog.objects.create(
                 person=person,
                 model_name=model_name,
@@ -308,12 +316,28 @@ def create_source_of_funds(
     return sof
 
 
+def update_record_country_risk(*, instance, country_ids):
+    """Update countries and compute country_risk_level for an EntityActivity or SourceOfFunds.
+
+    Args:
+        instance: An EntityActivity or SourceOfFunds model instance.
+        country_ids: List of JurisdictionRisk IDs to set as countries.
+    """
+    from apps.compliance.models import JurisdictionRisk
+
+    jurisdictions = list(JurisdictionRisk.objects.filter(id__in=country_ids))
+    instance.countries.set(jurisdictions)
+    max_weight = max((j.risk_weight for j in jurisdictions), default=1)
+    instance.country_risk_level = _risk_weight_to_level(max_weight)
+    instance.save(update_fields=["country_risk_level"])
+
+
 # ---------------------------------------------------------------------------
 # Ownership tree & UBO computation
 # ---------------------------------------------------------------------------
 
 
-def get_ownership_tree(entity_id, *, _depth=0, _max_depth=5, _visited=None):
+def get_ownership_tree(*, entity_id, _depth=0, _max_depth=5, _visited=None):
     """Recursively build ownership tree for an entity.
 
     Returns a list of shareholder nodes.  Each node is a dict:
@@ -382,7 +406,7 @@ def get_ownership_tree(entity_id, *, _depth=0, _max_depth=5, _visited=None):
             )
         elif data["entity"]:
             children = get_ownership_tree(
-                data["entity"].id,
+                entity_id=data["entity"].id,
                 _depth=_depth + 1,
                 _max_depth=_max_depth,
                 _visited=_visited,
@@ -400,7 +424,7 @@ def get_ownership_tree(entity_id, *, _depth=0, _max_depth=5, _visited=None):
     return nodes
 
 
-def compute_ubos(entity_id, *, threshold=25.0):
+def compute_ubos(*, entity_id, threshold=25.0):
     """Walk the ownership tree and return natural persons with effective ownership >= threshold.
 
     Returns list of dicts:
@@ -410,7 +434,7 @@ def compute_ubos(entity_id, *, threshold=25.0):
             "via": [str, ...],  # chain of entity names (empty for direct)
         }
     """
-    tree = get_ownership_tree(entity_id)
+    tree = get_ownership_tree(entity_id=entity_id)
     ubo_map: dict[str, dict] = {}
 
     def _walk(nodes, parent_fraction=1.0, chain=None):
@@ -510,3 +534,188 @@ def update_client_contact(*, contact_id, **data) -> ClientContact:
 @transaction.atomic
 def delete_client_contact(*, contact_id) -> None:
     ClientContact.objects.filter(id=contact_id).delete()
+
+
+# ---------------------------------------------------------------------------
+# Update services (P1-09: service layer for view updates)
+# ---------------------------------------------------------------------------
+
+
+@transaction.atomic
+def update_client(*, client_id, **data) -> Client:
+    client = Client.objects.get(id=client_id)
+    allowed_fields = {"aderant_client_id", "name", "client_type", "category", "status"}
+    for field, value in data.items():
+        if field in allowed_fields:
+            setattr(client, field, value)
+    client.save()
+    return client
+
+
+def snapshot_entity(entity) -> dict:
+    """Snapshot entity fields for audit comparison."""
+    return {
+        "name": entity.name,
+        "jurisdiction": entity.jurisdiction,
+        "incorporation_date": str(entity.incorporation_date) if entity.incorporation_date else None,
+        "status": entity.status,
+    }
+
+
+@transaction.atomic
+def update_entity(*, entity_id, changed_by, **data) -> Entity:
+    entity = Entity.objects.get(id=entity_id)
+    old_data = snapshot_entity(entity)
+
+    client_id = data.pop("client_id", None)
+    if client_id:
+        entity.client_id = client_id
+
+    allowed_fields = {
+        "name", "jurisdiction", "incorporation_date", "status",
+        "nominal_directors_requested", "ubo_exception_type",
+    }
+    for attr, value in data.items():
+        if attr in allowed_fields:
+            setattr(entity, attr, value)
+    entity.save()
+
+    new_data = snapshot_entity(entity)
+    log_entity_changes(
+        entity=entity,
+        model_name="entity",
+        old_data=old_data,
+        new_data=new_data,
+        changed_by=changed_by,
+    )
+    return entity
+
+
+@transaction.atomic
+def update_matter(*, matter_id, **data) -> Matter:
+    matter = Matter.objects.get(id=matter_id)
+    client_id = data.pop("client_id", None)
+    entity_id = data.pop("entity_id", None)
+    if client_id:
+        matter.client_id = client_id
+    if entity_id is not None:
+        matter.entity_id = entity_id
+    allowed_fields = {"description", "status", "aderant_matter_id"}
+    for attr, value in data.items():
+        if attr in allowed_fields:
+            setattr(matter, attr, value)
+    matter.save()
+    return matter
+
+
+def snapshot_person(person) -> dict:
+    """Snapshot person fields for audit comparison."""
+    return {
+        "full_name": person.full_name,
+        "last_name": person.last_name,
+        "person_type": person.person_type,
+        "nationality_id": str(person.nationality_id) if person.nationality_id else None,
+        "country_of_residence_id": str(person.country_of_residence_id) if person.country_of_residence_id else None,
+        "date_of_birth": str(person.date_of_birth) if person.date_of_birth else None,
+        "identification_number": person.identification_number,
+        "identification_type": person.identification_type,
+        "pep_status": person.pep_status,
+        "status": person.status,
+    }
+
+
+def trigger_recalc_if_risk_fields_changed(old_data, new_data, person_id):
+    """Trigger risk recalculation if PEP, nationality, or residence changed."""
+    from apps.compliance.services import request_risk_recalculation
+
+    risk_fields = ("pep_status", "nationality_id", "country_of_residence_id")
+    changed = any(old_data.get(f) != new_data.get(f) for f in risk_fields)
+    if changed:
+        request_risk_recalculation(person_id=person_id)
+        entity_ids = set()
+        entity_ids.update(
+            EntityOfficer.objects.filter(officer_person_id=person_id).values_list("entity_id", flat=True)
+        )
+        entity_ids.update(
+            ShareIssuance.objects.filter(shareholder_person_id=person_id).values_list("share_class__entity_id", flat=True)
+        )
+        for eid in entity_ids:
+            request_risk_recalculation(entity_id=eid)
+
+
+@transaction.atomic
+def update_person(*, person_id, changed_by, **data) -> Person:
+    person = Person.objects.select_related("nationality", "country_of_residence").get(id=person_id)
+    old_data = snapshot_person(person)
+
+    # Handle FK fields
+    for key in ("client_id", "nationality_id", "country_of_residence_id"):
+        val = data.pop(key, None)
+        if val is not None:
+            setattr(person, key, val)
+    for attr, value in data.items():
+        setattr(person, attr, value)
+    person.save()
+
+    new_data = snapshot_person(person)
+    log_person_changes(
+        person=person,
+        model_name="person",
+        old_data=old_data,
+        new_data=new_data,
+        changed_by=changed_by,
+    )
+    trigger_recalc_if_risk_fields_changed(old_data, new_data, person_id)
+    return person
+
+
+@transaction.atomic
+def update_share_class(*, share_class_id, **data) -> ShareClass:
+    share_class = ShareClass.objects.get(id=share_class_id)
+    entity_id = data.pop("entity_id", None)
+    if entity_id:
+        share_class.entity_id = entity_id
+    for attr, value in data.items():
+        setattr(share_class, attr, value)
+    share_class.save()
+    return share_class
+
+
+@transaction.atomic
+def update_share_issuance(*, share_issuance_id, **data) -> ShareIssuance:
+    from apps.compliance.services import request_risk_recalculation
+
+    issuance = ShareIssuance.objects.select_related("share_class").get(id=share_issuance_id)
+    for key in ("share_class_id", "shareholder_person_id", "shareholder_entity_id"):
+        val = data.pop(key, None)
+        if val is not None:
+            setattr(issuance, key, val)
+    for attr, value in data.items():
+        setattr(issuance, attr, value)
+    issuance.save()
+
+    # Trigger risk recalculation for the entity owning this share class
+    try:
+        entity_id = issuance.share_class.entity_id
+        if entity_id:
+            request_risk_recalculation(entity_id=entity_id)
+    except Exception:
+        logger.exception("Failed to schedule risk recalculation for share issuance update")
+
+    return issuance
+
+
+@transaction.atomic
+def update_source_of_wealth(*, source_of_wealth_id, **data) -> SourceOfWealth:
+    from apps.compliance.services import request_risk_recalculation
+
+    sow = SourceOfWealth.objects.get(id=source_of_wealth_id)
+    person_id = data.pop("person_id", None)
+    if person_id:
+        sow.person_id = person_id
+    for attr, value in data.items():
+        setattr(sow, attr, value)
+    sow.save()
+
+    request_risk_recalculation(person_id=sow.person_id)
+    return sow

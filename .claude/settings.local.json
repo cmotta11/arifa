@@ -32,7 +32,25 @@
       "Bash(docker:*)",
       "Bash(find:*)",
       "Bash(git status:*)",
-      "Bash(git remote add:*)"
+      "Bash(git remote add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py makemigrations:*)",
+      "Bash(docker-compose:*)",
+      "Bash(xargs:*)",
+      "Bash(pdftotext:*)",
+      "Bash(echo:*)",
+      "Bash(pip install:*)",
+      "Bash(python3:*)",
+      "Bash(npx vite build:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(tee:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

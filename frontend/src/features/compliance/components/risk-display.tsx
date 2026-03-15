@@ -179,7 +179,7 @@ export function RiskHistoryTimeline({
               type="button"
               onClick={() => onExportPDF(a.id)}
               disabled={exporting}
-              className="text-gray-400 hover:text-arifa-navy"
+              className="text-gray-400 hover:text-primary"
               title={t("riskMatrix.exportPDF")}
             >
               <ArrowDownTrayIcon className="h-4 w-4" />

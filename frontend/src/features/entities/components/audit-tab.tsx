@@ -148,7 +148,7 @@ export function AuditTab({ entityId }: AuditTabProps) {
         <div className="rounded-lg border border-gray-200 bg-white">
           <DataTable
             columns={columns}
-            data={entries as (AuditLogEntry & Record<string, unknown>)[]}
+            data={entries}
             loading={isLoading}
             emptyMessage={t("entities.audit.noEntries")}
             keyExtractor={(row) => row.id as string}

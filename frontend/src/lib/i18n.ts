@@ -15,6 +15,8 @@ i18n.use(initReactI18next).init({
   fallbackLng: "en",
   defaultNS: "common",
   interpolation: {
+    // escapeValue: false is the react-i18next convention since React JSX auto-escapes.
+    // SECURITY: Never use dangerouslySetInnerHTML with t() output containing user/AI data.
     escapeValue: false,
   },
 });

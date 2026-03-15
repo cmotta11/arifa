@@ -26,6 +26,7 @@ from .models import (
     Matter,
     Person,
     PersonAuditLog,
+    SavedFilter,
     ShareClass,
     ShareIssuance,
     SourceOfFunds,
@@ -74,6 +75,7 @@ class ClientContactOutputSerializer(serializers.ModelSerializer):
 
 class EntityOutputSerializer(serializers.ModelSerializer):
     client = ClientOutputSerializer(read_only=True)
+    current_risk_level = serializers.SerializerMethodField()
 
     class Meta:
         model = Entity
@@ -84,9 +86,18 @@ class EntityOutputSerializer(serializers.ModelSerializer):
             "client",
             "incorporation_date",
             "status",
+            "current_risk_level",
             "created_at",
             "updated_at",
         ]
+
+    def get_current_risk_level(self, obj):
+        from apps.compliance.models import RiskAssessment
+
+        assessment = RiskAssessment.objects.filter(
+            entity=obj, is_current=True,
+        ).values_list("risk_level", flat=True).first()
+        return assessment
 
 
 class MatterOutputSerializer(serializers.ModelSerializer):
@@ -495,3 +506,42 @@ class PersonAuditLogOutputSerializer(serializers.ModelSerializer):
             "comment",
             "created_at",
         ]
+
+
+# ---------------------------------------------------------------------------
+# Global search serializers
+# ---------------------------------------------------------------------------
+
+
+class GlobalSearchResultSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    type = serializers.CharField()
+    title = serializers.CharField()
+    subtitle = serializers.CharField()
+    url = serializers.CharField()
+
+
+# ---------------------------------------------------------------------------
+# Saved filter serializers
+# ---------------------------------------------------------------------------
+
+
+class SavedFilterOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavedFilter
+        fields = [
+            "id",
+            "name",
+            "module",
+            "filters",
+            "is_default",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class SavedFilterInputSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=100)
+    module = serializers.CharField(max_length=50)
+    filters = serializers.JSONField(default=dict)
+    is_default = serializers.BooleanField(default=False)

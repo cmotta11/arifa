@@ -44,7 +44,6 @@ export default function LoginPage() {
   const handleLanguageToggle = () => {
     const newLang = i18n.language === "es" ? "en" : "es";
     i18n.changeLanguage(newLang);
-    localStorage.setItem("language", newLang);
   };
 
   const microsoftLoginUrl = `${ENV.API_BASE_URL}/auth/microsoft/`;
@@ -54,7 +53,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo / Title */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-arifa-navy">ARIFA</h1>
+          <h1 className="text-4xl font-bold text-primary">ARIFA</h1>
           <p className="mt-2 text-sm text-gray-500">{t("auth.welcomeBack")}</p>
         </div>
 
@@ -104,7 +103,7 @@ export default function LoginPage() {
         <div className="mt-6 text-center">
           <Link
             to={ROUTES.CLIENT_LOGIN}
-            className="text-sm text-gray-500 hover:text-arifa-navy"
+            className="text-sm text-gray-500 hover:text-primary"
           >
             {t("auth.clientPortalLogin")}
           </Link>
@@ -116,7 +115,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={handleLanguageToggle}
-            className="rounded-md px-3 py-1 text-sm font-medium text-arifa-navy hover:bg-arifa-navy/5 focus:outline-none focus:ring-2 focus:ring-arifa-navy/30"
+            className="rounded-md px-3 py-1 text-sm font-medium text-primary hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             {i18n.language === "es" ? "EN" : "ES"}
           </button>

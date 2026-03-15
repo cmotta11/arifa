@@ -300,7 +300,7 @@ export function UserManagement() {
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <DataTable
           columns={columns}
-          data={(usersQuery.data ?? []) as unknown as Record<string, unknown>[]}
+          data={usersQuery.data ?? []}
           loading={usersQuery.isLoading}
           emptyMessage={t("admin.users.noUsers")}
           keyExtractor={(row) => String(row.id)}
@@ -459,7 +459,7 @@ export function UserManagement() {
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-arifa-navy focus:ring-arifa-navy"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 {...editForm.register("is_active")}
               />
               <span className="text-sm text-gray-700">

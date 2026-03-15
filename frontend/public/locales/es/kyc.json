@@ -169,7 +169,23 @@
     "director": "Director",
     "shareholder": "Accionista",
     "protector": "Protector",
-    "authorized_signatory": "Firmante Autorizado"
+    "authorized_signatory": "Firmante Autorizado",
+    "authorizedSignatory": "Firmante Autorizado"
+  },
+  "partyTypes": {
+    "natural": "Persona Natural",
+    "corporate": "Persona Jurídica"
+  },
+  "screening": {
+    "screening": "Verificando...",
+    "screenParty": "Verificar parte",
+    "screenPartyViaWorldCheck": "Verificar parte via World-Check"
+  },
+  "worldcheck": {
+    "screening": "Verificando...",
+    "clear": "Sin hallazgos",
+    "matched": "Coincidencia encontrada",
+    "notScreened": "No verificado"
   },
   "personSearch": {
     "title": "Buscar Personas Existentes",

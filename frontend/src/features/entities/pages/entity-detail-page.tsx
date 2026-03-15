@@ -21,6 +21,7 @@ import { AuditTab } from "../components/audit-tab";
 import { CorporateStructureTab } from "../components/corporate-structure-tab";
 import { RiskProfileTab } from "../components/risk-profile-tab";
 import { EntityRiskAssessmentTab } from "../components/entity-risk-assessment-tab";
+import { RiskBadge } from "../components/risk-badge";
 import type { Matter, Ticket } from "@/types";
 
 type Tab = "overview" | "corporateStructure" | "riskProfile" | "riskAssessment" | "matters" | "tickets" | "accessLinks" | "audit";
@@ -172,6 +173,9 @@ export default function EntityDetailPage() {
             <Badge color={statusColors[entity.status] ?? "gray"}>
               {entity.status}
             </Badge>
+            {entity.current_risk_level && (
+              <RiskBadge level={entity.current_risk_level} />
+            )}
           </div>
           <div className="flex gap-2">
             {editing ? (
@@ -204,7 +208,7 @@ export default function EntityDetailPage() {
               onClick={() => setActiveTab(tab)}
               className={`whitespace-nowrap border-b-2 px-1 pb-3 text-sm font-medium ${
                 activeTab === tab
-                  ? "border-arifa-navy text-arifa-navy"
+                  ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
               }`}
             >
@@ -302,7 +306,7 @@ export default function EntityDetailPage() {
           <div className="rounded-lg border border-gray-200 bg-white">
             <DataTable
               columns={matterColumns}
-              data={(mattersQuery.data?.results ?? []) as (Matter & Record<string, unknown>)[]}
+              data={mattersQuery.data?.results ?? []}
               loading={mattersQuery.isLoading}
               emptyMessage={t("common.noResults")}
               keyExtractor={(row) => row.id as string}
@@ -314,7 +318,7 @@ export default function EntityDetailPage() {
           <div className="rounded-lg border border-gray-200 bg-white">
             <DataTable
               columns={ticketColumns}
-              data={(ticketsQuery.data?.results ?? []) as (Ticket & Record<string, unknown>)[]}
+              data={ticketsQuery.data?.results ?? []}
               loading={ticketsQuery.isLoading}
               emptyMessage={t("tickets.noTickets")}
               onRowClick={(row) => navigate(ROUTES.TICKET_DETAIL.replace(":id", row.id as string))}

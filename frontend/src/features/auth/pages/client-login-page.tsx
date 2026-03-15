@@ -50,7 +50,6 @@ export default function ClientLoginPage() {
   const handleLanguageToggle = () => {
     const newLang = i18n.language === "es" ? "en" : "es";
     i18n.changeLanguage(newLang);
-    localStorage.setItem("language", newLang);
   };
 
   return (
@@ -58,7 +57,7 @@ export default function ClientLoginPage() {
       <div className="w-full max-w-md">
         {/* Logo / Title */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-arifa-navy">ARIFA</h1>
+          <h1 className="text-4xl font-bold text-primary">ARIFA</h1>
           <p className="mt-2 text-sm text-gray-500">
             {t("auth.clientLogin.title")}
           </p>
@@ -77,7 +76,7 @@ export default function ClientLoginPage() {
                   setSubmitted(false);
                   setEmail("");
                 }}
-                className="mt-2 text-sm text-arifa-navy hover:underline"
+                className="mt-2 text-sm text-primary hover:underline"
               >
                 {t("common.back")}
               </button>
@@ -120,7 +119,7 @@ export default function ClientLoginPage() {
         <div className="mt-6 text-center">
           <Link
             to={ROUTES.LOGIN}
-            className="text-sm text-gray-500 hover:text-arifa-navy"
+            className="text-sm text-gray-500 hover:text-primary"
           >
             {t("auth.clientLogin.staffLogin")}
           </Link>
@@ -132,7 +131,7 @@ export default function ClientLoginPage() {
           <button
             type="button"
             onClick={handleLanguageToggle}
-            className="rounded-md px-3 py-1 text-sm font-medium text-arifa-navy hover:bg-arifa-navy/5 focus:outline-none focus:ring-2 focus:ring-arifa-navy/30"
+            className="rounded-md px-3 py-1 text-sm font-medium text-primary hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             {i18n.language === "es" ? "EN" : "ES"}
           </button>

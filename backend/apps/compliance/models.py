@@ -9,7 +9,12 @@ from common.base_model import TimeStampedModel
 from .constants import (
     AccountingRecordFormType,
     AccountingRecordStatus,
+    CompletionMethod,
+    DDChecklistSection,
+    DelegationModule,
+    DelegationStatus,
     DocumentType,
+    ESStatus,
     KYCStatus,
     LLMExtractionStatus,
     PartyRole,
@@ -297,6 +302,10 @@ class RiskAssessment(TimeStampedModel):
     class Meta(TimeStampedModel.Meta):
         verbose_name = "Risk Assessment"
         verbose_name_plural = "Risk Assessments"
+        indexes = [
+            models.Index(fields=["entity", "is_current"], name="riskassess_entity_current_idx"),
+            models.Index(fields=["person", "is_current"], name="riskassess_person_current_idx"),
+        ]
         constraints = [
             models.CheckConstraint(
                 check=(
@@ -449,6 +458,79 @@ class DocumentUpload(TimeStampedModel):
         return f"{self.original_filename} ({self.get_document_type_display()})"
 
 
+class JurisdictionConfig(TimeStampedModel):
+    """Jurisdiction-level configuration for workflows, compliance, and forms."""
+
+    jurisdiction = models.OneToOneField(
+        JurisdictionRisk,
+        on_delete=models.CASCADE,
+        related_name="config",
+    )
+    inc_workflow = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Default incorporation workflow definition name",
+    )
+    requires_notary = models.BooleanField(default=False)
+    requires_registry = models.BooleanField(default=False)
+    requires_nit_ruc = models.BooleanField(default=False)
+    requires_rbuf = models.BooleanField(default=False)
+    supports_digital_notary = models.BooleanField(default=False)
+    ubo_threshold_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=25,
+        help_text="Ownership % threshold for UBO identification",
+    )
+    kyc_renewal_months = models.IntegerField(
+        default=12,
+        help_text="Months between KYC renewal cycles",
+    )
+    es_required = models.BooleanField(
+        default=False,
+        help_text="Whether Economic Substance filing is required",
+    )
+    ar_required = models.BooleanField(
+        default=False,
+        help_text="Whether Accounting Records (Panama Law 254) filing is required",
+    )
+    exempted_available = models.BooleanField(
+        default=False,
+        help_text="Whether exempted entity category is available",
+    )
+    default_risk_matrix = models.ForeignKey(
+        RiskMatrixConfig,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="jurisdiction_configs",
+        help_text="Default risk matrix for this jurisdiction",
+    )
+    entity_types = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Available entity types for this jurisdiction",
+    )
+    form_config = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Jurisdiction-specific form field configuration",
+    )
+    es_flow_config = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Economic Substance flow configuration",
+    )
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Jurisdiction Configuration"
+        verbose_name_plural = "Jurisdiction Configurations"
+
+    def __str__(self):
+        return f"Config: {self.jurisdiction.country_name} ({self.jurisdiction.country_code})"
+
+
 class AccountingRecord(TimeStampedModel):
     entity = models.ForeignKey(
         "core.Entity",
@@ -481,6 +563,23 @@ class AccountingRecord(TimeStampedModel):
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     review_notes = models.TextField(blank=True, default="")
+    completion_method = models.CharField(
+        max_length=20,
+        choices=CompletionMethod.choices,
+        blank=True,
+        default="",
+    )
+    uploaded_file = models.FileField(
+        upload_to="accounting_records/uploads/",
+        null=True,
+        blank=True,
+    )
+    file_password = models.CharField(max_length=255, blank=True, default="")
+    generated_pdf = models.FileField(
+        upload_to="accounting_records/pdfs/",
+        null=True,
+        blank=True,
+    )
 
     class Meta(TimeStampedModel.Meta):
         verbose_name = "Accounting Record"
@@ -518,3 +617,155 @@ class AccountingRecordDocument(TimeStampedModel):
 
     def __str__(self):
         return f"{self.original_filename} for {self.accounting_record}"
+
+
+class ComplianceDelegation(TimeStampedModel):
+    entity = models.ForeignKey(
+        "core.Entity",
+        on_delete=models.CASCADE,
+        related_name="delegations",
+    )
+    module = models.CharField(
+        max_length=30,
+        choices=DelegationModule.choices,
+    )
+    fiscal_year = models.IntegerField(default=2025)
+    delegated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="delegations_created",
+    )
+    delegate_email = models.EmailField()
+    delegate_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="delegations_received",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=DelegationStatus.choices,
+        default=DelegationStatus.PENDING,
+    )
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Compliance Delegation"
+        verbose_name_plural = "Compliance Delegations"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["entity", "module", "fiscal_year", "delegate_email"],
+                condition=models.Q(status__in=["pending", "accepted"]),
+                name="unique_active_delegation",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.module} delegation for {self.entity_id} -> {self.delegate_email}"
+
+
+class DueDiligenceChecklist(TimeStampedModel):
+    kyc_submission = models.ForeignKey(
+        KYCSubmission,
+        on_delete=models.CASCADE,
+        related_name="checklists",
+    )
+    section = models.CharField(
+        max_length=50,
+        choices=DDChecklistSection.choices,
+    )
+    items = models.JSONField(default=list)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="completed_checklists",
+    )
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Due Diligence Checklist"
+        verbose_name_plural = "Due Diligence Checklists"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["kyc_submission", "section"],
+                name="unique_checklist_per_kyc_section",
+            )
+        ]
+
+    def __str__(self):
+        return f"DD Checklist {self.get_section_display()} for KYC {self.kyc_submission_id}"
+
+
+class EconomicSubstanceSubmission(TimeStampedModel):
+    entity = models.ForeignKey(
+        "core.Entity",
+        on_delete=models.CASCADE,
+        related_name="es_submissions",
+    )
+    fiscal_year = models.IntegerField()
+    status = models.CharField(
+        max_length=20,
+        choices=ESStatus.choices,
+        default=ESStatus.PENDING,
+    )
+    flow_answers = models.JSONField(default=dict)
+    current_step = models.CharField(max_length=50, blank=True, default="")
+    shareholders_data = models.JSONField(default=list)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_es_submissions",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    field_comments = models.JSONField(default=dict, blank=True)
+    attention_reason = models.CharField(max_length=100, blank=True, default="")
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Economic Substance Submission"
+        verbose_name_plural = "Economic Substance Submissions"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["entity", "fiscal_year"],
+                name="unique_es_per_entity_year",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["entity", "fiscal_year"], name="es_entity_fy_idx"),
+            models.Index(fields=["status"], name="es_status_idx"),
+        ]
+
+    def __str__(self):
+        return f"ES {self.entity_id} FY{self.fiscal_year} - {self.get_status_display()}"
+
+
+class OwnershipSnapshot(TimeStampedModel):
+    entity = models.ForeignKey(
+        "core.Entity",
+        on_delete=models.CASCADE,
+        related_name="ownership_snapshots",
+    )
+    nodes = models.JSONField(default=list)
+    edges = models.JSONField(default=list)
+    reportable_ubos = models.JSONField(default=list)
+    warnings = models.JSONField(default=list)
+    saved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="saved_ownership_snapshots",
+    )
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Ownership Snapshot"
+        verbose_name_plural = "Ownership Snapshots"
+
+    def __str__(self):
+        return f"Ownership snapshot for {self.entity_id} at {self.created_at}"

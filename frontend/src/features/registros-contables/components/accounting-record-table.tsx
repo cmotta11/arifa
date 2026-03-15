@@ -70,7 +70,7 @@ export function AccountingRecordTable({
                   navigate(ROUTES.REGISTROS_CONTABLES_DETAIL.replace(":id", rec.id));
                 }
               }}
-              className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-arifa-navy"
+              className="cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
             >
               <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
                 {rec.entity_name}

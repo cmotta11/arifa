@@ -12,13 +12,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-arifa-navy text-white hover:bg-arifa-navy-dark focus:ring-arifa-navy/50",
+    "bg-primary text-white hover:bg-primary-dark focus:ring-primary/50",
   secondary:
-    "bg-white text-arifa-navy border border-arifa-navy hover:bg-arifa-navy/5 focus:ring-arifa-navy/30",
+    "bg-white text-primary border border-primary hover:bg-primary/5 focus:ring-primary/30",
   danger:
     "bg-error text-white hover:bg-red-900 focus:ring-error/50",
   ghost:
-    "bg-transparent text-arifa-navy hover:bg-arifa-navy/5 focus:ring-arifa-navy/30",
+    "bg-transparent text-primary hover:bg-primary/5 focus:ring-primary/30",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

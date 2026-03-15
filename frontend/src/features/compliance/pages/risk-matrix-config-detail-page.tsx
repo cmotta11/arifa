@@ -142,7 +142,7 @@ export default function RiskMatrixConfigDetailPage() {
                   {t("riskMatrix.config.name")}
                 </label>
                 <input
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData((f) => ({ ...f, name: e.target.value }))
@@ -155,7 +155,7 @@ export default function RiskMatrixConfigDetailPage() {
                 </label>
                 <input
                   type="number"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   value={formData.high_risk_threshold}
                   onChange={(e) =>
                     setFormData((f) => ({
@@ -171,7 +171,7 @@ export default function RiskMatrixConfigDetailPage() {
                 </label>
                 <input
                   type="number"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   value={formData.medium_risk_threshold}
                   onChange={(e) =>
                     setFormData((f) => ({
@@ -186,7 +186,7 @@ export default function RiskMatrixConfigDetailPage() {
                   {t("riskMatrix.config.notes")}
                 </label>
                 <textarea
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   rows={2}
                   value={formData.notes}
                   onChange={(e) =>
@@ -196,32 +196,113 @@ export default function RiskMatrixConfigDetailPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm text-gray-500">
-                  {t("riskMatrix.config.scope")}
-                </p>
-                <p className="font-medium">
-                  {config.jurisdiction || t("riskMatrix.config.global")}
-                  {config.entity_type && ` / ${config.entity_type}`}
-                </p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+                <div>
+                  <p className="text-xs font-medium uppercase text-gray-500">
+                    {t("riskMatrix.config.scope")}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-gray-900">
+                    {config.jurisdiction || t("riskMatrix.config.global")}
+                    {config.entity_type && ` / ${config.entity_type}`}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase text-gray-500">
+                    {t("riskMatrix.config.factors")}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-gray-900">
+                    {factors.length} ({entityFactors.length}E / {personFactors.length}P)
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase text-gray-500">
+                    {t("riskMatrix.config.triggerRules")}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-gray-900">
+                    {triggerRules.length}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase text-gray-500">
+                    {t("riskMatrix.config.version")}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-gray-900">
+                    v{config.version}
+                  </p>
+                </div>
               </div>
+
+              {/* Threshold Visual Bar */}
               <div>
-                <p className="text-sm text-gray-500">
+                <p className="mb-2 text-xs font-medium uppercase text-gray-500">
                   {t("riskMatrix.config.thresholds")}
                 </p>
-                <p className="font-medium">
-                  {t("riskMatrix.config.highThreshold")}: {config.high_risk_threshold}
-                  {" | "}
-                  {t("riskMatrix.config.mediumThreshold")}: {config.medium_risk_threshold}
-                </p>
+                <div className="relative h-6 w-full overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-green-200"
+                    style={{ width: `${config.medium_risk_threshold}%` }}
+                  />
+                  <div
+                    className="absolute inset-y-0 bg-yellow-200"
+                    style={{
+                      left: `${config.medium_risk_threshold}%`,
+                      width: `${config.high_risk_threshold - config.medium_risk_threshold}%`,
+                    }}
+                  />
+                  <div
+                    className="absolute inset-y-0 right-0 bg-red-200"
+                    style={{ width: `${100 - config.high_risk_threshold}%` }}
+                  />
+                  {/* Threshold markers */}
+                  <div
+                    className="absolute inset-y-0 w-px bg-gray-600"
+                    style={{ left: `${config.medium_risk_threshold}%` }}
+                  />
+                  <div
+                    className="absolute inset-y-0 w-px bg-gray-600"
+                    style={{ left: `${config.high_risk_threshold}%` }}
+                  />
+                  {/* Labels */}
+                  <span
+                    className="absolute top-1/2 -translate-y-1/2 text-[10px] font-medium text-green-800"
+                    style={{ left: `${config.medium_risk_threshold / 2}%`, transform: "translate(-50%, -50%)" }}
+                  >
+                    Low
+                  </span>
+                  <span
+                    className="absolute top-1/2 -translate-y-1/2 text-[10px] font-medium text-yellow-800"
+                    style={{
+                      left: `${config.medium_risk_threshold + (config.high_risk_threshold - config.medium_risk_threshold) / 2}%`,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  >
+                    Medium
+                  </span>
+                  <span
+                    className="absolute top-1/2 -translate-y-1/2 text-[10px] font-medium text-red-800"
+                    style={{
+                      left: `${config.high_risk_threshold + (100 - config.high_risk_threshold) / 2}%`,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  >
+                    High
+                  </span>
+                </div>
+                <div className="mt-1 flex justify-between text-[10px] text-gray-400">
+                  <span>0</span>
+                  <span>{config.medium_risk_threshold}</span>
+                  <span>{config.high_risk_threshold}</span>
+                  <span>100</span>
+                </div>
               </div>
+
               {config.notes && (
-                <div className="col-span-2">
-                  <p className="text-sm text-gray-500">
+                <div>
+                  <p className="text-xs font-medium uppercase text-gray-500">
                     {t("riskMatrix.config.notes")}
                   </p>
-                  <p className="text-sm">{config.notes}</p>
+                  <p className="mt-1 text-sm text-gray-700">{config.notes}</p>
                 </div>
               )}
             </div>
@@ -297,7 +378,7 @@ function FactorTable({ factors }: { factors: RiskFactorConfig[] }) {
                   <div className="flex items-center gap-2">
                     <div className="h-2 flex-1 rounded-full bg-gray-200">
                       <div
-                        className="h-2 rounded-full bg-arifa-navy"
+                        className="h-2 rounded-full bg-primary"
                         style={{ width: `${pct}%` }}
                       />
                     </div>

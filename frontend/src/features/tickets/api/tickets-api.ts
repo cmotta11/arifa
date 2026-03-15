@@ -58,6 +58,7 @@ export interface CreateTicketInput {
   title: string;
   client_id: string;
   entity_id?: string | null;
+  workflow_definition_id?: string | null;
   priority?: string;
   due_date?: string | null;
   assigned_to_id?: string | null;

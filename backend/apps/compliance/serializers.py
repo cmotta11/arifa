@@ -3,7 +3,10 @@ from rest_framework import serializers
 from .constants import (
     AccountingRecordFormType,
     AccountingRecordStatus,
+    CompletionMethod,
+    DDChecklistSection,
     DocumentType,
+    ESStatus,
     KYCStatus,
     LLMExtractionStatus,
     PartyRole,
@@ -21,10 +24,15 @@ from .models import (
     AccountingRecord,
     AccountingRecordDocument,
     AutomaticTriggerRule,
+    ComplianceDelegation,
     ComplianceSnapshot,
     DocumentUpload,
+    DueDiligenceChecklist,
+    EconomicSubstanceSubmission,
+    JurisdictionConfig,
     JurisdictionRisk,
     KYCSubmission,
+    OwnershipSnapshot,
     Party,
     RFI,
     RiskAssessment,
@@ -163,9 +171,16 @@ class WorldCheckCaseOutputSerializer(serializers.ModelSerializer):
         fields = [
             "id", "party", "case_system_id", "screening_status",
             "screening_status_display", "last_screened_at",
-            "ongoing_monitoring_enabled", "match_data_json",
+            "ongoing_monitoring_enabled",
             "resolved_by", "resolved_at", "created_at", "updated_at",
         ]
+
+
+class WorldCheckCaseDetailOutputSerializer(WorldCheckCaseOutputSerializer):
+    """Extended serializer that includes match_data_json — restricted to compliance staff."""
+
+    class Meta(WorldCheckCaseOutputSerializer.Meta):
+        fields = [*WorldCheckCaseOutputSerializer.Meta.fields, "match_data_json"]
 
 
 class DocumentUploadOutputSerializer(serializers.ModelSerializer):
@@ -179,9 +194,16 @@ class DocumentUploadOutputSerializer(serializers.ModelSerializer):
             "document_type_display", "original_filename",
             "sharepoint_file_id", "sharepoint_web_url",
             "sharepoint_drive_item_id", "uploaded_by", "file_size",
-            "mime_type", "llm_extraction_json", "llm_extraction_status",
+            "mime_type", "llm_extraction_status",
             "llm_extraction_status_display", "created_at", "updated_at",
         ]
+
+
+class DocumentUploadDetailOutputSerializer(DocumentUploadOutputSerializer):
+    """Extended serializer that includes llm_extraction_json — restricted to compliance staff."""
+
+    class Meta(DocumentUploadOutputSerializer.Meta):
+        fields = [*DocumentUploadOutputSerializer.Meta.fields, "llm_extraction_json"]
 
 
 # ===========================================================================
@@ -223,9 +245,51 @@ class WorldCheckResolveInputSerializer(serializers.Serializer):
 
 
 class DocumentUploadInputSerializer(serializers.Serializer):
+    ALLOWED_MIME_TYPES = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "image/jpeg",
+        "image/png",
+    ]
+    MIME_TO_EXTENSIONS = {
+        "application/pdf": [".pdf"],
+        "application/msword": [".doc"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+        "application/vnd.ms-excel": [".xls"],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+        "image/jpeg": [".jpg", ".jpeg"],
+        "image/png": [".png"],
+    }
+    MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
+
     document_type = serializers.ChoiceField(choices=DocumentType.choices)
     file = serializers.FileField()
     party_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+
+    def validate_file(self, value):
+        import os
+
+        if value.size > self.MAX_FILE_SIZE:
+            raise serializers.ValidationError(
+                f"File size {value.size} bytes exceeds the 20MB limit."
+            )
+        content_type = getattr(value, "content_type", "")
+        if content_type not in self.ALLOWED_MIME_TYPES:
+            raise serializers.ValidationError(
+                f"File type '{content_type}' is not allowed. "
+                f"Allowed types: {', '.join(self.ALLOWED_MIME_TYPES)}"
+            )
+        ext = os.path.splitext(value.name)[1].lower()
+        allowed_exts = self.MIME_TO_EXTENSIONS.get(content_type, [])
+        if ext not in allowed_exts:
+            raise serializers.ValidationError(
+                f"File extension '{ext}' does not match content type '{content_type}'. "
+                f"Expected one of: {', '.join(allowed_exts)}"
+            )
+        return value
 
 
 class LinkPersonInputSerializer(serializers.Serializer):
@@ -486,9 +550,270 @@ class AccountingRecordReviewInputSerializer(serializers.Serializer):
 
 
 class AccountingRecordDocumentUploadInputSerializer(serializers.Serializer):
+    ALLOWED_MIME_TYPES = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "image/jpeg",
+        "image/png",
+    ]
+    MIME_TO_EXTENSIONS = {
+        "application/pdf": [".pdf"],
+        "application/msword": [".doc"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+        "application/vnd.ms-excel": [".xls"],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+        "image/jpeg": [".jpg", ".jpeg"],
+        "image/png": [".png"],
+    }
+    MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
+
     file = serializers.FileField()
     description = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+
+    def validate_file(self, value):
+        import os
+
+        if value.size > self.MAX_FILE_SIZE:
+            raise serializers.ValidationError(
+                f"File size {value.size} bytes exceeds the 20MB limit."
+            )
+        content_type = getattr(value, "content_type", "")
+        if content_type not in self.ALLOWED_MIME_TYPES:
+            raise serializers.ValidationError(
+                f"File type '{content_type}' is not allowed. "
+                f"Allowed types: {', '.join(self.ALLOWED_MIME_TYPES)}"
+            )
+        ext = os.path.splitext(value.name)[1].lower()
+        allowed_exts = self.MIME_TO_EXTENSIONS.get(content_type, [])
+        if ext not in allowed_exts:
+            raise serializers.ValidationError(
+                f"File extension '{ext}' does not match content type '{content_type}'. "
+                f"Expected one of: {', '.join(allowed_exts)}"
+            )
+        return value
 
 
 class BulkCreateAccountingRecordsInputSerializer(serializers.Serializer):
     fiscal_year = serializers.IntegerField()
+
+
+class AccountingRecordListOutputSerializer(AccountingRecordOutputSerializer):
+    """List serializer that excludes PII (signature_data, form_data)."""
+
+    class Meta(AccountingRecordOutputSerializer.Meta):
+        fields = [
+            f for f in AccountingRecordOutputSerializer.Meta.fields
+            if f not in ("signature_data", "form_data")
+        ]
+
+
+class CreateForEntityInputSerializer(serializers.Serializer):
+    entity_id = serializers.UUIDField()
+    fiscal_year = serializers.IntegerField(default=lambda: __import__("datetime").date.today().year - 1)
+
+
+# ===========================================================================
+# Jurisdiction Configuration serializers
+# ===========================================================================
+
+
+class JurisdictionConfigOutputSerializer(serializers.ModelSerializer):
+    jurisdiction_code = serializers.CharField(source="jurisdiction.country_code", read_only=True)
+    jurisdiction_name = serializers.CharField(source="jurisdiction.country_name", read_only=True)
+    risk_weight = serializers.IntegerField(source="jurisdiction.risk_weight", read_only=True)
+    default_risk_matrix_name = serializers.CharField(
+        source="default_risk_matrix.name", read_only=True, default=None,
+    )
+
+    class Meta:
+        model = JurisdictionConfig
+        fields = [
+            "id", "jurisdiction", "jurisdiction_code", "jurisdiction_name",
+            "risk_weight", "inc_workflow", "requires_notary", "requires_registry",
+            "requires_nit_ruc", "requires_rbuf", "supports_digital_notary",
+            "ubo_threshold_percent", "kyc_renewal_months",
+            "es_required", "ar_required", "exempted_available",
+            "default_risk_matrix", "default_risk_matrix_name",
+            "entity_types", "form_config", "es_flow_config",
+            "created_at", "updated_at",
+        ]
+
+
+class JurisdictionConfigInputSerializer(serializers.Serializer):
+    jurisdiction_id = serializers.UUIDField()
+    inc_workflow = serializers.CharField(max_length=50, required=False, allow_blank=True, default="")
+    requires_notary = serializers.BooleanField(default=False, required=False)
+    requires_registry = serializers.BooleanField(default=False, required=False)
+    requires_nit_ruc = serializers.BooleanField(default=False, required=False)
+    requires_rbuf = serializers.BooleanField(default=False, required=False)
+    supports_digital_notary = serializers.BooleanField(default=False, required=False)
+    ubo_threshold_percent = serializers.DecimalField(
+        max_digits=5, decimal_places=2, default=25, required=False,
+    )
+    kyc_renewal_months = serializers.IntegerField(default=12, required=False)
+    es_required = serializers.BooleanField(default=False, required=False)
+    ar_required = serializers.BooleanField(default=False, required=False)
+    exempted_available = serializers.BooleanField(default=False, required=False)
+    default_risk_matrix_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+    entity_types = serializers.ListField(
+        child=serializers.CharField(max_length=50), required=False, default=list,
+    )
+    form_config = serializers.DictField(required=False, default=dict)
+    es_flow_config = serializers.DictField(required=False, default=dict)
+
+
+# ===========================================================================
+# Delegation serializers
+# ===========================================================================
+
+
+class ComplianceDelegationOutputSerializer(serializers.ModelSerializer):
+    entity_name = serializers.CharField(source="entity.name", read_only=True)
+    delegated_by_email = serializers.EmailField(source="delegated_by.email", read_only=True)
+    delegate_user_email = serializers.EmailField(source="delegate_user.email", read_only=True, default=None)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    module_display = serializers.CharField(source="get_module_display", read_only=True)
+
+    class Meta:
+        model = ComplianceDelegation
+        fields = [
+            "id", "entity", "entity_name", "module", "module_display",
+            "fiscal_year", "delegated_by", "delegated_by_email",
+            "delegate_email", "delegate_user", "delegate_user_email",
+            "status", "status_display",
+            "accepted_at", "revoked_at", "created_at", "updated_at",
+        ]
+
+
+class ComplianceDelegationCreateInputSerializer(serializers.Serializer):
+    entity_id = serializers.UUIDField()
+    module = serializers.ChoiceField(choices=["accounting_records", "economic_substance", "kyc"])
+    fiscal_year = serializers.IntegerField()
+    delegate_email = serializers.EmailField()
+
+
+# ===========================================================================
+# Due Diligence Checklist serializers
+# ===========================================================================
+
+
+class DueDiligenceChecklistOutputSerializer(serializers.ModelSerializer):
+    section_display = serializers.CharField(source="get_section_display", read_only=True)
+    completed_by_email = serializers.EmailField(source="completed_by.email", read_only=True, default=None)
+
+    class Meta:
+        model = DueDiligenceChecklist
+        fields = [
+            "id", "kyc_submission", "section", "section_display", "items",
+            "completed_at", "completed_by", "completed_by_email",
+            "created_at", "updated_at",
+        ]
+
+
+class DueDiligenceChecklistInputSerializer(serializers.Serializer):
+    section = serializers.ChoiceField(choices=DDChecklistSection.choices)
+    items = serializers.ListField(child=serializers.DictField(), default=list)
+
+
+# ===========================================================================
+# Field Comment serializers
+# ===========================================================================
+
+
+class FieldCommentInputSerializer(serializers.Serializer):
+    field_name = serializers.CharField(max_length=255)
+    text = serializers.CharField()
+    parent_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+
+
+# ===========================================================================
+# Economic Substance serializers
+# ===========================================================================
+
+
+class EconomicSubstanceOutputSerializer(serializers.ModelSerializer):
+    entity_name = serializers.CharField(source="entity.name", read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    reviewed_by_email = serializers.EmailField(source="reviewed_by.email", read_only=True, default=None)
+
+    class Meta:
+        model = EconomicSubstanceSubmission
+        fields = [
+            "id", "entity", "entity_name", "fiscal_year", "status", "status_display",
+            "flow_answers", "current_step", "shareholders_data",
+            "submitted_at", "reviewed_by", "reviewed_by_email", "reviewed_at",
+            "field_comments", "attention_reason",
+            "created_at", "updated_at",
+        ]
+
+
+class EconomicSubstanceListOutputSerializer(EconomicSubstanceOutputSerializer):
+    """List serializer that excludes large JSON fields."""
+
+    class Meta(EconomicSubstanceOutputSerializer.Meta):
+        fields = [
+            f for f in EconomicSubstanceOutputSerializer.Meta.fields
+            if f not in ("flow_answers", "shareholders_data", "field_comments")
+        ]
+
+
+class EconomicSubstanceCreateInputSerializer(serializers.Serializer):
+    entity_id = serializers.UUIDField()
+    fiscal_year = serializers.IntegerField()
+
+
+class EconomicSubstanceSaveDraftInputSerializer(serializers.Serializer):
+    flow_answers = serializers.DictField(required=False, default=None)
+    current_step = serializers.CharField(max_length=50, required=False, default=None)
+    shareholders_data = serializers.ListField(
+        child=serializers.DictField(), required=False, default=None,
+    )
+
+
+class ESAdvanceStepInputSerializer(serializers.Serializer):
+    step_key = serializers.CharField(max_length=50)
+    answer = serializers.JSONField()
+
+
+class ESBulkCreateInputSerializer(serializers.Serializer):
+    fiscal_year = serializers.IntegerField()
+
+
+class ESRejectInputSerializer(serializers.Serializer):
+    field_comments = serializers.DictField(required=False, default=None)
+
+
+# ===========================================================================
+# Help Request serializers
+# ===========================================================================
+
+
+class HelpRequestInputSerializer(serializers.Serializer):
+    entity_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+    module = serializers.CharField(max_length=50)
+    current_page = serializers.CharField(max_length=255)
+    message = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+# ===========================================================================
+# Ownership Tree serializers
+# ===========================================================================
+
+
+class OwnershipSnapshotOutputSerializer(serializers.ModelSerializer):
+    saved_by_email = serializers.EmailField(source="saved_by.email", read_only=True, default=None)
+
+    class Meta:
+        model = OwnershipSnapshot
+        fields = [
+            "id", "entity", "nodes", "edges", "reportable_ubos", "warnings",
+            "saved_by", "saved_by_email", "created_at",
+        ]
+
+
+class SaveOwnershipTreeInputSerializer(serializers.Serializer):
+    nodes = serializers.ListField(child=serializers.DictField())
+    edges = serializers.ListField(child=serializers.DictField())

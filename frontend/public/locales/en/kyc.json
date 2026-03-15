@@ -169,7 +169,23 @@
     "director": "Director",
     "shareholder": "Shareholder",
     "protector": "Protector",
-    "authorized_signatory": "Authorized Signatory"
+    "authorized_signatory": "Authorized Signatory",
+    "authorizedSignatory": "Authorized Signatory"
+  },
+  "partyTypes": {
+    "natural": "Natural Person",
+    "corporate": "Corporate Entity"
+  },
+  "screening": {
+    "screening": "Screening...",
+    "screenParty": "Screen party",
+    "screenPartyViaWorldCheck": "Screen party via World-Check"
+  },
+  "worldcheck": {
+    "screening": "Screening...",
+    "clear": "Clear",
+    "matched": "Match Found",
+    "notScreened": "Not Screened"
   },
   "personSearch": {
     "title": "Search Existing Persons",

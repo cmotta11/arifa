@@ -258,7 +258,7 @@ export default function ClientDetailPage() {
               onClick={() => setActiveTab(tab)}
               className={`whitespace-nowrap border-b-2 px-1 pb-3 text-sm font-medium ${
                 activeTab === tab
-                  ? "border-arifa-navy text-arifa-navy"
+                  ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
               }`}
             >
@@ -337,7 +337,7 @@ export default function ClientDetailPage() {
           <div className="rounded-lg border border-gray-200 bg-white">
             <DataTable
               columns={entityColumns}
-              data={(entitiesQuery.data?.results ?? []) as (Entity & Record<string, unknown>)[]}
+              data={entitiesQuery.data?.results ?? []}
               loading={entitiesQuery.isLoading}
               emptyMessage={t("entities.noEntities")}
               onRowClick={(row) => navigate(ROUTES.ENTITY_DETAIL.replace(":id", row.id as string))}
@@ -350,7 +350,7 @@ export default function ClientDetailPage() {
           <div className="rounded-lg border border-gray-200 bg-white">
             <DataTable
               columns={matterColumns}
-              data={(mattersQuery.data?.results ?? []) as (Matter & Record<string, unknown>)[]}
+              data={mattersQuery.data?.results ?? []}
               loading={mattersQuery.isLoading}
               emptyMessage={t("common.noResults")}
               keyExtractor={(row) => row.id as string}
@@ -370,7 +370,7 @@ export default function ClientDetailPage() {
           <div className="rounded-lg border border-gray-200 bg-white">
             <DataTable
               columns={ticketColumns}
-              data={(ticketsQuery.data?.results ?? []) as (Ticket & Record<string, unknown>)[]}
+              data={ticketsQuery.data?.results ?? []}
               loading={ticketsQuery.isLoading}
               emptyMessage={t("tickets.noTickets")}
               onRowClick={(row) => navigate(ROUTES.TICKET_DETAIL.replace(":id", row.id as string))}
@@ -383,7 +383,7 @@ export default function ClientDetailPage() {
           <div className="rounded-lg border border-gray-200 bg-white">
             <DataTable
               columns={personColumns}
-              data={(personsQuery.data?.results ?? []) as (Person & Record<string, unknown>)[]}
+              data={personsQuery.data?.results ?? []}
               loading={personsQuery.isLoading}
               emptyMessage={t("people.noPeople")}
               onRowClick={(row) => navigate(ROUTES.PERSON_DETAIL.replace(":id", row.id as string))}

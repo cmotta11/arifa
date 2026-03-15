@@ -45,9 +45,9 @@ class TicketLogAdmin(admin.ModelAdmin):
         "changed_by",
         "previous_state",
         "new_state",
-        "timestamp",
+        "created_at",
     ]
     list_filter = ["previous_state", "new_state"]
     search_fields = ["ticket__title", "comment"]
-    readonly_fields = ["id", "created_at", "updated_at", "timestamp"]
+    readonly_fields = ["id", "created_at", "updated_at"]
     raw_id_fields = ["ticket", "changed_by", "previous_state", "new_state"]

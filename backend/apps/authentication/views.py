@@ -1,11 +1,14 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import models
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers as drf_serializers
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from common.pagination import StandardPagination
 
@@ -38,10 +41,31 @@ from .services import (
     validate_magic_login_token,
 )
 
+_MessageSerializer = inline_serializer(
+    name="MessageResponse",
+    fields={"message": drf_serializers.CharField()},
+)
+
+_IntegrationStatusSerializer = inline_serializer(
+    name="IntegrationStatusResponse",
+    fields={
+        "world_check": drf_serializers.CharField(),
+        "sharepoint": drf_serializers.CharField(),
+        "openai": drf_serializers.CharField(),
+        "gotenberg": drf_serializers.CharField(),
+    },
+)
+
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+    throttle_scope = "registration"
 
+    @extend_schema(
+        request=RegisterInputSerializer,
+        responses={201: UserOutputSerializer},
+        summary="Register a new user account",
+    )
     def post(self, request):
         serializer = RegisterInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -56,7 +80,20 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_scope = "login"
 
+    @extend_schema(
+        request=LoginInputSerializer,
+        responses={200: inline_serializer(
+            name="LoginResponse",
+            fields={
+                "user": UserOutputSerializer(),
+                "access": drf_serializers.CharField(),
+                "refresh": drf_serializers.CharField(),
+            },
+        )},
+        summary="Authenticate user with email and password",
+    )
     def post(self, request):
         serializer = LoginInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -74,9 +111,14 @@ class LoginView(APIView):
             )
 
         login(request, user)
+        refresh = RefreshToken.for_user(user)
 
         return Response(
-            UserOutputSerializer(user).data,
+            {
+                "user": UserOutputSerializer(user).data,
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -84,6 +126,11 @@ class LoginView(APIView):
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=None,
+        responses={200: _MessageSerializer},
+        summary="Log out the current user",
+    )
     def post(self, request):
         logout(request)
         return Response(
@@ -95,6 +142,11 @@ class LogoutView(APIView):
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=None,
+        responses={200: UserOutputSerializer},
+        summary="Retrieve the currently authenticated user",
+    )
     def get(self, request):
         return Response(
             UserOutputSerializer(request.user).data,
@@ -109,6 +161,11 @@ class GuestLinkView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=None,
+        responses={200: GuestLinkOutputSerializer(many=True)},
+        summary="List active guest links with optional filtering",
+    )
     def get(self, request):
         qs = GuestLink.objects.select_related(
             "created_by",
@@ -144,6 +201,11 @@ class GuestLinkView(APIView):
 
         return Response(GuestLinkOutputSerializer(qs, many=True).data)
 
+    @extend_schema(
+        request=GuestLinkCreateInputSerializer,
+        responses={201: GuestLinkOutputSerializer},
+        summary="Create a new guest link for a ticket, KYC submission, or accounting record",
+    )
     def post(self, request):
         from django.core.exceptions import ObjectDoesNotExist
 
@@ -192,6 +254,11 @@ class GuestLinkView(APIView):
 class GuestLinkValidateView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=None,
+        responses={200: GuestLinkOutputSerializer},
+        summary="Validate a guest link token and return its details",
+    )
     def get(self, request, token):
         guest_link = validate_guest_link(token=token)
 
@@ -206,6 +273,11 @@ class IntegrationStatusView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=None,
+        responses={200: _IntegrationStatusSerializer},
+        summary="Check status of external integrations",
+    )
     def get(self, request):
         from common.integration_status import get_integration_status
 
@@ -217,6 +289,11 @@ class MagicLinkRequestView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=MagicLinkRequestInputSerializer,
+        responses={200: _MessageSerializer},
+        summary="Request a magic login link by email",
+    )
     def post(self, request):
         serializer = MagicLinkRequestInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -235,6 +312,11 @@ class MagicLinkSendView(APIView):
 
     permission_classes = [IsAuthenticated, IsDirector]
 
+    @extend_schema(
+        request=MagicLinkSendInputSerializer,
+        responses={200: _MessageSerializer},
+        summary="Send a magic login link to a specific user",
+    )
     def post(self, request):
         serializer = MagicLinkSendInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -254,6 +336,18 @@ class MagicLinkValidateView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=MagicLinkValidateInputSerializer,
+        responses={200: inline_serializer(
+            name="MagicLinkValidateResponse",
+            fields={
+                "user": UserOutputSerializer(),
+                "access": drf_serializers.CharField(),
+                "refresh": drf_serializers.CharField(),
+            },
+        )},
+        summary="Validate a magic login token and authenticate the user",
+    )
     def post(self, request):
         serializer = MagicLinkValidateInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -263,8 +357,14 @@ class MagicLinkValidateView(APIView):
         )
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 
+        refresh = RefreshToken.for_user(user)
+
         return Response(
-            UserOutputSerializer(user).data,
+            {
+                "user": UserOutputSerializer(user).data,
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -275,6 +375,11 @@ class UserAdminViewSet(ViewSet):
     permission_classes = [IsAuthenticated, IsDirector]
     pagination_class = StandardPagination
 
+    @extend_schema(
+        request=None,
+        responses={200: UserListOutputSerializer(many=True)},
+        summary="List all users with optional role, active status, and client filters",
+    )
     def list(self, request):
         role = request.query_params.get("role")
         is_active = request.query_params.get("is_active")
@@ -297,11 +402,21 @@ class UserAdminViewSet(ViewSet):
         serializer = UserListOutputSerializer(qs, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=None,
+        responses={200: UserListOutputSerializer},
+        summary="Retrieve a single user by ID",
+    )
     def retrieve(self, request, pk=None):
         user = get_user(user_id=pk)
         serializer = UserListOutputSerializer(user)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=UserCreateInputSerializer,
+        responses={201: UserListOutputSerializer},
+        summary="Create a new user account (director-only)",
+    )
     def create(self, request):
         serializer = UserCreateInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -313,6 +428,11 @@ class UserAdminViewSet(ViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @extend_schema(
+        request=UserUpdateInputSerializer,
+        responses={200: UserListOutputSerializer},
+        summary="Partially update an existing user",
+    )
     def partial_update(self, request, pk=None):
         serializer = UserUpdateInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -321,6 +441,11 @@ class UserAdminViewSet(ViewSet):
 
         return Response(UserListOutputSerializer(user).data)
 
+    @extend_schema(
+        request=None,
+        responses={204: None},
+        summary="Deactivate a user (soft delete)",
+    )
     def destroy(self, request, pk=None):
         deactivate_user(user_id=pk)
         return Response(status=status.HTTP_204_NO_CONTENT)

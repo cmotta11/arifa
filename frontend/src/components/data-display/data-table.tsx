@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "./empty-state";
 
@@ -15,16 +15,18 @@ interface DataTableProps<T> {
   loading?: boolean;
   emptyMessage?: string;
   keyExtractor?: (row: T) => string;
+  stickyHeader?: boolean;
   className?: string;
 }
 
-export function DataTable<T extends Record<string, unknown>>({
+export function DataTable<T extends object>({
   columns,
   data,
   onRowClick,
   loading = false,
   emptyMessage = "No data available",
   keyExtractor,
+  stickyHeader = false,
   className = "",
 }: DataTableProps<T>) {
   if (loading) {
@@ -39,10 +41,17 @@ export function DataTable<T extends Record<string, unknown>>({
     return <EmptyState title={emptyMessage} />;
   }
 
+  const handleRowKeyDown = (row: T) => (e: KeyboardEvent<HTMLTableRowElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onRowClick?.(row);
+    }
+  };
+
   return (
     <div className={`overflow-x-auto ${className}`}>
       <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+        <thead className={`bg-white border-b border-gray-200 ${stickyHeader ? "sticky top-0 z-10" : ""}`}>
           <tr>
             {columns.map((column) => (
               <th
@@ -57,15 +66,21 @@ export function DataTable<T extends Record<string, unknown>>({
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
           {data.map((row, index) => {
-            const key = keyExtractor ? keyExtractor(row) : String(row.id ?? index);
+            const rec = row as Record<string, unknown>;
+            const key = keyExtractor ? keyExtractor(row) : String(rec.id ?? index);
             return (
               <tr
                 key={key}
                 onClick={() => onRowClick?.(row)}
                 className={`
                   transition-colors duration-100
-                  ${onRowClick ? "cursor-pointer hover:bg-gray-50" : ""}
+                  ${onRowClick ? "cursor-pointer hover:bg-gray-100" : ""}
                 `}
+                {...(onRowClick ? {
+                  tabIndex: 0,
+                  role: "row",
+                  onKeyDown: handleRowKeyDown(row),
+                } : {})}
               >
                 {columns.map((column) => (
                   <td
@@ -74,7 +89,7 @@ export function DataTable<T extends Record<string, unknown>>({
                   >
                     {column.render
                       ? column.render(row)
-                      : String(row[column.key] ?? "")}
+                      : String((row as Record<string, unknown>)[column.key] ?? "")}
                   </td>
                 ))}
               </tr>

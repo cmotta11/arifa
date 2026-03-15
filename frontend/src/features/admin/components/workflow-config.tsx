@@ -56,12 +56,12 @@ const ROLE_BADGE_CLASSES: Record<Role, string> = {
   client: "bg-gray-100 text-gray-600",
 };
 
-const ALL_ROLES: { value: Role; label: string }[] = [
-  { value: "director", label: "Director" },
-  { value: "compliance_officer", label: "Compliance Officer" },
-  { value: "coordinator", label: "Coordinator" },
-  { value: "gestora", label: "Gestora" },
-  { value: "client", label: "Client" },
+const ALL_ROLE_KEYS: { value: Role; labelKey: string }[] = [
+  { value: "director", labelKey: "roles.director" },
+  { value: "compliance_officer", labelKey: "roles.compliance_officer" },
+  { value: "coordinator", labelKey: "roles.coordinator" },
+  { value: "gestora", labelKey: "roles.gestora" },
+  { value: "client", labelKey: "roles.client" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -488,7 +488,7 @@ export function WorkflowConfig() {
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-arifa-navy focus:ring-arifa-navy"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 {...stateForm.register("is_initial")}
               />
               <span className="text-sm text-gray-700">
@@ -498,7 +498,7 @@ export function WorkflowConfig() {
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-arifa-navy focus:ring-arifa-navy"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 {...stateForm.register("is_final")}
               />
               <span className="text-sm text-gray-700">
@@ -592,14 +592,14 @@ export function WorkflowConfig() {
                 required
               >
                 <div className="space-y-2 rounded-md border border-gray-200 p-3">
-                  {ALL_ROLES.map((role) => (
+                  {ALL_ROLE_KEYS.map((role) => (
                     <label
                       key={role.value}
                       className="flex items-center gap-2"
                     >
                       <input
                         type="checkbox"
-                        className="h-4 w-4 rounded border-gray-300 text-arifa-navy focus:ring-arifa-navy"
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                         checked={field.value.includes(role.value)}
                         onChange={(e) => {
                           if (e.target.checked) {
@@ -614,7 +614,7 @@ export function WorkflowConfig() {
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_BADGE_CLASSES[role.value]}`}
                       >
-                        {role.label}
+                        {t(role.labelKey)}
                       </span>
                     </label>
                   ))}

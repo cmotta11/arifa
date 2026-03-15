@@ -1,5 +1,7 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from .reporting import FinancialSummaryView, UserActivityReportView
 from .views import (
     ActivityCatalogViewSet,
     ClientContactViewSet,
@@ -7,8 +9,10 @@ from .views import (
     EntityActivityViewSet,
     EntityOfficerViewSet,
     EntityViewSet,
+    GlobalSearchView,
     MatterViewSet,
     PersonViewSet,
+    SavedFilterViewSet,
     ShareClassViewSet,
     ShareIssuanceViewSet,
     SourceOfFundsCatalogViewSet,
@@ -30,5 +34,10 @@ router.register("entity-activities", EntityActivityViewSet, basename="entity-act
 router.register("source-of-funds-catalog", SourceOfFundsCatalogViewSet, basename="source-of-funds-catalog")
 router.register("sources-of-funds", SourceOfFundsViewSet, basename="source-of-funds")
 router.register("sources-of-wealth", SourceOfWealthViewSet, basename="source-of-wealth")
+router.register("saved-filters", SavedFilterViewSet, basename="saved-filter")
 
-urlpatterns = router.urls
+urlpatterns = router.urls + [
+    path("search/", GlobalSearchView.as_view(), name="global-search"),
+    path("reports/financial/", FinancialSummaryView.as_view(), name="report-financial"),
+    path("reports/user-activity/", UserActivityReportView.as_view(), name="report-user-activity"),
+]

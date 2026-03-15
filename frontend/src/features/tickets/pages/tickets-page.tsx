@@ -288,7 +288,7 @@ export default function TicketsPage() {
               onClick={() => setPageView("list")}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${
                 pageView === "list"
-                  ? "bg-arifa-navy text-white"
+                  ? "bg-primary text-white"
                   : "text-gray-600 hover:bg-gray-50"
               } rounded-l-md`}
             >
@@ -300,7 +300,7 @@ export default function TicketsPage() {
               onClick={() => setPageView("board")}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium ${
                 pageView === "board"
-                  ? "bg-arifa-navy text-white"
+                  ? "bg-primary text-white"
                   : "text-gray-600 hover:bg-gray-50"
               } rounded-r-md`}
             >
@@ -333,7 +333,7 @@ export default function TicketsPage() {
           <DataTable
             columns={listColumns}
             data={
-              (ticketsQuery.data ?? []) as (Ticket & Record<string, unknown>)[]
+              ticketsQuery.data ?? []
             }
             loading={false}
             emptyMessage={t("tickets.noTickets")}

@@ -1,0 +1,21 @@
+{% extends "notifications/base_email.html" %}
+
+{% block content %}
+{% if title %}
+<h2 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 600; color: #1a1a2e;">{{ title }}</h2>
+{% endif %}
+
+{% if body %}
+<p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #555555;">{{ body }}</p>
+{% endif %}
+
+{% if action_url and action_text %}
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+  <tr>
+    <td align="center" style="border-radius: 6px; background-color: #6200EE;">
+      <a href="{% if tracking_click_url %}{{ tracking_click_url }}{% else %}{{ action_url }}{% endif %}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 6px;">{{ action_text }}</a>
+    </td>
+  </tr>
+</table>
+{% endif %}
+{% endblock content %}

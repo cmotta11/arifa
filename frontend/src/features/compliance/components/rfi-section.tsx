@@ -9,6 +9,7 @@ import { Modal } from "@/components/overlay/modal";
 import { FormField } from "@/components/forms/form-field";
 import type { RFI } from "@/types";
 import { useKYCRFIs, useCreateRFI, useRespondToRFI } from "../api/compliance-api";
+import { formatDateTime } from "@/lib/format";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -19,17 +20,6 @@ const rfiStatusColor: Record<string, "gray" | "green" | "yellow" | "red" | "blue
   responded: "blue",
   closed: "green",
 };
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Props
@@ -95,7 +85,7 @@ export function RFISection({ kycId }: RFISectionProps) {
       {sorted.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <svg className="mb-3 h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg className="mb-3 h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
             </svg>
             <p className="text-sm font-medium text-gray-900">{t("rfi.empty")}</p>
@@ -166,7 +156,7 @@ function RFICard({ rfi, kycId }: { rfi: RFI; kycId: string }) {
           </p>
         </div>
         <time className="flex-shrink-0 text-xs text-gray-400">
-          {formatDate(rfi.responded_at ?? null)}
+          {formatDateTime(rfi.responded_at ?? null)}
         </time>
       </div>
 
@@ -208,7 +198,7 @@ function RFICard({ rfi, kycId }: { rfi: RFI; kycId: string }) {
           </p>
           {rfi.responded_at && (
             <p className="mt-1 text-xs text-gray-400">
-              {t("rfi.respondedAt")}: {formatDate(rfi.responded_at)}
+              {t("rfi.respondedAt")}: {formatDateTime(rfi.responded_at)}
             </p>
           )}
         </div>
@@ -221,7 +211,7 @@ function RFICard({ rfi, kycId }: { rfi: RFI; kycId: string }) {
             <div className="space-y-3">
               <textarea
                 className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm
-                  placeholder:text-gray-400 focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                  placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 rows={3}
                 placeholder={t("rfi.responsePlaceholder")}
                 value={responseText}
@@ -335,20 +325,20 @@ function CreateRFIModal({
       <div className="space-y-4">
         {/* Tag Input for requested fields */}
         <FormField label={t("rfi.requestedFieldsLabel")} required>
-          <div className="rounded-md border border-gray-300 px-2 py-1.5 focus-within:border-arifa-navy focus-within:ring-1 focus-within:ring-arifa-navy">
+          <div className="rounded-md border border-gray-300 px-2 py-1.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
             <div className="flex flex-wrap gap-1">
               {fields.map((field) => (
                 <span
                   key={field}
-                  className="inline-flex items-center gap-1 rounded bg-arifa-navy/10 px-2 py-0.5 text-xs font-medium text-arifa-navy"
+                  className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
                 >
                   {field}
                   <button
                     type="button"
                     onClick={() => handleRemoveField(field)}
-                    className="ml-0.5 rounded-full p-0.5 hover:bg-arifa-navy/20"
+                    className="ml-0.5 rounded-full p-0.5 hover:bg-primary/20"
                   >
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -378,7 +368,7 @@ function CreateRFIModal({
         <FormField label={t("rfi.notesLabel")}>
           <textarea
             className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm
-              placeholder:text-gray-400 focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+              placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             rows={3}
             placeholder={t("rfi.notesPlaceholder")}
             value={notes}

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-type BadgeColor = "gray" | "green" | "yellow" | "red" | "blue";
+type BadgeColor = "gray" | "green" | "yellow" | "red" | "blue" | "primary";
 
 interface BadgeProps {
   color?: BadgeColor;
@@ -14,6 +14,7 @@ const colorClasses: Record<BadgeColor, string> = {
   yellow: "bg-yellow-100 text-yellow-700",
   red: "bg-red-100 text-red-700",
   blue: "bg-blue-100 text-blue-700",
+  primary: "bg-primary/10 text-primary",
 };
 
 export function Badge({ color = "gray", children, className = "" }: BadgeProps) {

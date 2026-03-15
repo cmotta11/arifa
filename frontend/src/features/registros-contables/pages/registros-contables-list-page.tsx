@@ -47,7 +47,7 @@ export default function RegistrosContablesListPage() {
           <select
             value={fiscalYear}
             onChange={(e) => setFiscalYear(Number(e.target.value))}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:ring-1 focus:ring-arifa-navy"
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
           >
             {[CURRENT_YEAR - 1, CURRENT_YEAR - 2, CURRENT_YEAR - 3].map((y) => (
               <option key={y} value={y}>
@@ -83,7 +83,7 @@ export default function RegistrosContablesListPage() {
             onClick={() => setStatusFilter(sf)}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               statusFilter === sf
-                ? "border-b-2 border-arifa-navy text-arifa-navy"
+                ? "border-b-2 border-primary text-primary"
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >

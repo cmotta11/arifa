@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { ROUTES } from "@/config/routes";
-import type { KYCSubmission, Party, RFI } from "@/types";
+import type { Party, RFI } from "@/types";
 import type { KYCDocument } from "@/features/kyc/api/kyc-api";
 import {
   usePortalKYCDetail,
@@ -16,18 +16,7 @@ import {
   useRespondToRFI,
   usePortalUploadDocument,
 } from "../api/portal-api";
-
-const STATUS_BADGE_COLOR: Record<
-  KYCSubmission["status"],
-  "gray" | "blue" | "yellow" | "green" | "red"
-> = {
-  draft: "gray",
-  submitted: "blue",
-  under_review: "yellow",
-  sent_back: "yellow",
-  approved: "green",
-  rejected: "red",
-};
+import { kycStatusColorMap } from "@/config/status-colors";
 
 type PortalTab = "overview" | "parties" | "rfis" | "documents";
 
@@ -78,7 +67,7 @@ export default function PortalKYCDetail() {
       <button
         type="button"
         onClick={() => navigate(ROUTES.CLIENT_PORTAL)}
-        className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-arifa-navy"
+        className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-primary"
       >
         <svg
           className="h-4 w-4"
@@ -101,7 +90,7 @@ export default function PortalKYCDetail() {
         <h1 className="text-2xl font-bold text-gray-900">
           {t("portal.detail.title")}
         </h1>
-        <Badge color={STATUS_BADGE_COLOR[kyc.status]}>
+        <Badge color={kycStatusColorMap[kyc.status] ?? "gray"}>
           {kyc.status.replace("_", " ")}
         </Badge>
       </div>
@@ -148,7 +137,7 @@ export default function PortalKYCDetail() {
               onClick={() => setActiveTab(tab.key)}
               className={`whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.key
-                  ? "border-arifa-navy text-arifa-navy"
+                  ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
               }`}
             >
@@ -344,7 +333,7 @@ function RFIsTab({
                   value={responseText}
                   onChange={(e) => setResponseText(e.target.value)}
                   placeholder={t("portal.detail.rfiRespondPlaceholder")}
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   rows={3}
                 />
                 <div className="flex gap-2">
@@ -428,7 +417,7 @@ function DocumentsTab({
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none"
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none"
           >
             {DOC_TYPES.map((type) => (
               <option key={type} value={type}>
@@ -440,7 +429,7 @@ function DocumentsTab({
             ref={fileInputRef}
             type="file"
             onChange={handleUpload}
-            className="text-sm text-gray-500 file:mr-2 file:rounded-md file:border-0 file:bg-arifa-navy file:px-3 file:py-1.5 file:text-sm file:text-white file:hover:bg-arifa-navy/90"
+            className="text-sm text-gray-500 file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:text-white file:hover:bg-primary/90"
           />
           {uploadMutation.isPending && <Spinner size="sm" />}
         </div>

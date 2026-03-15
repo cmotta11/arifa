@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Combobox,
   ComboboxButton,
@@ -14,6 +15,7 @@ interface SearchableMultiSelectOption {
 }
 
 interface SearchableMultiSelectProps {
+  id?: string;
   label?: string;
   error?: string;
   options: SearchableMultiSelectOption[];
@@ -24,6 +26,7 @@ interface SearchableMultiSelectProps {
 }
 
 export function SearchableMultiSelect({
+  id,
   label,
   error,
   options,
@@ -32,6 +35,7 @@ export function SearchableMultiSelect({
   placeholder = "",
   disabled = false,
 }: SearchableMultiSelectProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
 
   const selectedOptions = useMemo(
@@ -47,7 +51,7 @@ export function SearchableMultiSelect({
       .filter((o) => o.label.toLowerCase().includes(lower));
   }, [options, query]);
 
-  const selectId = label?.toLowerCase().replace(/\s+/g, "-");
+  const selectId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
 
   const removeItem = (val: string) => {
     onChange(value.filter((v) => v !== val));
@@ -74,7 +78,7 @@ export function SearchableMultiSelect({
             className={`
               flex min-h-[38px] flex-wrap items-center gap-1 rounded-md border px-2 py-1 pr-8 shadow-sm
               transition-colors duration-150
-              focus-within:border-arifa-navy focus-within:ring-1 focus-within:ring-arifa-navy
+              focus-within:border-primary focus-within:ring-1 focus-within:ring-primary
               ${disabled ? "cursor-not-allowed bg-gray-50" : "bg-white"}
               ${error ? "border-error" : "border-gray-300"}
             `}
@@ -82,7 +86,7 @@ export function SearchableMultiSelect({
             {selectedOptions.map((opt) => (
               <span
                 key={opt.value}
-                className="inline-flex items-center gap-0.5 rounded bg-arifa-navy/10 px-1.5 py-0.5 text-xs font-medium text-arifa-navy"
+                className="inline-flex items-center gap-0.5 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
               >
                 {opt.label}
                 <button
@@ -92,6 +96,7 @@ export function SearchableMultiSelect({
                     removeItem(opt.value);
                   }}
                   className="ml-0.5 hover:text-red-500"
+                  aria-label={`${t("common.remove")} ${opt.label}`}
                 >
                   <XMarkIcon className="h-3 w-3" />
                 </button>
@@ -103,6 +108,7 @@ export function SearchableMultiSelect({
               onChange={(e) => setQuery(e.target.value)}
               placeholder={selectedOptions.length === 0 ? placeholder : ""}
               aria-invalid={!!error}
+              aria-describedby={error ? `${selectId}-error` : undefined}
             />
           </div>
           <ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
@@ -111,18 +117,18 @@ export function SearchableMultiSelect({
 
           <ComboboxOptions className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 text-sm shadow-lg focus:outline-none">
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-gray-500">No results</div>
+              <div className="px-3 py-2 text-gray-500">{t("common.noResults")}</div>
             ) : (
               filtered.map((option) => (
                 <ComboboxOption
                   key={option.value}
                   value={option.value}
-                  className="group relative cursor-pointer select-none py-2 pl-8 pr-3 text-gray-900 data-[focus]:bg-arifa-navy/5 data-[focus]:text-arifa-navy"
+                  className="group relative cursor-pointer select-none py-2 pl-8 pr-3 text-gray-900 data-[focus]:bg-primary/5 data-[focus]:text-primary"
                 >
                   <span className="block truncate group-data-[selected]:font-medium">
                     {option.label}
                   </span>
-                  <span className="absolute inset-y-0 left-0 hidden items-center pl-2 text-arifa-navy group-data-[selected]:flex">
+                  <span className="absolute inset-y-0 left-0 hidden items-center pl-2 text-primary group-data-[selected]:flex">
                     <CheckIcon className="h-4 w-4" />
                   </span>
                 </ComboboxOption>

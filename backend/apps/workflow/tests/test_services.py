@@ -102,7 +102,7 @@ class TestTransitionTicket:
             changed_by=coordinator,
             comment="Moving to compliance",
         )
-        log = TicketLog.objects.filter(ticket=ticket).order_by("-timestamp").first()
+        log = TicketLog.objects.filter(ticket=ticket).order_by("-created_at").first()
         assert log.previous_state == initial_state
         assert log.new_state == review_state
         assert log.changed_by == coordinator
@@ -231,7 +231,7 @@ class TestAssignTicket:
             assigned_to_id=assignee.id,
             changed_by=coordinator,
         )
-        log = TicketLog.objects.filter(ticket=ticket).order_by("-timestamp").first()
+        log = TicketLog.objects.filter(ticket=ticket).order_by("-created_at").first()
         assert assignee.email in log.comment
         assert log.changed_by == coordinator
 

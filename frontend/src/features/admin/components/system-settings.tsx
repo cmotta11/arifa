@@ -99,9 +99,9 @@ export function SystemSettings() {
             rel="noopener noreferrer"
             className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 transition-colors hover:bg-gray-50"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-arifa-navy/10">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <svg
-                className="h-5 w-5 text-arifa-navy"
+                className="h-5 w-5 text-primary"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}

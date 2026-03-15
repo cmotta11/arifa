@@ -1,0 +1,52 @@
+{% extends "notifications/base_email.html" %}
+
+{% block content %}
+<h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #1a1a2e;">Daily Digest &mdash; {{ digest_date }}</h2>
+<p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #555555;">
+  You have <strong>{{ total_count }}</strong> unread notification{{ total_count|pluralize }} from the last 24 hours.
+</p>
+
+{% for group in grouped_notifications %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+  <tr>
+    <td style="padding: 10px 16px; background-color: #f3edfb; border-radius: 6px 6px 0 0; border-left: 4px solid #6200EE;">
+      <span style="font-size: 14px; font-weight: 600; color: #6200EE; text-transform: capitalize;">{{ group.category }}</span>
+      <span style="font-size: 13px; color: #888888; margin-left: 8px;">({{ group.count }})</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 8px 16px 12px 16px; border: 1px solid #e8e8ed; border-top: none; border-radius: 0 0 6px 6px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        {% for notification in group.items %}
+        <tr>
+          <td style="padding: 6px 0; border-bottom: 1px solid #f0f0f3;">
+            <p style="margin: 0; font-size: 14px; line-height: 1.4; color: #333333;">{{ notification.title }}</p>
+            {% if notification.created_at %}
+            <p style="margin: 2px 0 0 0; font-size: 12px; color: #999999;">{{ notification.created_at }}</p>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if group.remaining > 0 %}
+        <tr>
+          <td style="padding: 8px 0 0 0;">
+            <p style="margin: 0; font-size: 13px; color: #888888; font-style: italic;">
+              ...and {{ group.remaining }} more
+            </p>
+          </td>
+        </tr>
+        {% endif %}
+      </table>
+    </td>
+  </tr>
+</table>
+{% endfor %}
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+  <tr>
+    <td align="center" style="border-radius: 6px; background-color: #6200EE;">
+      <a href="{% if tracking_click_url %}{{ tracking_click_url }}{% else %}{{ action_url }}{% endif %}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 6px;">View All Notifications</a>
+    </td>
+  </tr>
+</table>
+{% endblock content %}

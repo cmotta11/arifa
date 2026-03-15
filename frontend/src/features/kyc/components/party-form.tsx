@@ -22,18 +22,22 @@ interface PartyFormProps {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const PARTY_TYPE_OPTIONS = [
-  { value: "natural", label: "Natural Person" },
-  { value: "corporate", label: "Corporate Entity" },
-];
+function getPartyTypeOptions(t: (key: string) => string) {
+  return [
+    { value: "natural", label: t("partyTypes.natural") },
+    { value: "corporate", label: t("partyTypes.corporate") },
+  ];
+}
 
-const ROLE_OPTIONS = [
-  { value: "ubo", label: "Ultimate Beneficial Owner" },
-  { value: "director", label: "Director" },
-  { value: "shareholder", label: "Shareholder" },
-  { value: "protector", label: "Protector" },
-  { value: "authorized_signatory", label: "Authorized Signatory" },
-];
+function getRoleOptions(t: (key: string) => string) {
+  return [
+    { value: "ubo", label: t("roles.ubo") },
+    { value: "director", label: t("roles.director") },
+    { value: "shareholder", label: t("roles.shareholder") },
+    { value: "protector", label: t("roles.protector") },
+    { value: "authorized_signatory", label: t("roles.authorizedSignatory") },
+  ];
+}
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -141,6 +145,7 @@ export function PartyForm({ kycId, party, onSuccess, onCancel }: PartyFormProps)
                 viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth={2}
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -163,7 +168,7 @@ export function PartyForm({ kycId, party, onSuccess, onCancel }: PartyFormProps)
           >
             <Select
               id="party_type"
-              options={PARTY_TYPE_OPTIONS}
+              options={getPartyTypeOptions(t)}
               {...register("party_type")}
             />
           </FormField>
@@ -176,7 +181,7 @@ export function PartyForm({ kycId, party, onSuccess, onCancel }: PartyFormProps)
           >
             <Select
               id="role"
-              options={ROLE_OPTIONS}
+              options={getRoleOptions(t)}
               {...register("role")}
             />
           </FormField>
@@ -335,7 +340,7 @@ export function PartyForm({ kycId, party, onSuccess, onCancel }: PartyFormProps)
                   checked={field.value}
                   onChange={(e) => field.onChange(e.target.checked)}
                 />
-                <div className="peer h-5 w-9 rounded-full bg-gray-300 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-arifa-navy peer-checked:after:translate-x-full" />
+                <div className="peer h-5 w-9 rounded-full bg-gray-300 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full" />
               </label>
             )}
           />

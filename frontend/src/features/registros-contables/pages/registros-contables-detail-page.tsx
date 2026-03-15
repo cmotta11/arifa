@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from "react";
+import { useState, Fragment } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Dialog, Transition } from "@headlessui/react";
@@ -14,6 +14,7 @@ import {
   useRejectAccountingRecord,
   type AccountingRecord,
 } from "../api/registros-contables-api";
+import { HelpButton } from "@/components/feedback/help-button";
 
 export default function RegistrosContablesDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,10 +30,18 @@ export default function RegistrosContablesDetailPage() {
   const [showReviewModal, setShowReviewModal] = useState<"approve" | "reject" | null>(null);
   const [reviewError, setReviewError] = useState("");
 
-  if (isLoading || !record) {
+  if (isLoading) {
     return (
       <div className="flex justify-center p-12">
         <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!record) {
+    return (
+      <div className="flex justify-center p-12">
+        <p className="text-sm text-red-600">{t("common.error")}</p>
       </div>
     );
   }
@@ -67,9 +76,9 @@ export default function RegistrosContablesDetailPage() {
       <button
         type="button"
         onClick={() => navigate(ROUTES.REGISTROS_CONTABLES)}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-arifa-navy"
+        className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary"
       >
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
         {t("common.back")}
@@ -143,7 +152,11 @@ export default function RegistrosContablesDetailPage() {
             {t("registrosContables.guest.signature")}
           </h3>
           <div className="inline-block rounded border border-gray-200 p-2">
-            <img src={record.signature_data} alt="Signature" className="max-h-24" />
+            {record.signature_data.startsWith("data:image/") ? (
+              <img src={record.signature_data} alt="Signature" className="max-h-24" />
+            ) : (
+              <p className="text-sm text-gray-400">{t("common.invalidImage")}</p>
+            )}
           </div>
           <div className="mt-2 text-sm text-gray-600">
             <span className="font-medium">{record.signer_name}</span>
@@ -238,7 +251,7 @@ export default function RegistrosContablesDetailPage() {
                     onChange={(e) => setReviewNotes(e.target.value)}
                     rows={3}
                     placeholder={t("registrosContables.staff.reviewNotesPlaceholder")}
-                    className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:ring-1 focus:ring-arifa-navy"
+                    className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                   {reviewError && (
                     <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -270,6 +283,7 @@ export default function RegistrosContablesDetailPage() {
           </div>
         </Dialog>
       </Transition>
+      <HelpButton module="accounting_records" entityId={record?.entity} currentPage="registros-detail" />
     </div>
   );
 }
@@ -352,7 +366,7 @@ function FormDataDisplay({ record }: { record: AccountingRecord }) {
               { section: "liabilities", keys: ["bank_debt", "other_liabilities"] },
               { section: "income", keys: ["interest", "dividends", "rent", "other_income"] },
             ].map(({ section, keys }) => (
-              <React.Fragment key={section}>
+              <Fragment key={section}>
                 <tr className="border-b border-gray-200">
                   <td className="py-2 font-semibold text-gray-700" colSpan={2}>
                     {t(`registrosContables.balanceSections.${section}`)}
@@ -368,13 +382,13 @@ function FormDataDisplay({ record }: { record: AccountingRecord }) {
                     </td>
                   </tr>
                 ))}
-              </React.Fragment>
+              </Fragment>
             ))}
             <tr className="border-t-2 border-gray-300">
-              <td className="py-2 font-semibold text-arifa-navy">
+              <td className="py-2 font-semibold text-primary">
                 {t("registrosContables.balanceSections.equity")}
               </td>
-              <td className="py-2 text-right font-bold text-arifa-navy">
+              <td className="py-2 text-right font-bold text-primary">
                 {fmt(totalAssets - totalLiabilities)}
               </td>
             </tr>

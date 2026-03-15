@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import DocumentTemplateViewSet, GeneratedDocumentViewSet
+from .views import AssembleDocumentViewSet, DocumentTemplateViewSet, GeneratedDocumentViewSet
 
 # Template endpoints
 template_list = DocumentTemplateViewSet.as_view({"get": "list", "post": "create"})
@@ -13,6 +13,10 @@ generated_list = GeneratedDocumentViewSet.as_view({"get": "list"})
 generated_detail = GeneratedDocumentViewSet.as_view({"get": "retrieve"})
 generated_convert_pdf = GeneratedDocumentViewSet.as_view({"post": "convert_pdf"})
 generated_download = GeneratedDocumentViewSet.as_view({"get": "download"})
+
+# Assembly endpoints
+assemble_create = AssembleDocumentViewSet.as_view({"post": "create"})
+assemble_builders = AssembleDocumentViewSet.as_view({"get": "builders"})
 
 urlpatterns = [
     # Templates
@@ -38,4 +42,7 @@ urlpatterns = [
         generated_download,
         name="generated-download",
     ),
+    # Assembly
+    path("assemble/", assemble_create, name="document-assemble"),
+    path("assemble/builders/", assemble_builders, name="assemble-builders"),
 ]

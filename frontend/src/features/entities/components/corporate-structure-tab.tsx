@@ -275,7 +275,7 @@ function OfficersSection({ entityId }: { entityId: string }) {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); navigate(route); }}
-                className="font-medium text-arifa-navy hover:underline"
+                className="font-medium text-primary hover:underline"
               >
                 {name}
               </button>
@@ -361,7 +361,7 @@ function OfficersSection({ entityId }: { entityId: string }) {
     >
       <DataTable
         columns={columns}
-        data={officers as (EntityOfficer & Record<string, unknown>)[]}
+        data={officers}
         loading={officersQuery.isLoading}
         emptyMessage={t("common.noResults")}
         keyExtractor={(row) => row.id as string}
@@ -996,7 +996,7 @@ function ShareRegisterSection({ entityId }: { entityId: string }) {
                                   <button
                                     type="button"
                                     onClick={() => navigate(holderRoute)}
-                                    className="font-medium text-arifa-navy hover:underline"
+                                    className="font-medium text-primary hover:underline"
                                   >
                                     {holderName}
                                   </button>
@@ -1473,7 +1473,7 @@ function UBOsSection({ entityId }: { entityId: string }) {
         <button
           type="button"
           onClick={() => navigate(ROUTES.PERSON_DETAIL.replace(":id", row.person.id))}
-          className="font-medium text-arifa-navy hover:underline"
+          className="font-medium text-primary hover:underline"
         >
           {row.person.full_name}
         </button>
@@ -1509,7 +1509,7 @@ function UBOsSection({ entityId }: { entityId: string }) {
           <p className="mb-3 text-xs text-gray-500">{t("entities.ubos.derivationNote")}</p>
           <DataTable
             columns={columns}
-            data={ubos as (UBOEntry & Record<string, unknown>)[]}
+            data={ubos}
             loading={treeQuery.isLoading}
             emptyMessage={t("entities.ubos.noUbos")}
             keyExtractor={(row) => (row as UBOEntry).person.id}
@@ -1611,11 +1611,11 @@ function OrgChartSection({ entityId, entityName }: { entityId: string; entityNam
             <div className="h-6 w-0.5 bg-gray-300" />
 
             {/* Target entity node */}
-            <div className="inline-flex items-center gap-2 rounded-lg border-2 border-arifa-navy bg-arifa-navy/5 px-4 py-2">
-              <svg className="h-5 w-5 text-arifa-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="inline-flex items-center gap-2 rounded-lg border-2 border-primary bg-primary/5 px-4 py-2">
+              <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
-              <span className="text-sm font-semibold text-arifa-navy">{entityName}</span>
+              <span className="text-sm font-semibold text-primary">{entityName}</span>
             </div>
           </div>
         </div>

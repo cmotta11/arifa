@@ -13,13 +13,13 @@ const SOURCE_COLORS: Record<string, "blue" | "gray" | "green" | "yellow"> = {
   send_back: "yellow",
 };
 
-const SOURCE_OPTIONS = [
-  { value: "", label: "All" },
-  { value: "internal", label: "Internal Edit" },
-  { value: "guest_submission", label: "Guest Submission" },
-  { value: "approval", label: "Approval" },
-  { value: "send_back", label: "Send Back" },
-];
+const SOURCE_KEYS = [
+  { value: "", labelKey: "common.all" },
+  { value: "internal", labelKey: "entities.audit.sources.internal" },
+  { value: "guest_submission", labelKey: "entities.audit.sources.guest_submission" },
+  { value: "approval", labelKey: "entities.audit.sources.approval" },
+  { value: "send_back", labelKey: "entities.audit.sources.send_back" },
+] as const;
 
 interface PersonAuditTabProps {
   personId: string;
@@ -69,7 +69,7 @@ export function PersonAuditTab({ personId }: PersonAuditTabProps) {
       header: t("people.audit.field"),
       render: (row: PersonAuditLogEntry & Record<string, unknown>) =>
         row.action === "create" ? (
-          <Badge color="green">Created</Badge>
+          <Badge color="green">{t("common.created")}</Badge>
         ) : (
           <code className="text-xs">{row.field_name}</code>
         ),
@@ -79,12 +79,12 @@ export function PersonAuditTab({ personId }: PersonAuditTabProps) {
       header: t("people.audit.change"),
       render: (row: PersonAuditLogEntry & Record<string, unknown>) =>
         row.action === "create" ? (
-          <span className="text-sm font-medium text-gray-900">{formatValue(row.new_value)}</span>
+          <span className="text-sm font-medium text-gray-900">{formatValue(row.new_value, t)}</span>
         ) : (
           <div className="flex items-center gap-1 text-xs">
-            <span className="text-gray-400 line-through">{formatValue(row.old_value)}</span>
+            <span className="text-gray-400 line-through">{formatValue(row.old_value, t)}</span>
             <span className="text-gray-300">&rarr;</span>
-            <span className="font-medium text-gray-900">{formatValue(row.new_value)}</span>
+            <span className="font-medium text-gray-900">{formatValue(row.new_value, t)}</span>
           </div>
         ),
     },
@@ -107,7 +107,7 @@ export function PersonAuditTab({ personId }: PersonAuditTabProps) {
         <div className="w-48">
           <Select
             label={t("people.audit.source")}
-            options={SOURCE_OPTIONS}
+            options={SOURCE_KEYS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value)}
           />
@@ -127,7 +127,7 @@ export function PersonAuditTab({ personId }: PersonAuditTabProps) {
         <div className="rounded-lg border border-gray-200 bg-white">
           <DataTable
             columns={columns}
-            data={entries as (PersonAuditLogEntry & Record<string, unknown>)[]}
+            data={entries}
             loading={isLoading}
             emptyMessage={t("people.audit.noEntries")}
             keyExtractor={(row) => row.id as string}
@@ -138,10 +138,10 @@ export function PersonAuditTab({ personId }: PersonAuditTabProps) {
   );
 }
 
-function formatValue(val: unknown): string {
+function formatValue(val: unknown, t?: (key: string) => string): string {
   if (val === null || val === undefined) return "—";
   if (typeof val === "string") return val || "—";
-  if (typeof val === "boolean") return val ? "Yes" : "No";
+  if (typeof val === "boolean") return val ? (t?.("common.yes") ?? "Yes") : (t?.("common.no") ?? "No");
   if (Array.isArray(val)) return val.join(", ") || "—";
   return JSON.stringify(val);
 }

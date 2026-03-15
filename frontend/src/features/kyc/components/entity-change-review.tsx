@@ -220,7 +220,7 @@ function DiffRow({
         {hasChange ? (
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-400 line-through">{current || "—"}</span>
-            <svg className="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
             </svg>
             <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-sm font-medium text-yellow-800">{proposed || "—"}</span>

@@ -12,7 +12,13 @@
     "compliance": "Cumplimiento",
     "documents": "Documentos",
     "registrosContables": "Registros Contables",
-    "admin": "Administración"
+    "economicSubstance": "Sustancia Económica",
+    "admin": "Administración",
+    "services": "Servicios",
+    "incorporation": "Incorporaciones",
+    "gestora": "Panel de Gestora",
+    "archive": "Archivo",
+    "reports": "Reportes"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -89,15 +95,10 @@
       "priorityMedium": "Media",
       "priorityHigh": "Alta",
       "priorityUrgent": "Urgente",
+      "workflow": "Flujo de Trabajo",
+      "defaultWorkflow": "Flujo por Defecto",
       "createFailed": "Error al crear el ticket. Intente de nuevo."
     }
-  },
-  "kanban": {
-    "title": "Tablero Kanban",
-    "createTicket": "Crear Ticket",
-    "noTickets": "Sin tickets en esta columna",
-    "ticketCount": "{{count}} ticket",
-    "ticketCount_plural": "{{count}} tickets"
   },
   "kyc": {
     "title": "Expedientes KYC",
@@ -275,6 +276,61 @@
       "pendingReview": "Pendientes de Revisión",
       "highRiskCount": "Alto Riesgo",
       "openRfis": "RFIs Abiertos"
+    },
+    "overview": {
+      "title": "Resumen de Cumplimiento",
+      "description": "Vista consolidada del estado de cumplimiento de todas las entidades.",
+      "totalEntities": "Total de Entidades",
+      "pendingKyc": "KYC Pendientes",
+      "pendingEs": "SE Pendientes",
+      "pendingAr": "RC Pendientes",
+      "highRisk": "Alto Riesgo",
+      "overdue": "Vencidos",
+      "allRiskLevels": "Todos los Niveles de Riesgo",
+      "highRiskFilter": "Riesgo Alto",
+      "mediumRiskFilter": "Riesgo Medio",
+      "lowRiskFilter": "Riesgo Bajo",
+      "allJurisdictions": "Todas las Jurisdicciones",
+      "panama": "Panamá",
+      "belize": "Belice",
+      "allKycStatus": "Todos los Estados KYC",
+      "draft": "Borrador",
+      "submitted": "Enviado",
+      "underReview": "En Revisión",
+      "approved": "Aprobado",
+      "rejected": "Rechazado",
+      "entity": "Entidad",
+      "jurisdiction": "Jurisdicción",
+      "client": "Cliente",
+      "kyc": "KYC",
+      "es": "SE",
+      "ar": "RC",
+      "risk": "Riesgo",
+      "noEntities": "Ninguna entidad coincide con los filtros actuales."
+    },
+    "riskDashboard": {
+      "high": "Alto",
+      "medium": "Medio",
+      "low": "Bajo",
+      "score": "Puntaje"
+    },
+    "dueDiligence": {
+      "allStatuses": "Todos los Estados",
+      "draft": "Borrador",
+      "submitted": "Enviado",
+      "underReview": "En Revisión",
+      "approved": "Aprobado",
+      "rejected": "Rechazado"
+    },
+    "fieldComments": {
+      "title": "Comentarios",
+      "resolveAll": "Resolver Todos",
+      "empty": "Sin comentarios aún",
+      "replyPlaceholder": "Responder...",
+      "placeholder": "Agregar un comentario...",
+      "shortcut": "Ctrl+Enter para enviar",
+      "reply": "Responder",
+      "resolved": "Resuelto"
     }
   },
   "documents": {
@@ -460,10 +516,6 @@
   },
   "portal": {
     "title": "Portal del Cliente",
-    "nav": {
-      "home": "Inicio",
-      "logout": "Cerrar Sesión"
-    },
     "welcome": "Bienvenido, {{name}}",
     "kycList": {
       "title": "Sus Expedientes KYC",
@@ -484,6 +536,113 @@
       "rfiSubmit": "Enviar Respuesta",
       "uploadDocument": "Subir Documento",
       "selectDocumentType": "Seleccionar tipo de documento..."
+    },
+    "entities": {
+      "title": "Sus Entidades",
+      "description": "Vea y gestione sus entidades y su estado de cumplimiento.",
+      "search": "Buscar entidades...",
+      "empty": "No se encontraron entidades",
+      "kyc": "KYC",
+      "es": "Sustancia Económica",
+      "ar": "Registros Contables"
+    },
+    "nav": {
+      "home": "Inicio",
+      "entities": "Mis Entidades",
+      "services": "Solicitudes de Servicio",
+      "notifications": "Notificaciones",
+      "profile": "Mi Perfil",
+      "logout": "Cerrar Sesión"
+    },
+    "entityDetail": {
+      "title": "Detalle de Entidad",
+      "backToEntities": "Volver a Entidades",
+      "tabs": {
+        "info": "Información",
+        "documents": "Documentos",
+        "renewals": "Renovaciones"
+      },
+      "entityType": "Tipo de Entidad",
+      "jurisdiction": "Jurisdicción",
+      "incorporationDate": "Fecha de Incorporación",
+      "status": "Estado",
+      "riskLevel": "Nivel de Riesgo",
+      "kycStatus": "Estado KYC",
+      "esStatus": "Sustancia Económica",
+      "arStatus": "Registros Contables",
+      "noDocuments": "No hay documentos disponibles",
+      "noRenewals": "No hay renovaciones pendientes",
+      "fileName": "Nombre del Archivo",
+      "documentType": "Tipo de Documento",
+      "date": "Fecha",
+      "download": "Descargar",
+      "renewalType": "Tipo de Renovación",
+      "dueDate": "Fecha de Vencimiento",
+      "notAvailable": "N/D"
+    },
+    "services": {
+      "title": "Solicitudes de Servicio",
+      "description": "Consulte el estado de sus solicitudes de servicio.",
+      "empty": "No se encontraron solicitudes de servicio",
+      "serviceType": "Tipo de Servicio",
+      "status": "Estado",
+      "currentStage": "Etapa Actual",
+      "created": "Creado",
+      "updated": "Actualizado",
+      "statuses": {
+        "draft": "Borrador",
+        "submitted": "Enviado",
+        "in_progress": "En Progreso",
+        "completed": "Completado"
+      }
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "description": "Manténgase al tanto de sus entidades y actividades de cumplimiento.",
+      "markAllRead": "Marcar Todo como Leído",
+      "empty": "Sin notificaciones",
+      "emptyDescription": "¡Está al día!",
+      "categories": {
+        "ticket": "Ticket",
+        "kyc": "KYC",
+        "compliance": "Cumplimiento",
+        "document": "Documento",
+        "system": "Sistema",
+        "reminder": "Recordatorio"
+      }
+    },
+    "profile": {
+      "title": "Mi Perfil",
+      "description": "Gestione su información de cuenta y preferencias.",
+      "info": {
+        "title": "Información del Perfil",
+        "firstName": "Nombre",
+        "lastName": "Apellido",
+        "phone": "Teléfono",
+        "email": "Correo Electrónico",
+        "save": "Guardar Cambios",
+        "saveSuccess": "Perfil actualizado exitosamente",
+        "saveError": "Error al actualizar el perfil"
+      },
+      "password": {
+        "title": "Cambiar Contraseña",
+        "currentPassword": "Contraseña Actual",
+        "newPassword": "Nueva Contraseña",
+        "confirmPassword": "Confirmar Contraseña",
+        "change": "Cambiar Contraseña",
+        "mismatch": "Las contraseñas no coinciden",
+        "changeSuccess": "Contraseña cambiada exitosamente",
+        "changeError": "Error al cambiar la contraseña"
+      },
+      "notificationPreferences": {
+        "title": "Preferencias de Notificación",
+        "description": "Elija cómo le gustaría ser notificado para cada categoría.",
+        "email": "Correo",
+        "inApp": "En la App",
+        "save": "Guardar Preferencias",
+        "saveSuccess": "Preferencias actualizadas exitosamente",
+        "saveError": "Error al actualizar preferencias"
+      }
     }
   },
   "onboarding": {
@@ -518,6 +677,7 @@
       "workflow": "Flujo de Trabajo",
       "jurisdictionRisks": "Riesgos Jurisdiccionales",
       "jurisdiction": "Riesgos Jurisdiccionales",
+      "notifications": "Notificaciones",
       "settings": "Configuración"
     },
     "users": {
@@ -605,6 +765,11 @@
       "djangoAdminDesc": "Acceda al panel de administración de Django para configuración avanzada.",
       "apiDocs": "Documentación API",
       "apiDocsDesc": "Ver la documentación de la API REST."
+    },
+    "notificationTemplates": {
+      "title": "Plantillas de Notificación",
+      "description": "Ver y gestionar las plantillas de notificación del sistema.",
+      "empty": "No se encontraron plantillas de notificación. Ejecute el comando seed."
     }
   },
   "kanban": {
@@ -613,6 +778,10 @@
     "noTickets": "No hay tickets en esta columna",
     "ticketCount": "{{count}} ticket",
     "ticketCount_plural": "{{count}} tickets",
+    "allWorkflows": "Todos los Flujos",
+    "bulkSelected": "{{count}} seleccionados",
+    "bulkMoveTo": "Mover a…",
+    "bulkMove": "Mover",
     "views": {
       "all": "Todos los Tickets",
       "my": "Mis Tickets",
@@ -699,6 +868,7 @@
       "jurisdiction": "Jurisdicción",
       "client": "Cliente",
       "status": "Estado",
+      "riskLevel": "Nivel de Riesgo",
       "incorporationDate": "Fecha de Incorporación"
     },
     "detail": {
@@ -937,6 +1107,11 @@
     },
     "pep": "PEP",
     "notPep": "No PEP",
+    "documentTypes": {
+      "passport": "Pasaporte",
+      "cedula": "Cédula",
+      "corporateRegistry": "Registro Corporativo"
+    },
     "quickCreate": {
       "title": "Crear Nueva Persona",
       "create": "Crear Persona"
@@ -999,7 +1174,8 @@
       "factorDescription": "Descripción",
       "total": "Total",
       "condition": "Condición",
-      "forcedLevel": "Nivel Forzado"
+      "forcedLevel": "Nivel Forzado",
+      "totalConfigs": "configuraciones"
     },
     "snapshots": {
       "title": "Instantáneas de Cumplimiento",
@@ -1013,7 +1189,9 @@
       "persons": "personas",
       "noSnapshots": "No se encontraron instantáneas de cumplimiento",
       "selectSnapshot": "Seleccione una instantánea para ver sus evaluaciones",
-      "assessments": "Evaluaciones"
+      "assessments": "Evaluaciones",
+      "totalSnapshots": "instantáneas",
+      "latest": "Última"
     }
   },
   "risk": {
@@ -1123,6 +1301,34 @@
       "rent": "Alquileres",
       "other_income": "Otros ingresos"
     },
+    "methodSelector": {
+      "title": "¿Cómo desea completar sus registros contables?",
+      "description": "Elija el método que mejor le convenga.",
+      "upload_information": {
+        "title": "Subir Información",
+        "description": "Suba sus registros contables, estados financieros u otros documentos de respaldo preparados directamente."
+      },
+      "seven_steps": {
+        "title": "Formulario de Siete Pasos",
+        "description": "Complete un formulario guiado paso a paso para declarar sus registros contables con nuestra asistencia."
+      }
+    },
+    "uploadForm": {
+      "title": "Suba sus Registros Contables",
+      "description": "Suba sus estados financieros, balances generales u otros documentos contables preparados.",
+      "filePassword": "Contraseña del Archivo",
+      "filePasswordHint": "Si sus archivos están protegidos con contraseña, ingrésela aquí para que nuestro equipo pueda acceder a ellos."
+    },
+    "balanceGeneral": {
+      "faqLink": "Preguntas Frecuentes Ley 254",
+      "instructions": "Instrucciones",
+      "instructionsTitle": "Cómo Completar Este Formulario",
+      "instruction1": "Ingrese todos los montos en dólares estadounidenses (USD). Use dos decimales.",
+      "instruction2": "Activos: Incluya toda la propiedad, inversiones y efectivo en poder de la entidad.",
+      "instruction3": "Pasivos: Incluya todas las deudas y obligaciones de la entidad.",
+      "instruction4": "Ingresos: Incluya todos los ingresos recibidos durante el año fiscal.",
+      "equityFormula": "Total Activos − Total Pasivos"
+    },
     "panamaAssets": {
       "formTitle": "Formulario B",
       "declarationTitle": "Declaración Jurada",
@@ -1160,7 +1366,8 @@
       "submissionSuccessDescription": "Su declaración ha sido enviada exitosamente. Recibirá una confirmación una vez que sea revisada.",
       "printDownload": "Imprimir / Descargar PDF",
       "rejectionNotice": "Su declaración fue rechazada. Por favor revise las notas a continuación y vuelva a enviar.",
-      "submitError": "Ocurrió un error al enviar la declaración. Por favor intente nuevamente."
+      "submitError": "Ocurrió un error al enviar la declaración. Por favor intente nuevamente.",
+      "saveForLater": "Guardar para Después"
     },
     "staff": {
       "bulkSend": "Enviar a todas las entidades",
@@ -1186,6 +1393,39 @@
       "submittedAt": "Enviado el"
     }
   },
+  "pagination": {
+    "label": "Paginación",
+    "previous": "Página anterior",
+    "next": "Página siguiente"
+  },
+  "ai": {
+    "title": "Asistente IA",
+    "chatTitle": "Asistente IA ARIFA",
+    "placeholder": "Preguntame sobre KYC, cumplimiento, riesgo...",
+    "send": "Enviar",
+    "suggestedQuestions": "Preguntas sugeridas",
+    "typing": "Pensando...",
+    "error": "Lo sentimos, algo salio mal. Intente de nuevo.",
+    "noResults": "Sin resultados aun",
+    "collapse": "Contraer",
+    "expand": "Expandir",
+    "processing": "Procesando...",
+    "suggestions": {
+      "title": "Sugerencias IA",
+      "apply": "Aplicar",
+      "confidence": "Confianza"
+    },
+    "risk": {
+      "title": "Explicacion de Riesgo IA",
+      "explain": "Explicar este puntaje de riesgo",
+      "loading": "Analizando factores de riesgo..."
+    },
+    "review": {
+      "title": "Revision de Documento IA",
+      "completeness": "Completitud",
+      "issues": "Problemas Encontrados"
+    }
+  },
   "common": {
     "save": "Guardar",
     "cancel": "Cancelar",
@@ -1208,6 +1448,8 @@
     "all": "Todos",
     "filter": "Filtrar",
     "export": "Exportar",
+    "exportCSV": "Exportar CSV",
+    "exporting": "Exportando...",
     "refresh": "Actualizar",
     "close": "Cerrar",
     "submit": "Enviar",
@@ -1217,6 +1459,909 @@
     "pending": "Pendiente",
     "processing": "Procesando",
     "completed": "Completado",
-    "failed": "Fallido"
+    "failed": "Fallido",
+    "saving": "Guardando...",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "clear": "Limpiar",
+    "other": "Otro",
+    "created": "Creado"
+  },
+  "rpa": {
+    "title": "Trabajos RPA",
+    "definition": "Definición",
+    "status": "Estado",
+    "progress": "Progreso",
+    "entity": "Entidad",
+    "ticket": "Ticket",
+    "createdAt": "Creado",
+    "createdBy": "Creado Por",
+    "started": "Iniciado",
+    "completed": "Completado",
+    "retries": "Reintentos",
+    "steps": "Pasos",
+    "details": "Detalles",
+    "inputData": "Datos de Entrada",
+    "errorTitle": "Error",
+    "noJobs": "No se encontraron trabajos RPA",
+    "backToJobs": "Volver a Trabajos",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "retry": "Reintentar",
+    "cancel": "Cancelar",
+    "allStatuses": "Todos los Estados",
+    "statusPending": "Pendiente",
+    "statusRunning": "Ejecutando",
+    "statusPaused": "Pausado",
+    "statusCompleted": "Completado",
+    "statusFailed": "Fallido",
+    "statusCancelled": "Cancelado"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todo leído",
+    "empty": "Sin notificaciones",
+    "preferences": "Preferencias de Notificaciones",
+    "channelPreferences": "Canales de Notificación",
+    "channelPreferencesDesc": "Elige cómo deseas recibir notificaciones para cada categoría.",
+    "dailyDigest": "Resumen Diario",
+    "enableDailyDigest": "Activar resumen diario por correo de notificaciones no leídas",
+    "digestHour": "Enviar resumen a las",
+    "categories": {
+      "ticket": "Tickets",
+      "kyc": "KYC",
+      "compliance": "Cumplimiento",
+      "rpa": "Trabajos RPA",
+      "document": "Documentos",
+      "system": "Sistema",
+      "reminder": "Recordatorios"
+    },
+    "channels": {
+      "both": "App y Correo",
+      "inApp": "Solo en App",
+      "email": "Solo Correo",
+      "none": "Desactivado"
+    }
+  },
+  "delegation": {
+    "title": "Delegaciones",
+    "createTitle": "Crear Delegación",
+    "module": "Módulo",
+    "modules": {
+      "accounting_records": "Registros Contables",
+      "economic_substance": "Sustancia Económica",
+      "kyc": "KYC"
+    },
+    "fiscalYear": "Año Fiscal",
+    "delegateEmail": "Correo del Delegado",
+    "delegate": "Delegar",
+    "accept": "Aceptar",
+    "revoke": "Revocar",
+    "by": "por",
+    "empty": "Sin delegaciones"
+  },
+  "es": {
+    "title": "Sustancia Económica",
+    "list": {
+      "entity": "Entidad",
+      "fiscalYear": "Año Fiscal",
+      "status": "Estado",
+      "currentStep": "Paso Actual",
+      "submittedAt": "Enviada",
+      "empty": "No se encontraron declaraciones de Sustancia Económica",
+      "newSubmission": "Nueva Declaración",
+      "bulkCreate": "Crear para Todas las Entidades",
+      "bulkCreateError": "Error al crear declaraciones masivas. Intente de nuevo.",
+      "createTitle": "Nueva Declaración de SE",
+      "entityId": "ID de Entidad",
+      "entityIdPlaceholder": "Ingrese UUID de entidad..."
+    },
+    "status": {
+      "all": "Todas",
+      "pending": "Pendiente",
+      "in_progress": "En Progreso",
+      "in_review": "En Revisión",
+      "completed": "Completada"
+    },
+    "steps": {
+      "relevant_activities": "Actividades",
+      "directed_managed": "Dirigida y Gestionada",
+      "ciga_in_jurisdiction": "CIGA",
+      "adequate_employees": "Empleados",
+      "adequate_expenditure": "Gastos",
+      "physical_presence": "Presencia Física",
+      "tax_residence": "Residencia Fiscal",
+      "shareholders": "Accionistas",
+      "review": "Revisión"
+    },
+    "detail": {
+      "fiscalYear": "Año Fiscal",
+      "entity": "Entidad",
+      "status": "Estado",
+      "currentStep": "Paso Actual",
+      "submittedAt": "Enviada",
+      "reviewedAt": "Revisada",
+      "created": "Creada",
+      "entityInfo": "Información de la Entidad",
+      "summary": "Resumen de la Declaración",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "approveTitle": "Aprobar Declaración",
+      "approveDescription": "¿Está seguro de aprobar esta declaración de Sustancia Económica?",
+      "rejectTitle": "Rechazar Declaración",
+      "rejectDescription": "Proporcione comentarios explicando el motivo del rechazo.",
+      "rejectCommentsPlaceholder": "Ingrese comentarios de rechazo..."
+    },
+    "flow": {
+      "saving": "Guardando...",
+      "back": "Anterior",
+      "next": "Siguiente",
+      "goToReview": "Ir a Revisión",
+      "yes": "Sí",
+      "no": "No",
+      "noneOfTheAbove": "Ninguna de las anteriores",
+      "readyToSubmit": "Puede revisar sus respuestas y enviar la declaración."
+    },
+    "review": {
+      "title": "Revisar y Enviar",
+      "description": "Revise todas sus respuestas antes de enviar la declaración.",
+      "declaration": "Declaro que la información proporcionada es correcta y completa según mi mejor conocimiento.",
+      "submit": "Enviar Declaración",
+      "comment": "Comentario del Revisor"
+    },
+    "shareholders": {
+      "title": "Accionistas",
+      "add": "Agregar Accionista",
+      "addNew": "Agregar Nuevo Accionista",
+      "editing": "Editando Accionista",
+      "name": "Nombre",
+      "namePlaceholder": "Nombre del accionista...",
+      "type": "Tipo",
+      "natural": "Persona Natural",
+      "legal": "Persona Jurídica",
+      "percentage": "% de Participación",
+      "total": "Participación Total",
+      "empty": "No hay accionistas. Haga clic en 'Agregar Accionista' para comenzar.",
+      "exceedsMax": "La participación total no puede exceder 100%."
+    },
+    "attention": {
+      "title": "Se Requiere Atención",
+      "subtitle": "Según sus respuestas, ARIFA necesita revisar el estado de Sustancia Económica de {{entity}}.",
+      "reasonLabel": "Motivo",
+      "contactTitle": "¿Qué sigue?",
+      "contactDescription": "Nuestro equipo de cumplimiento se comunicará con usted pronto para discutir los próximos pasos.",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "emailValue": "compliance@arifa.com",
+      "phoneValue": "+507 300-0000"
+    },
+    "guest": {
+      "title": "Declaración de Sustancia Económica",
+      "submitError": "Ocurrió un error al enviar. Intente de nuevo.",
+      "submitted": "Declaración Enviada",
+      "submittedDescription": "Su declaración ha sido enviada para revisión. Se le notificará del resultado.",
+      "submittedAt": "Enviada el",
+      "rejectionNotice": "Su declaración fue devuelta con comentarios. Revise y vuelva a enviar."
+    }
+  },
+  "economicSubstance": {
+    "title": "Sustancia Económica",
+    "description": "Gestionar declaraciones de Sustancia Económica para todas las entidades.",
+    "newSubmission": "Nueva Declaración",
+    "bulkCreate": "Creación Masiva",
+    "bulkCreateDesc": "Crear declaraciones de SE para todas las entidades con requisito de SE para este año fiscal.",
+    "noSubmissions": "No se encontraron declaraciones de Sustancia Económica",
+    "entity": "Entidad",
+    "fiscalYear": "Año Fiscal",
+    "currentStep": "Paso Actual",
+    "submittedAt": "Enviada",
+    "reviewedBy": "Revisada Por",
+    "status": {
+      "pending": "Pendiente",
+      "in_progress": "En Progreso",
+      "in_review": "En Revisión",
+      "completed": "Completada"
+    },
+    "create": {
+      "title": "Nueva Declaración de SE",
+      "selectEntity": "Seleccionar Entidad",
+      "fiscalYear": "Año Fiscal",
+      "submit": "Crear"
+    },
+    "flow": {
+      "title": "Declaración de Sustancia Económica",
+      "progress": "Paso {{current}} de {{total}}",
+      "back": "Anterior",
+      "next": "Siguiente",
+      "submit": "Enviar para Revisión",
+      "saveForLater": "Guardar para Después",
+      "autoSaving": "Guardando...",
+      "autoSaved": "Guardado",
+      "steps": {
+        "relevantActivities": {
+          "label": "Actividades Relevantes",
+          "description": "Seleccione todas las actividades relevantes realizadas por esta entidad durante el período fiscal.",
+          "banking": "Negocio bancario",
+          "insurance": "Negocio de seguros",
+          "fundManagement": "Gestión de fondos",
+          "financingLeasing": "Financiamiento y arrendamiento",
+          "headquarters": "Sede corporativa",
+          "shipping": "Negocio naviero",
+          "holding": "Sociedad tenedora",
+          "ip": "Propiedad intelectual",
+          "distributionService": "Centro de distribución y servicios"
+        },
+        "directedManaged": {
+          "label": "Dirigida y Administrada",
+          "description": "¿La entidad es dirigida y administrada en la jurisdicción de incorporación?"
+        },
+        "cigaInJurisdiction": {
+          "label": "Actividades Generadoras de Ingreso Principal (CIGA)",
+          "description": "¿Se realizan las actividades principales generadoras de ingresos (CIGA) en la jurisdicción?"
+        },
+        "adequateEmployees": {
+          "label": "Empleados Adecuados",
+          "description": "¿La entidad cuenta con un número adecuado de empleados calificados en la jurisdicción?"
+        },
+        "adequateExpenditure": {
+          "label": "Gastos Adecuados",
+          "description": "¿La entidad incurre en gastos operativos adecuados en la jurisdicción?"
+        },
+        "physicalPresence": {
+          "label": "Presencia Física",
+          "description": "¿La entidad tiene oficinas o instalaciones físicas en la jurisdicción?"
+        },
+        "taxResidence": {
+          "label": "Residencia Fiscal",
+          "description": "Seleccione la jurisdicción donde la entidad es residente fiscal."
+        },
+        "shareholders": {
+          "label": "Accionistas",
+          "description": "Proporcione la lista de accionistas, su tipo y porcentaje de participación."
+        },
+        "review": {
+          "label": "Revisar y Enviar",
+          "description": "Revise todas sus respuestas antes de enviar."
+        }
+      }
+    },
+    "questions": {
+      "relevantActivities": "Actividades Relevantes",
+      "relevantActivitiesDesc": "Seleccione todas las actividades que apliquen a esta entidad. Si ninguna aplica, seleccione 'Ninguna de las anteriores'.",
+      "noneOfAbove": "Ninguna de las anteriores",
+      "yesNoQuestion": "Por favor responda la siguiente pregunta:",
+      "selectCountry": "Seleccionar País",
+      "shareholdersTitle": "Información de Accionistas",
+      "shareholdersDesc": "Agregue todos los accionistas de esta entidad.",
+      "addShareholder": "Agregar Accionista",
+      "editShareholder": "Editar Accionista",
+      "shareholderName": "Nombre",
+      "shareholderType": "Tipo",
+      "shareholderNatural": "Persona Natural",
+      "shareholderLegal": "Persona Jurídica",
+      "shareholderPercentage": "% de Participación",
+      "totalOwnership": "Participación Total",
+      "terminal": {
+        "completed": "Declaración Completa",
+        "completedDesc": "Según sus respuestas, su entidad no requiere reportes adicionales de Sustancia Económica.",
+        "attention": "Se Requiere Atención",
+        "attentionDesc": "Según sus respuestas, ARIFA necesita revisar el estado de Sustancia Económica de su entidad.",
+        "contactInfo": "Nuestro equipo de cumplimiento se comunicará con usted pronto para discutir los próximos pasos."
+      }
+    },
+    "review": {
+      "title": "Revisar y Enviar",
+      "summary": "Resumen de la Declaración",
+      "answers": "Sus Respuestas",
+      "declaration": "Declaro que la información proporcionada es correcta y completa según mi mejor conocimiento.",
+      "submitConfirm": "¿Está seguro de enviar esta declaración para revisión?"
+    },
+    "staff": {
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "approveTitle": "Aprobar Declaración",
+      "approveMessage": "¿Está seguro de aprobar esta declaración de Sustancia Económica?",
+      "rejectTitle": "Rechazar Declaración",
+      "rejectMessage": "Proporcione comentarios para el rechazo:",
+      "fieldComments": "Comentarios por Campo"
+    },
+    "guest": {
+      "title": "Declaración de Sustancia Económica",
+      "subtitle": "Complete su declaración anual de Sustancia Económica.",
+      "submitError": "Ocurrió un error. Por favor intente de nuevo.",
+      "submitted": "Declaración Enviada",
+      "submittedDesc": "Su declaración ha sido enviada para revisión. Se le notificará del resultado."
+    },
+    "attention": {
+      "emailValue": "compliance@arifa.com",
+      "phoneValue": "+507 300-0000"
+    }
+  },
+  "dueDiligence": {
+    "title": "Panel de Debida Diligencia",
+    "description": "Revisar y gestionar envíos KYC y listas de verificación de debida diligencia.",
+    "stats": {
+      "total": "Total KYC",
+      "pendingReview": "Pendientes de Revisión",
+      "approved": "Aprobados",
+      "rejected": "Rechazados",
+      "overdue": "Vencidos"
+    },
+    "filters": {
+      "allStatuses": "Todos los Estados",
+      "dateRange": "Rango de Fechas",
+      "jurisdiction": "Jurisdicción",
+      "assignedOfficer": "Oficial Asignado"
+    },
+    "columns": {
+      "id": "ID",
+      "entity": "Entidad",
+      "client": "Cliente",
+      "status": "Estado",
+      "submittedAt": "Enviado",
+      "reviewedBy": "Revisado Por",
+      "actions": "Acciones"
+    },
+    "checklist": {
+      "title": "Lista de Verificación de Debida Diligencia",
+      "sections": {
+        "entity_details": "Datos de la Entidad",
+        "directors_officers": "Directores y Oficiales",
+        "shareholders": "Accionistas",
+        "beneficial_owners": "Beneficiarios Finales",
+        "attorneys_in_fact": "Apoderados"
+      },
+      "items": {
+        "entity_name_verified": "Nombre de la entidad verificado",
+        "jurisdiction_confirmed": "Jurisdicción confirmada",
+        "incorporation_docs": "Documentos de incorporación revisados",
+        "registered_agent": "Agente registrado confirmado",
+        "good_standing": "Certificado de buena reputación",
+        "directors_identified": "Todos los directores identificados",
+        "directors_id_verified": "IDs de directores verificados",
+        "directors_pep_check": "Verificaciones PEP completadas",
+        "officers_documented": "Oficiales documentados",
+        "powers_of_attorney": "Poderes de representación revisados",
+        "share_register_reviewed": "Registro de acciones revisado",
+        "shareholder_ids": "Identidades de accionistas verificadas",
+        "ownership_confirmed": "Porcentajes de propiedad confirmados",
+        "corporate_shareholders": "Accionistas corporativos rastreados",
+        "ubo_identified": "Beneficiarios finales identificados (>=25%)",
+        "ubo_id_verified": "Identidades de beneficiarios finales verificadas",
+        "ubo_sow_documented": "Origen de riqueza documentado",
+        "ubo_pep_check": "Verificaciones PEP completadas",
+        "ubo_worldcheck": "Verificación World-Check completada",
+        "poa_documents": "Documentos de poder revisados",
+        "attorney_id_verified": "Identidades de apoderados verificadas",
+        "scope_of_authority": "Alcance de autoridad confirmado"
+      },
+      "markComplete": "Marcar Completa",
+      "completed": "Completada",
+      "progress": "{{completed}}/{{total}} ítems",
+      "addNote": "Agregar nota...",
+      "noItems": "Sin ítems de verificación"
+    }
+  },
+  "fieldComments": {
+    "title": "Comentarios",
+    "addComment": "Agregar un comentario...",
+    "submit": "Publicar",
+    "resolve": "Resolver Todos",
+    "resolveConfirm": "¿Marcar todos los comentarios de este campo como resueltos?",
+    "noComments": "Sin comentarios aún",
+    "reply": "Responder",
+    "resolved": "Resuelto"
+  },
+  "helpRequest": {
+    "title": "¿Necesita Ayuda?",
+    "button": "¿Necesita Ayuda?",
+    "module": "Módulo",
+    "message": "Mensaje",
+    "messagePlaceholder": "Describa su pregunta o problema...",
+    "submit": "Enviar Solicitud de Ayuda",
+    "success": "¡Solicitud de ayuda enviada! Nuestro equipo se comunicará con usted pronto.",
+    "error": "Error al enviar la solicitud. Intente de nuevo.",
+    "rateLimited": "Espere antes de enviar otra solicitud."
+  },
+  "riskDashboard": {
+    "title": "Panel de Riesgo",
+    "description": "Resumen de evaluaciones de riesgo de todas las entidades y personas.",
+    "stats": {
+      "totalAssessed": "Total Evaluados",
+      "highRisk": "Alto Riesgo",
+      "mediumRisk": "Riesgo Medio",
+      "lowRisk": "Bajo Riesgo"
+    },
+    "distribution": "Distribución de Riesgo",
+    "highRiskEntities": "Entidades de Alto Riesgo",
+    "recentChanges": "Cambios de Riesgo Recientes",
+    "noChanges": "Sin cambios de riesgo recientes",
+    "previousLevel": "Anterior",
+    "currentLevel": "Actual",
+    "changedAt": "Cambiado"
+  },
+  "riskAssessment": {
+    "title": "Detalle de Evaluación de Riesgo",
+    "backToRiskDashboard": "Volver al Panel de Riesgo",
+    "summary": "Resumen",
+    "overallScore": "Puntaje General",
+    "riskLevel": "Nivel de Riesgo",
+    "assessedAt": "Evaluado el",
+    "assessedBy": "Evaluado por",
+    "trigger": "Disparador",
+    "system": "Sistema",
+    "current": "Vigente",
+    "superseded": "Reemplazado",
+    "factorBreakdown": "Desglose de Factores",
+    "factorName": "Factor",
+    "rawScore": "Puntaje",
+    "maxScore": "Máximo",
+    "weight": "Peso",
+    "weightedScore": "Ponderado",
+    "contribution": "Contribución",
+    "noFactors": "No hay desglose de factores disponible.",
+    "triggeredRules": "Reglas Activadas",
+    "condition": "Condición",
+    "detail": "Detalle",
+    "forcedLevel": "Nivel Forzado",
+    "noTriggeredRules": "No se activaron reglas automáticas.",
+    "versionHistory": "Historial de Versiones",
+    "noHistory": "No se encontraron evaluaciones anteriores.",
+    "version": "Versión",
+    "date": "Fecha",
+    "score": "Puntaje",
+    "level": "Nivel",
+    "exportPdf": "Exportar PDF",
+    "loading": "Cargando evaluación de riesgo...",
+    "notFound": "Evaluación de riesgo no encontrada.",
+    "error": "Error al cargar la evaluación de riesgo.",
+    "entityLabel": "Entidad",
+    "personLabel": "Persona"
+  },
+  "complianceCalendar": {
+    "title": "Calendario de Cumplimiento",
+    "today": "Hoy",
+    "noDeadlines": "Sin fechas l\u00edmite este a\u00f1o",
+    "kycRenewal": "Renovaci\u00f3n KYC",
+    "esDeadline": "Fecha L\u00edmite SE",
+    "arDeadline": "Fecha L\u00edmite RC",
+    "months": {
+      "january": "Enero",
+      "february": "Febrero",
+      "march": "Marzo",
+      "april": "Abril",
+      "may": "Mayo",
+      "june": "Junio",
+      "july": "Julio",
+      "august": "Agosto",
+      "september": "Septiembre",
+      "october": "Octubre",
+      "november": "Noviembre",
+      "december": "Diciembre"
+    },
+    "weekdays": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mi\u00e9",
+      "thu": "Jue",
+      "fri": "Vie",
+      "sat": "S\u00e1b",
+      "sun": "Dom"
+    }
+  },
+  "shareholdersCalculator": {
+    "title": "Calculadora de Accionistas",
+    "description": "Calcular y analizar la Titularidad Real Final.",
+    "addShareholder": "Agregar Accionista",
+    "editNode": "Editar",
+    "deleteNode": "Eliminar",
+    "analyze": "Identificar y Analizar",
+    "clear": "Limpiar Diagrama",
+    "clearConfirm": "¿Está seguro de limpiar todo el diagrama? Esta acción no se puede deshacer.",
+    "save": "Guardar Instantánea",
+    "saved": "Instantánea guardada",
+    "downloadPng": "Descargar PNG",
+    "center": "Centrar Vista",
+    "threshold": "Umbral de BF",
+    "reportableUbos": "BF Reportables",
+    "noUbos": "Sin BF por encima del umbral",
+    "warnings": "Advertencias",
+    "auditLog": "Registro de Auditoría",
+    "noSnapshots": "Sin instantáneas guardadas",
+    "ownershipPct": "% de Participación",
+    "directOwnership": "Directo",
+    "indirectOwnership": "Indirecto",
+    "totalOwnership": "Total",
+    "exception": {
+      "stockExchange": "Cotizada en Bolsa",
+      "multilateral": "Organización Multilateral",
+      "stateOwned": "Entidad Estatal"
+    },
+    "node": {
+      "name": "Nombre",
+      "type": "Tipo",
+      "natural": "Persona Natural",
+      "legal": "Persona Jurídica",
+      "percentage": "Porcentaje de Participación",
+      "namePlaceholder": "Ingrese el nombre...",
+      "percentagePlaceholder": "ej. 25.00"
+    },
+    "entityIdRequired": "Se requiere ID de entidad",
+    "loadError": "Error al cargar el árbol de propiedad. Intente de nuevo.",
+    "saveError": "Error al guardar el árbol de propiedad. Intente de nuevo."
+  },
+  "services": {
+    "title": "Servicios",
+    "description": "Explore el catálogo de servicios, cree solicitudes y gestione cotizaciones.",
+    "newRequest": "Nueva Solicitud",
+    "submitRequest": "Enviar Solicitud",
+    "searchCatalog": "Buscar servicios...",
+    "jurisdiction": "Jurisdicción",
+    "category": "Categoría",
+    "allJurisdictions": "Todas las Jurisdicciones",
+    "allCategories": "Todas las Categorías",
+    "jurisdictions": {
+      "panama": "Panamá",
+      "bvi": "BVI",
+      "belize": "Belice"
+    },
+    "addToRequest": "Agregar",
+    "noCatalogItems": "No hay servicios disponibles",
+    "existingRequests": "Solicitudes de Servicio",
+    "noRequests": "No se encontraron solicitudes de servicio",
+    "items": "ítems",
+    "days": "días",
+    "columns": {
+      "name": "Servicio",
+      "category": "Categoría",
+      "basePrice": "Precio Base",
+      "estimatedDays": "Días Est.",
+      "client": "Cliente",
+      "status": "Estado",
+      "items": "Ítems",
+      "created": "Creado"
+    },
+    "status": {
+      "draft": "Borrador",
+      "pending_quotation": "Cotización Pendiente",
+      "quoted": "Cotizado",
+      "accepted": "Aceptado",
+      "rejected": "Rechazado",
+      "in_progress": "En Progreso",
+      "completed": "Completado",
+      "cancelled": "Cancelado"
+    },
+    "cart": {
+      "title": "Servicios Seleccionados",
+      "empty": "Cree una nueva solicitud para comenzar a agregar servicios.",
+      "noItems": "No se han agregado servicios. Seleccione servicios del catálogo.",
+      "qty": "Cant",
+      "discount": "Descuento",
+      "subtotal": "Subtotal",
+      "total": "Total"
+    },
+    "quotation": {
+      "title": "Cotización",
+      "serviceName": "Servicio",
+      "qty": "Cant",
+      "unitPrice": "Precio Unitario",
+      "discount": "Descuento",
+      "subtotal": "Subtotal",
+      "subtotalLabel": "Subtotal",
+      "discountLabel": "Descuento",
+      "taxLabel": "Impuesto",
+      "totalLabel": "Total",
+      "validUntil": "Válido Hasta",
+      "currency": "Moneda",
+      "created": "Creado",
+      "acceptedAt": "Aceptado",
+      "rejectedAt": "Rechazado",
+      "notes": "Notas",
+      "noItems": "Sin líneas de detalle",
+      "downloadPdf": "Descargar Proforma PDF",
+      "accept": "Aceptar Cotización",
+      "reject": "Rechazar Cotización",
+      "status": {
+        "draft": "Borrador",
+        "sent": "Enviada",
+        "accepted": "Aceptada",
+        "rejected": "Rechazada",
+        "expired": "Expirada"
+      }
+    },
+    "expenses": {
+      "title": "Control de Gastos",
+      "description": "Registre y gestione los gastos asociados a solicitudes de servicio y entidades.",
+      "record": "Registrar Gasto",
+      "markPaid": "Marcar como Pagado",
+      "noExpenses": "No hay gastos registrados",
+      "allCategories": "Todas las Categorías",
+      "allStatuses": "Todos los Estados",
+      "descriptionPlaceholder": "Describa el gasto...",
+      "currencyLabel": "Moneda",
+      "paymentMethodLabel": "Método de Pago",
+      "paymentMethodPlaceholder": "Ej: Transferencia, Cheque...",
+      "paymentReferenceLabel": "Referencia de Pago",
+      "paymentReferencePlaceholder": "Ej: ID de Transacción...",
+      "columns": {
+        "description": "Descripción",
+        "category": "Categoría",
+        "amount": "Monto",
+        "status": "Estado",
+        "paidAt": "Pagado"
+      },
+      "categories": {
+        "government_fees": "Tasas Gubernamentales",
+        "notary_fees": "Gastos Notariales",
+        "courier": "Mensajería",
+        "translations": "Traducciones",
+        "legal_fees": "Honorarios Legales",
+        "disbursements": "Desembolsos",
+        "other": "Otros"
+      },
+      "paymentStatus": {
+        "pending": "Pendiente",
+        "partial": "Parcial",
+        "paid": "Pagado",
+        "refunded": "Reembolsado"
+      }
+    }
+  },
+  "courier": {
+    "title": "Courier y Archivo",
+    "tabs": {
+      "archive": "Archivo",
+      "dispatchReport": "Reporte de Despacho"
+    },
+    "columns": {
+      "entity": "Entidad",
+      "status": "Estado",
+      "tracking": "N.o de Rastreo",
+      "courier": "Servicio de Courier",
+      "dispatchDate": "Fecha de Despacho",
+      "actions": "Acciones"
+    },
+    "empty": "No se encontraron entradas de archivo",
+    "statuses": {
+      "pending_archive": "Pendiente de Archivo",
+      "dispatched": "Despachado",
+      "delivered": "Entregado",
+      "filed": "Archivado"
+    },
+    "tracking": {
+      "status": "Estado",
+      "trackingNumber": "Numero de Rastreo",
+      "trackingNumberPlaceholder": "Ingrese numero de rastreo...",
+      "dispatchDate": "Fecha de Despacho",
+      "courierService": "Servicio de Courier"
+    },
+    "services": {
+      "dhl": "DHL",
+      "fedex": "FedEx",
+      "ups": "UPS",
+      "local_messenger": "Mensajero Local",
+      "registered_mail": "Correo Certificado"
+    },
+    "batch": {
+      "entity": "Entidad",
+      "ticket": "Ticket",
+      "trackingNumber": "N.o de Rastreo",
+      "dispatchDate": "Fecha de Despacho",
+      "courierService": "Servicio de Courier",
+      "status": "Estado",
+      "dateFrom": "Desde",
+      "dateTo": "Hasta",
+      "showing": "Mostrando {{count}} entradas",
+      "noEntries": "No hay entradas despachadas en este rango de fechas"
+    }
+  },
+  "incorporation": {
+    "dashboard": {
+      "title": "Panel de Incorporaciones",
+      "description": "Resumen de todos los flujos de incorporacion por jurisdiccion.",
+      "newIncorporation": "Nueva Incorporacion",
+      "recentIncorporations": "Incorporaciones Recientes",
+      "noTickets": "No se encontraron tickets de incorporacion"
+    },
+    "stats": {
+      "totalActive": "Total Activas",
+      "completedThisMonth": "Completadas Este Mes",
+      "pendingPayment": "Pago Pendiente",
+      "highCapital": "Alto Capital",
+      "avgProcessingDays": "Dias Prom. de Proceso"
+    },
+    "columns": {
+      "title": "Titulo",
+      "client": "Cliente",
+      "jurisdiction": "Jurisdiccion",
+      "stage": "Etapa",
+      "assignedTo": "Asignado a",
+      "daysInStage": "Dias en Etapa",
+      "priority": "Prioridad"
+    },
+    "filters": {
+      "allJurisdictions": "Todas las Jurisdicciones",
+      "allStatuses": "Todos los Estados",
+      "dateFrom": "Desde",
+      "dateTo": "Hasta"
+    },
+    "chart": {
+      "title": "Distribucion por Etapa",
+      "noData": "No hay datos de etapa disponibles"
+    },
+    "highCapital": "Alto Capital",
+    "payment": {
+      "title": "Registrar Pago",
+      "forTicket": "Para el Ticket",
+      "amount": "Monto",
+      "currency": "Moneda",
+      "method": "Metodo de Pago",
+      "receiptReference": "Referencia de Recibo",
+      "referencePlaceholder": "Ingrese numero de recibo o referencia...",
+      "submit": "Registrar Pago",
+      "error": "Error al registrar el pago. Intente de nuevo.",
+      "amountRequired": "Se requiere un monto valido",
+      "referenceRequired": "La referencia del recibo es obligatoria",
+      "methods": {
+        "wire_transfer": "Transferencia Bancaria",
+        "check": "Cheque",
+        "credit_card": "Tarjeta de Credito",
+        "cash": "Efectivo"
+      }
+    },
+    "payments": {
+      "title": "Seguimiento de Pagos",
+      "description": "Ver y gestionar registros de pagos de incorporacion.",
+      "recordPayment": "Registrar Pago",
+      "records": "Registros de Pagos",
+      "noPayments": "No se encontraron registros de pago",
+      "approved": "Aprobado",
+      "pendingApproval": "Pendiente de Aprobacion",
+      "approve": "Aprobar",
+      "columns": {
+        "ticket": "Ticket",
+        "amount": "Monto",
+        "method": "Metodo",
+        "reference": "Referencia",
+        "recordedBy": "Registrado Por",
+        "date": "Fecha",
+        "status": "Estado"
+      },
+      "filter": {
+        "allStatuses": "Todos los Estados",
+        "pending": "Pendiente de Aprobacion",
+        "approved": "Aprobado"
+      }
+    },
+    "gestora": {
+      "title": "Panel de Gestora",
+      "description": "Gestione sus tareas asignadas de incorporacion y procesamiento de documentos.",
+      "myActive": "Mis Activas",
+      "pendingDeeds": "Escrituras Pendientes",
+      "inNotary": "En Notaria",
+      "completedToday": "Completadas Hoy"
+    },
+    "reports": {
+      "title": "Reportes de Incorporacion",
+      "description": "Ver metricas de incorporacion, comisiones y reportes de gastos.",
+      "tabs": {
+        "overview": "Resumen",
+        "commissions": "Reporte de Comisiones",
+        "expenses": "Reporte de Gastos"
+      },
+      "commissions": {
+        "entity": "Entidad",
+        "registryDate": "Fecha de Registro",
+        "commissionAmount": "Monto de Comision",
+        "status": "Estado",
+        "total": "Total",
+        "noData": "No hay datos de comisiones disponibles"
+      },
+      "expenses": {
+        "entity": "Entidad",
+        "category": "Categoria",
+        "amount": "Monto",
+        "status": "Estado",
+        "total": "Total",
+        "noData": "No hay datos de gastos disponibles",
+        "allCategories": "Todas las Categorias",
+        "categories": {
+          "registry": "Gastos de Registro",
+          "notary": "Gastos Notariales",
+          "legal": "Honorarios Legales",
+          "government": "Gastos Gubernamentales",
+          "other": "Otros"
+        }
+      }
+    }
+  },
+  "reports": {
+    "title": "Reportes",
+    "description": "Acceda a todos los paneles de reportes y analisis.",
+    "hub": {
+      "incorporationReports": "Reportes de Incorporacion",
+      "incorporationReportsDesc": "Ver metricas de incorporacion, comisiones y reportes de gastos.",
+      "financialDashboard": "Panel Financiero",
+      "financialDashboardDesc": "Ingresos, gastos e ingreso neto por jurisdiccion.",
+      "userActivity": "Actividad de Usuarios",
+      "userActivityDesc": "Productividad del personal, tasas de cierre de tickets y tiempos de procesamiento.",
+      "complianceOverview": "Resumen de Cumplimiento",
+      "complianceOverviewDesc": "Estado de cumplimiento consolidado de todas las entidades.",
+      "riskDashboard": "Panel de Riesgo",
+      "riskDashboardDesc": "Distribucion de riesgo y resumen de evaluaciones para entidades y personas."
+    },
+    "financial": {
+      "title": "Panel Financiero",
+      "description": "Resumen de ingresos, gastos y desempeno financiero.",
+      "totalRevenue": "Ingresos Totales",
+      "totalExpenses": "Gastos Totales",
+      "netIncome": "Ingreso Neto",
+      "pendingInvoices": "Facturas Pendientes",
+      "revenueVsExpenses": "Ingresos vs Gastos por Mes",
+      "revenueByJurisdiction": "Ingresos por Jurisdiccion",
+      "revenueLabel": "Ingresos",
+      "expensesLabel": "Gastos",
+      "noData": "No hay datos disponibles para el periodo seleccionado."
+    },
+    "activity": {
+      "title": "Reporte de Actividad de Usuarios",
+      "description": "Metricas de productividad del personal y procesamiento de tickets.",
+      "totalActiveUsers": "Usuarios Activos",
+      "avgProcessingDaysOverall": "Dias Promedio de Procesamiento",
+      "allRoles": "Todos los Roles",
+      "name": "Nombre",
+      "role": "Rol",
+      "ticketsCompleted": "Tickets Completados",
+      "avgProcessingDays": "Dias Promedio",
+      "lastActive": "Ultima Actividad",
+      "dateFrom": "Desde",
+      "dateTo": "Hasta",
+      "noUsers": "No hay datos de actividad de usuarios."
+    },
+    "common": {
+      "exportCSV": "Exportar CSV",
+      "print": "Imprimir",
+      "thisMonth": "Este Mes",
+      "thisQuarter": "Este Trimestre",
+      "thisYear": "Este Ano",
+      "custom": "Personalizado",
+      "allJurisdictions": "Todas las Jurisdicciones",
+      "panama": "Panama",
+      "belize": "Belice"
+    }
+  },
+  "search": {
+    "placeholder": "Buscar entidades, personas, tickets...",
+    "noResults": "No se encontraron resultados",
+    "minChars": "Escriba al menos 2 caracteres para buscar",
+    "types": {
+      "entity": "Entidades",
+      "person": "Personas",
+      "client": "Clientes",
+      "ticket": "Tickets"
+    }
+  },
+  "fileUpload": {
+    "dragOrClick": "Arrastra y suelta archivos aqui, o haz clic para seleccionar",
+    "dropHere": "Suelta los archivos aqui...",
+    "fileTooLarge": "\"{{name}}\" excede el tamano maximo de {{maxSize}}",
+    "invalidType": "\"{{name}}\" no es un tipo de archivo aceptado",
+    "tooManyFiles": "Maximo {{max}} archivos permitidos",
+    "maxSize": "Max: {{size}}",
+    "maxFiles": "Hasta {{count}} archivos"
+  },
+  "dataList": {
+    "searchPlaceholder": "Buscar...",
+    "selectAll": "Seleccionar todo",
+    "deselectAll": "Deseleccionar todo",
+    "itemCount": "{{selected}} de {{total}} seleccionados",
+    "noResults": "No se encontraron elementos"
+  },
+  "filters": {
+    "saved": "Filtros Guardados",
+    "save": "Guardar Filtro",
+    "delete": "Eliminar filtro",
+    "name": "Nombre del filtro...",
+    "default": "Predeterminado"
   }
 }

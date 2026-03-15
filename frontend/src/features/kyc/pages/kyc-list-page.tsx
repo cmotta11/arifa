@@ -7,6 +7,8 @@ import { DataTable } from "@/components/data-display/data-table";
 import { ROUTES } from "@/config/routes";
 import type { KYCSubmission } from "@/types";
 import { useKYCList, type KYCListFilters } from "../api/kyc-api";
+import { kycStatusColorMap } from "@/config/status-colors";
+import { formatDate } from "@/lib/format";
 
 // ─── Status Tab Definitions ─────────────────────────────────────────────────
 
@@ -23,31 +25,6 @@ const STATUS_TABS: StatusTab[] = [
   { key: "approved", labelKey: "statusFilter.approved" },
   { key: "rejected", labelKey: "statusFilter.rejected" },
 ];
-
-// ─── Badge Color Map ────────────────────────────────────────────────────────
-
-const STATUS_BADGE_COLOR: Record<
-  KYCSubmission["status"],
-  "gray" | "blue" | "yellow" | "green" | "red"
-> = {
-  draft: "gray",
-  submitted: "blue",
-  under_review: "yellow",
-  sent_back: "yellow",
-  approved: "green",
-  rejected: "red",
-};
-
-// ─── Helper ─────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -99,7 +76,7 @@ export default function KYCListPage() {
         render: (row: Record<string, unknown>) => {
           const status = row.status as KYCSubmission["status"];
           return (
-            <Badge color={STATUS_BADGE_COLOR[status] ?? "gray"}>
+            <Badge color={kycStatusColorMap[status] ?? "gray"}>
               {t(`status.${status}`)}
             </Badge>
           );
@@ -165,6 +142,7 @@ export default function KYCListPage() {
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -190,7 +168,7 @@ export default function KYCListPage() {
                   whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors
                   ${
                     isActive
-                      ? "border-arifa-navy text-arifa-navy"
+                      ? "border-primary text-primary"
                       : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                   }
                 `}
@@ -213,7 +191,7 @@ export default function KYCListPage() {
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <DataTable
           columns={columns}
-          data={submissions as unknown as Record<string, unknown>[]}
+          data={submissions}
           onRowClick={handleRowClick}
           loading={kycListQuery.isLoading}
           emptyMessage={t("list.empty")}

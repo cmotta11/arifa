@@ -154,7 +154,7 @@ export default function PersonDetailPage() {
               onClick={() => setActiveTab(tab)}
               className={`whitespace-nowrap border-b-2 px-1 pb-3 text-sm font-medium ${
                 activeTab === tab
-                  ? "border-arifa-navy text-arifa-navy"
+                  ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
               }`}
             >
@@ -239,9 +239,9 @@ export default function PersonDetailPage() {
                     setFormData((p) => ({ ...p, identification_type: e.target.value }))
                   }
                   options={[
-                    { value: "passport", label: "Passport" },
-                    { value: "cedula", label: "Cedula" },
-                    { value: "corporate_registry", label: "Corporate Registry" },
+                    { value: "passport", label: t("people.documentTypes.passport") },
+                    { value: "cedula", label: t("people.documentTypes.cedula") },
+                    { value: "corporate_registry", label: t("people.documentTypes.corporateRegistry") },
                   ]}
                 />
                 <Select

@@ -70,6 +70,14 @@ class GenerateDocumentInputSerializer(serializers.Serializer):
     context_data = serializers.DictField(required=False, allow_null=True, default=None)
 
 
+class AssembleDocumentInputSerializer(serializers.Serializer):
+    """Input for the document assembly endpoint."""
+
+    builder_name = serializers.CharField(max_length=100)
+    ticket_id = serializers.UUIDField()
+    context_data = serializers.DictField()
+
+
 class ConvertPDFInputSerializer(serializers.Serializer):
     """Empty serializer used as action trigger for PDF conversion."""
 

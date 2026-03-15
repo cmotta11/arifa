@@ -18,6 +18,7 @@ import {
   getUsers,
 } from "../api/tickets-api";
 import { TicketTimeline } from "../components/ticket-timeline";
+import { formatDate } from "@/lib/format";
 
 const priorityColorMap: Record<Ticket["priority"], "gray" | "green" | "yellow" | "red"> = {
   low: "gray",
@@ -25,15 +26,6 @@ const priorityColorMap: Record<Ticket["priority"], "gray" | "green" | "yellow" |
   high: "yellow",
   urgent: "red",
 };
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -135,7 +127,7 @@ export default function TicketDetailPage() {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-arifa-navy"
+        className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-primary"
       >
         <svg
           className="h-4 w-4"

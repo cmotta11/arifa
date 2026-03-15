@@ -44,23 +44,23 @@ function getRiskColor(weight: number): string {
 }
 
 function getRiskLevelLabel(weight: number): {
-  label: string;
+  labelKey: string;
   className: string;
 } {
   if (weight <= 3) {
     return {
-      label: "Low",
+      labelKey: "riskLevels.low",
       className: "bg-green-100 text-green-700",
     };
   }
   if (weight <= 6) {
     return {
-      label: "Medium",
+      labelKey: "riskLevels.medium",
       className: "bg-yellow-100 text-yellow-700",
     };
   }
   return {
-    label: "High",
+    labelKey: "riskLevels.high",
     className: "bg-red-100 text-red-700",
   };
 }
@@ -217,12 +217,12 @@ export function JurisdictionRiskManagement() {
       header: t("admin.jurisdiction.riskLevel"),
       render: (row: Record<string, unknown>) => {
         const weight = row.risk_weight as number;
-        const { label, className } = getRiskLevelLabel(weight);
+        const { labelKey, className } = getRiskLevelLabel(weight);
         return (
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}
           >
-            {label}
+            {t(labelKey)}
           </span>
         );
       },
@@ -295,7 +295,7 @@ export function JurisdictionRiskManagement() {
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <DataTable
           columns={columns}
-          data={filteredData as unknown as Record<string, unknown>[]}
+          data={filteredData}
           loading={risksQuery.isLoading}
           emptyMessage={t("admin.jurisdiction.noCountries")}
           keyExtractor={(row) => String(row.id)}

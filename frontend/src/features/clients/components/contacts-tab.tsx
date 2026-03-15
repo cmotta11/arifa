@@ -132,8 +132,8 @@ export function ContactsTab({ clientId }: ContactsTabProps) {
               e.stopPropagation();
               handleTogglePortalAccess(contact);
             }}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-arifa-navy focus:ring-offset-2 ${
-              contact.has_portal_access ? "bg-arifa-navy" : "bg-gray-200"
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+              contact.has_portal_access ? "bg-primary" : "bg-gray-200"
             }`}
           >
             <span
@@ -203,7 +203,7 @@ export function ContactsTab({ clientId }: ContactsTabProps) {
         ) : (
           <DataTable
             columns={columns}
-            data={contacts as unknown as Record<string, unknown>[]}
+            data={contacts}
             emptyMessage={t("clients.contacts.noContacts")}
             keyExtractor={(row) => String(row.id)}
           />
@@ -268,7 +268,7 @@ export function ContactsTab({ clientId }: ContactsTabProps) {
                       has_portal_access: e.target.checked,
                     }))
                   }
-                  className="h-4 w-4 rounded border-gray-300 text-arifa-navy focus:ring-arifa-navy"
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
                 {t("clients.contacts.portalAccess")}
               </label>

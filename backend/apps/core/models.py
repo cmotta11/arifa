@@ -1,8 +1,7 @@
+from django.conf import settings
 from django.db import models
 
 from common.base_model import TimeStampedModel
-
-from django.conf import settings
 
 from .constants import (
     AuditAction,
@@ -67,6 +66,16 @@ class Entity(TimeStampedModel):
         default=EntityStatus.PENDING,
     )
     nominal_directors_requested = models.BooleanField(default=False)
+    ubo_exception_type = models.CharField(
+        max_length=30,
+        choices=[
+            ("stock_exchange", "Listed on Stock Exchange"),
+            ("multilateral", "Multilateral Organization"),
+            ("state_owned", "State-Owned Entity"),
+        ],
+        blank=True,
+        default="",
+    )
 
     class Meta(TimeStampedModel.Meta):
         verbose_name = "Entity"
@@ -525,3 +534,30 @@ class PersonAuditLog(TimeStampedModel):
 
     def __str__(self):
         return f"Audit: {self.person.full_name} - {self.action} {self.model_name}.{self.field_name}"
+
+
+class SavedFilter(TimeStampedModel):
+    """User-specific saved filter presets for any list page."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="saved_filters",
+    )
+    name = models.CharField(max_length=100)
+    module = models.CharField(max_length=50)  # e.g. "entities", "tickets", "people"
+    filters = models.JSONField(default=dict)  # The actual filter params
+    is_default = models.BooleanField(default=False)
+
+    class Meta(TimeStampedModel.Meta):
+        verbose_name = "Saved Filter"
+        verbose_name_plural = "Saved Filters"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "module", "name"],
+                name="unique_filter_name_per_user_module",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.module}: {self.name}"

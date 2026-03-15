@@ -36,12 +36,12 @@ export function FormTypeSelector({ selected, onSelect }: FormTypeSelectorProps) 
                 rounded-lg border-2 p-5 text-left transition-all duration-150
                 ${
                   isSelected
-                    ? "border-arifa-navy bg-arifa-navy/5 ring-1 ring-arifa-navy"
-                    : "border-gray-200 hover:border-arifa-navy/40 hover:bg-gray-50"
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "border-gray-200 hover:border-primary/40 hover:bg-gray-50"
                 }
               `}
             >
-              <h3 className={`text-sm font-semibold ${isSelected ? "text-arifa-navy" : "text-gray-900"}`}>
+              <h3 className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-gray-900"}`}>
                 {t(`registrosContables.formTypes.${type}.name`)}
               </h3>
               <p className="mt-1 text-xs text-gray-500">

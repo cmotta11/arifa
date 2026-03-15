@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { ROUTES } from "@/config/routes";
-import type { KYCSubmission, RiskAssessment } from "@/types";
+import type { RiskAssessment } from "@/types";
 import {
   useKYCDetail,
   useKYCParties,
@@ -23,20 +23,11 @@ import { KYCFormShell } from "../components/kyc-form-shell";
 import { PartyList } from "../components/party-list";
 import { ReviewSummary } from "../components/review-summary";
 import { ShareGuestLinkButton } from "../components/share-guest-link-button";
+import { kycStatusColorMap } from "@/config/status-colors";
+import { formatDate } from "@/lib/format";
+import { HelpButton } from "@/components/feedback/help-button";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-
-const STATUS_BADGE_COLOR: Record<
-  KYCSubmission["status"],
-  "gray" | "blue" | "yellow" | "green" | "red"
-> = {
-  draft: "gray",
-  submitted: "blue",
-  under_review: "yellow",
-  approved: "green",
-  rejected: "red",
-  sent_back: "yellow",
-};
 
 type DetailTab = "overview" | "parties" | "documents" | "risk" | "rfis" | "entityReview";
 
@@ -53,17 +44,6 @@ const TABS: TabDef[] = [
   { key: "rfis", labelKey: "tabs.rfis" },
   { key: "entityReview", labelKey: "tabs.entityReview" },
 ];
-
-// ─── Helper ─────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -126,7 +106,7 @@ export default function KYCDetailPage() {
         <button
           type="button"
           onClick={() => navigate(ROUTES.KYC)}
-          className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-arifa-navy"
+          className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-primary"
         >
           <svg
             className="h-4 w-4"
@@ -134,6 +114,7 @@ export default function KYCDetailPage() {
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -149,7 +130,7 @@ export default function KYCDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             {t("detail.editTitle")}
           </h1>
-          <Badge color={STATUS_BADGE_COLOR[kyc.status]}>
+          <Badge color={kycStatusColorMap[kyc.status] ?? "gray"}>
             {t(`status.${kyc.status}`)}
           </Badge>
         </div>
@@ -175,7 +156,7 @@ export default function KYCDetailPage() {
       <button
         type="button"
         onClick={() => navigate(ROUTES.KYC)}
-        className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-arifa-navy"
+        className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-primary"
       >
         <svg
           className="h-4 w-4"
@@ -198,7 +179,7 @@ export default function KYCDetailPage() {
         <h1 className="text-2xl font-bold text-gray-900">
           {t("detail.title")}
         </h1>
-        <Badge color={STATUS_BADGE_COLOR[kyc.status]}>
+        <Badge color={kycStatusColorMap[kyc.status] ?? "gray"}>
           {t(`status.${kyc.status}`)}
         </Badge>
         {risk && (
@@ -271,7 +252,7 @@ export default function KYCDetailPage() {
                   whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium transition-colors
                   ${
                     isActive
-                      ? "border-arifa-navy text-arifa-navy"
+                      ? "border-primary text-primary"
                       : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                   }
                 `}
@@ -345,6 +326,7 @@ export default function KYCDetailPage() {
           </div>
         )}
       </div>
+      <HelpButton module="kyc" entityId={kyc?.entity_id} currentPage="kyc-detail" />
     </div>
   );
 }
@@ -377,6 +359,7 @@ function DocumentsTab({
           viewBox="0 0 24 24"
           stroke="currentColor"
           strokeWidth={1.5}
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -403,6 +386,7 @@ function DocumentsTab({
               viewBox="0 0 24 24"
               stroke="currentColor"
               strokeWidth={1.5}
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -468,6 +452,7 @@ function RiskTab({
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -530,7 +515,7 @@ function RiskTab({
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-200">
                           <div
-                            className="h-full rounded-full bg-arifa-navy"
+                            className="h-full rounded-full bg-primary"
                             style={{
                               width: `${Math.min(Number(value) * 10, 100)}%`,
                             }}
@@ -584,6 +569,7 @@ function RFIsTab({ kycId: _kycId }: { kycId: string }) {
         viewBox="0 0 24 24"
         stroke="currentColor"
         strokeWidth={1.5}
+        aria-hidden="true"
       >
         <path
           strokeLinecap="round"

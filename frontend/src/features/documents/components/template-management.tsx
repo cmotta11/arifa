@@ -156,7 +156,7 @@ export function TemplateManagement() {
             e.stopPropagation();
             handleToggle(row.id);
           }}
-          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-arifa-navy focus:ring-offset-2"
+          className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           style={{
             backgroundColor: row.is_active ? "#047857" : "#d1d5db",
           }}
@@ -223,9 +223,9 @@ export function TemplateManagement() {
             }}
           />
         ) : (
-          <DataTable<DocumentTemplate & Record<string, unknown>>
+          <DataTable
             columns={columns}
-            data={templates as (DocumentTemplate & Record<string, unknown>)[]}
+            data={templates}
             loading={isLoading}
             emptyMessage={t("documents.templates.empty")}
             keyExtractor={(row) => row.id}

@@ -223,7 +223,7 @@ export default function PeopleListPage() {
       <div className="flex-1 overflow-auto rounded-lg border border-gray-200 bg-white">
         <DataTable
           columns={columns}
-          data={(data?.results ?? []) as (Person & Record<string, unknown>)[]}
+          data={data?.results ?? []}
           loading={isLoading}
           emptyMessage={t("people.noPeople")}
           onRowClick={(row) => navigate(ROUTES.PERSON_DETAIL.replace(":id", row.id as string))}
@@ -296,9 +296,9 @@ export default function PeopleListPage() {
               }
               options={[
                 { value: "", label: "—" },
-                { value: "passport", label: "Passport" },
-                { value: "cedula", label: "Cedula" },
-                { value: "corporate_registry", label: "Corporate Registry" },
+                { value: "passport", label: t("people.documentTypes.passport") },
+                { value: "cedula", label: t("people.documentTypes.cedula") },
+                { value: "corporate_registry", label: t("people.documentTypes.corporateRegistry") },
               ]}
             />
           </div>

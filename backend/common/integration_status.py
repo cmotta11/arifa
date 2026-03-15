@@ -19,6 +19,7 @@ def get_integration_status() -> dict:
         "sharepoint": _check_sharepoint(),
         "llm_extraction": _check_llm(),
         "aderant_erp": _check_aderant(),
+        "aderant_soap": _check_aderant_soap(),
         "gotenberg": _check_gotenberg(),
         "microsoft_sso": _check_microsoft_sso(),
     }
@@ -105,6 +106,28 @@ def _check_aderant() -> dict:
             "Aderant ERP is not configured. "
             "Client/matter sync will use mock data. "
             "Set ADERANT_API_URL and ADERANT_API_KEY in .env to enable."
+        ),
+    }
+
+
+def _check_aderant_soap() -> dict:
+    configured = bool(
+        getattr(settings, "ADERANT_SOAP_WSDL_URL", "")
+        and getattr(settings, "ADERANT_SOAP_USERNAME", "")
+        and getattr(settings, "ADERANT_SOAP_PASSWORD", "")
+    )
+    if configured:
+        return {
+            "configured": True,
+            "message": "Aderant SOAP integration is configured and active.",
+        }
+    return {
+        "configured": False,
+        "message": (
+            "Aderant SOAP is not configured. "
+            "File opening and billing will use mock data. "
+            "Set ADERANT_SOAP_WSDL_URL, ADERANT_SOAP_USERNAME, "
+            "and ADERANT_SOAP_PASSWORD in .env to enable."
         ),
     }
 

@@ -40,6 +40,7 @@ export interface Entity {
   client: Client;
   incorporation_date: string | null;
   status: "pending" | "active" | "dissolved" | "struck_off";
+  current_risk_level: "low" | "medium" | "high" | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,12 +83,45 @@ export interface Person {
   updated_at: string;
 }
 
+export type WorkflowCategory =
+  | "incorporation"
+  | "compliance"
+  | "documents"
+  | "legal_support"
+  | "registry"
+  | "accounting"
+  | "archive"
+  | "custom";
+
+export interface WorkflowDefinition {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string;
+  jurisdiction: string | null;
+  jurisdiction_code: string | null;
+  jurisdiction_name: string | null;
+  category: WorkflowCategory;
+  category_display: string;
+  is_active: boolean;
+  config: Record<string, unknown>;
+  state_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface WorkflowState {
   id: string;
   name: string;
+  workflow_definition: string | null;
+  workflow_definition_name: string | null;
   order_index: number;
   is_initial: boolean;
   is_final: boolean;
+  color: string;
+  auto_transition_hours: number | null;
+  required_fields: string[];
+  on_enter_actions: Record<string, unknown>[];
 }
 
 export interface WorkflowTransition {
@@ -102,12 +136,21 @@ export interface Ticket {
   id: string;
   title: string;
   client: Client;
+  client_name: string;
   entity: Entity | null;
   current_state: WorkflowState;
+  workflow_definition: string | null;
+  workflow_definition_name: string | null;
+  parent_ticket: string | null;
+  parent_ticket_title: string | null;
+  jurisdiction: string | null;
+  jurisdiction_code: string | null;
   assigned_to: User | null;
   created_by: User;
   priority: "low" | "medium" | "high" | "urgent";
   due_date: string | null;
+  metadata: Record<string, unknown>;
+  sub_ticket_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -119,7 +162,7 @@ export interface TicketLog {
   previous_state: WorkflowState | null;
   new_state: WorkflowState;
   comment: string;
-  timestamp: string;
+  created_at: string;
 }
 
 export interface KYCSubmission {
@@ -147,6 +190,7 @@ export interface Party {
   ownership_percentage: number | null;
   date_of_birth: string | null;
   identification_number: string;
+  screening_status: "pending" | "clear" | "matched" | null;
 }
 
 export interface RiskAssessment {
@@ -418,6 +462,7 @@ export interface GuestLink {
   ticket: string | null;
   kyc_submission: string | null;
   accounting_record: string | null;
+  es_submission: string | null;
   client_name: string | null;
   entity_name: string | null;
 }
@@ -458,4 +503,217 @@ export interface GeneratedDocument {
   sharepoint_file_id: string;
   created_at: string;
   updated_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Economic Substance
+// ---------------------------------------------------------------------------
+
+export interface EconomicSubstanceSubmission {
+  id: string;
+  entity: string;
+  entity_name: string;
+  fiscal_year: number;
+  status: "pending" | "in_progress" | "in_review" | "completed";
+  flow_answers: Record<string, unknown>;
+  current_step: string;
+  shareholders_data: Array<{
+    name: string;
+    type: string;
+    percentage: number;
+    person_id?: string;
+  }>;
+  submitted_at: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  field_comments: Record<string, unknown>;
+  attention_reason: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Due Diligence Checklist
+// ---------------------------------------------------------------------------
+
+export interface DueDiligenceChecklist {
+  id: string;
+  kyc_submission: string;
+  section:
+    | "entity_details"
+    | "directors_officers"
+    | "shareholders"
+    | "beneficial_owners"
+    | "attorneys_in_fact";
+  items: Array<{
+    key: string;
+    label: string;
+    completed: boolean;
+    completed_by?: string;
+    completed_at?: string;
+    notes?: string;
+  }>;
+  completed_at: string | null;
+  completed_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Ownership Snapshot
+// ---------------------------------------------------------------------------
+
+export interface SnapshotOwnershipNode {
+  id: string;
+  label: string;
+  node_type: "entity" | "person";
+  ownership_pct: number;
+  nationality?: string;
+  jurisdiction?: string;
+  pep_status?: boolean;
+  exception_type?: string;
+}
+
+export interface SnapshotOwnershipEdge {
+  source: string;
+  target: string;
+  ownership_pct: number;
+}
+
+export interface SnapshotReportableUBO {
+  id: string;
+  name: string;
+  effective_pct: number;
+  chain: string[];
+}
+
+export interface OwnershipSnapshotRecord {
+  id: string;
+  entity: string;
+  nodes: SnapshotOwnershipNode[];
+  edges: SnapshotOwnershipEdge[];
+  reportable_ubos: SnapshotReportableUBO[];
+  warnings: string[];
+  saved_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Services Platform types
+// ---------------------------------------------------------------------------
+
+export interface ServiceCatalog {
+  id: string;
+  name: string;
+  code: string;
+  category: string;
+  jurisdiction: string | null;
+  description: string;
+  base_price: string;
+  currency: string;
+  is_active: boolean;
+  requires_entity: boolean;
+  estimated_days: number | null;
+  config: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface PricingRule {
+  id: string;
+  service: string;
+  client_category: "silver" | "gold" | "platinum";
+  discount_percentage: string;
+  override_price: string | null;
+  is_active: boolean;
+}
+
+export interface ServiceRequestItem {
+  id: string;
+  service: string;
+  service_name: string;
+  quantity: number;
+  unit_price: string;
+  discount_amount: string;
+  subtotal: string;
+  notes: string;
+}
+
+export interface ServiceRequest {
+  id: string;
+  client: string;
+  client_name: string;
+  entity: string | null;
+  ticket: string | null;
+  requested_by: string;
+  status: "draft" | "pending_quotation" | "quoted" | "accepted" | "rejected" | "in_progress" | "completed" | "cancelled";
+  jurisdiction: string | null;
+  notes: string;
+  submitted_at: string | null;
+  metadata: Record<string, unknown>;
+  items: ServiceRequestItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Quotation {
+  id: string;
+  service_request: string;
+  quotation_number: string;
+  status: "draft" | "sent" | "accepted" | "rejected" | "expired";
+  subtotal: string;
+  discount_total: string;
+  tax_amount: string;
+  total: string;
+  currency: string;
+  valid_until: string | null;
+  accepted_at: string | null;
+  rejected_at: string | null;
+  notes: string;
+  created_at: string;
+}
+
+export interface IncorporationData {
+  id: string;
+  service_request: string;
+  proposed_names: string[];
+  entity_type: string;
+  authorized_capital: string | null;
+  capital_currency: string;
+  share_classes: Array<{ name: string; par_value: string; num_shares: number; voting: boolean }>;
+  is_operative: boolean;
+  economic_activities: string[];
+  directors: Array<{ name: string; nationality: string; id_number: string; id_type: string }>;
+  shareholders: Array<{ name: string; type: string; percentage: number; nationality: string }>;
+  resident_agent: string;
+  is_high_capital: boolean;
+}
+
+export interface ExpenseRecord {
+  id: string;
+  service_request: string | null;
+  entity: string | null;
+  ticket: string | null;
+  category: string;
+  description: string;
+  amount: string;
+  currency: string;
+  payment_status: "pending" | "partial" | "paid" | "refunded";
+  payment_method: string;
+  payment_reference: string;
+  paid_at: string | null;
+  recorded_by: string | null;
+  created_at: string;
+}
+
+export interface NotaryDeed {
+  id: string;
+  deed_number: string;
+  jurisdiction: string | null;
+  notary_name: string;
+  status: "available" | "assigned" | "used" | "voided";
+  assigned_to_request: string | null;
+  assigned_at: string | null;
+  used_at: string | null;
+  notes: string;
 }

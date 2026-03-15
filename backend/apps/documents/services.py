@@ -95,6 +95,54 @@ def generate_document(
     return document
 
 
+@transaction.atomic
+def assemble_document(
+    *,
+    ticket_id,
+    builder_name: str,
+    context_data: dict,
+    generated_by,
+) -> GeneratedDocument:
+    """Use a registered builder to assemble a document.
+
+    1. Look up the builder in the registry by *builder_name*.
+    2. Validate the supplied *context_data*.
+    3. Build the DOCX bytes.
+    4. Persist the result as a :class:`GeneratedDocument`.
+    """
+    from .builders import DocumentBuilderRegistry
+
+    builder = DocumentBuilderRegistry.get(builder_name)
+    builder.validate_context(context_data)
+    docx_bytes = builder.build(context_data)
+
+    entity_name = context_data.get("entity_name", "document")
+    # Sanitise the entity name for use in filenames
+    safe_entity = "".join(
+        c if c.isalnum() or c in (" ", "-", "_") else "_" for c in entity_name
+    ).strip()
+    filename = f"{safe_entity}_{builder_name}_{ticket_id}.docx"
+
+    file_content = ContentFile(docx_bytes, name=filename)
+
+    document = GeneratedDocument.objects.create(
+        ticket_id=ticket_id,
+        template=None,  # assembled documents do not use a stored template
+        generated_file=file_content,
+        format=DocumentFormat.DOCX,
+        generated_by=generated_by,
+    )
+
+    logger.info(
+        "Assembled document '%s' (builder=%s) for ticket %s -> doc %s",
+        filename,
+        builder_name,
+        ticket_id,
+        document.id,
+    )
+    return document
+
+
 def get_document_download_url(*, document_id) -> str:
     """Return the URL for downloading a generated document."""
     try:

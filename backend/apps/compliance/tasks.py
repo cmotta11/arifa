@@ -118,7 +118,7 @@ def recalculate_person_risk_task(self, person_id: str, trigger: str = "auto"):
         raise self.retry(exc=exc)
 
 
-@shared_task
+@shared_task(soft_time_limit=3600, time_limit=3900)
 def recalculate_all_risks():
     """Iterate all active entities and persons and recalculate risk scores."""
     from .constants import RecalculationStatus, RiskTrigger
@@ -139,8 +139,25 @@ def recalculate_all_risks():
     log.total_entities = entities.count()
     log.save(update_fields=["total_entities", "updated_at"])
 
+    # Pre-fetch shared data to avoid repeated DB queries per-entity/person
+    from .models import JurisdictionRisk, RiskMatrixConfig
+    _active_configs = list(
+        RiskMatrixConfig.objects.filter(is_active=True)
+        .prefetch_related("factors", "trigger_rules")
+    )
+    _jurisdiction_risks = {
+        jr.country_code.lower(): jr
+        for jr in JurisdictionRisk.objects.all()
+    }
+    # Warm Django's query cache by evaluating prefetches
+    for config in _active_configs:
+        list(config.factors.all())
+        list(config.trigger_rules.all())
+
     changed = 0
     recalculated = 0
+    failed_entity_ids = []
+    failed_person_ids = []
 
     try:
         for entity in entities.iterator():
@@ -155,6 +172,7 @@ def recalculate_all_risks():
                     changed += 1
             except Exception:
                 logger.exception("Failed to recalculate entity %s", entity.id)
+                failed_entity_ids.append(str(entity.id))
 
         for person in persons.iterator():
             try:
@@ -168,6 +186,13 @@ def recalculate_all_risks():
                     changed += 1
             except Exception:
                 logger.exception("Failed to recalculate person %s", person.id)
+                failed_person_ids.append(str(person.id))
+
+        if failed_entity_ids or failed_person_ids:
+            logger.warning(
+                "Risk recalculation batch %s had failures: %d entities, %d persons",
+                batch_id, len(failed_entity_ids), len(failed_person_ids),
+            )
 
         log.recalculated_count = recalculated
         log.changed_count = changed
@@ -176,7 +201,11 @@ def recalculate_all_risks():
         log.save(update_fields=["recalculated_count", "changed_count", "status", "completed_at", "updated_at"])
 
         logger.info("Risk recalculation batch %s completed: %d recalculated, %d changed", batch_id, recalculated, changed)
-        return {"batch_id": str(batch_id), "status": "completed", "recalculated": recalculated, "changed": changed}
+        return {
+            "batch_id": str(batch_id), "status": "completed",
+            "recalculated": recalculated, "changed": changed,
+            "failed_entity_ids": failed_entity_ids, "failed_person_ids": failed_person_ids,
+        }
     except Exception as exc:
         log.recalculated_count = recalculated
         log.changed_count = changed
@@ -213,6 +242,7 @@ def recalculate_high_risk_entities():
 
     changed = 0
     recalculated = 0
+    failed_ids = []
 
     try:
         for entity in entities.iterator():
@@ -227,6 +257,13 @@ def recalculate_high_risk_entities():
                     changed += 1
             except Exception:
                 logger.exception("Failed to recalculate entity %s", entity.id)
+                failed_ids.append(str(entity.id))
+
+        if failed_ids:
+            logger.warning(
+                "High-risk recalculation batch %s had %d failures: %s",
+                batch_id, len(failed_ids), failed_ids,
+            )
 
         log.recalculated_count = recalculated
         log.changed_count = changed
@@ -234,7 +271,7 @@ def recalculate_high_risk_entities():
         log.completed_at = timezone.now()
         log.save(update_fields=["recalculated_count", "changed_count", "status", "completed_at", "updated_at"])
         logger.info("High-risk recalculation batch %s completed: %d recalculated, %d changed", batch_id, recalculated, changed)
-        return {"batch_id": str(batch_id), "status": "completed", "recalculated": recalculated, "changed": changed}
+        return {"batch_id": str(batch_id), "status": "completed", "recalculated": recalculated, "changed": changed, "failed_ids": failed_ids}
     except Exception as exc:
         log.recalculated_count = recalculated
         log.changed_count = changed
@@ -300,7 +337,7 @@ def process_worldcheck_webhook(self, payload: dict):
         raise self.retry(exc=exc)
 
 
-@shared_task
+@shared_task(soft_time_limit=3600, time_limit=3900)
 def run_compliance_snapshot_task(snapshot_id: str):
     """Run a batch compliance snapshot, creating risk assessments for all entities and persons."""
     from .constants import RiskLevel, RiskTrigger, SnapshotStatus
@@ -325,6 +362,7 @@ def run_compliance_snapshot_task(snapshot_id: str):
     high = 0
     medium = 0
     low = 0
+    failed_ids = []
 
     try:
         for entity in entities.iterator():
@@ -340,6 +378,7 @@ def run_compliance_snapshot_task(snapshot_id: str):
                     low += 1
             except Exception:
                 logger.exception("Snapshot: failed entity %s", entity.id)
+                failed_ids.append(f"entity:{entity.id}")
 
         for person in persons.iterator():
             try:
@@ -354,6 +393,13 @@ def run_compliance_snapshot_task(snapshot_id: str):
                     low += 1
             except Exception:
                 logger.exception("Snapshot: failed person %s", person.id)
+                failed_ids.append(f"person:{person.id}")
+
+        if failed_ids:
+            logger.warning(
+                "Compliance snapshot %s had %d failures",
+                snapshot_id, len(failed_ids),
+            )
 
         snapshot.high_risk_count = high
         snapshot.medium_risk_count = medium
@@ -370,12 +416,16 @@ def run_compliance_snapshot_task(snapshot_id: str):
         snapshot.completed_at = timezone.now()
         snapshot.save(update_fields=["status", "completed_at", "updated_at"])
         logger.exception("Compliance snapshot %s failed", snapshot_id)
+        raise
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def upload_document_to_sharepoint_async(self, document_upload_id: str):
-    """Upload a document file to SharePoint via the Graph API."""
-    from .integrations.sharepoint import SharePointClient
+def upload_document_to_sharepoint_async(self, document_upload_id: str, file_bytes_b64: str = ""):
+    """Upload a document file to storage (SharePoint or local fallback)."""
+    import base64
+
+    from common.storage import get_storage_backend
+
     from .models import DocumentUpload
 
     try:
@@ -384,8 +434,13 @@ def upload_document_to_sharepoint_async(self, document_upload_id: str):
         logger.error("DocumentUpload %s not found", document_upload_id)
         return {"error": "DocumentUpload not found", "id": document_upload_id}
 
+    if not file_bytes_b64:
+        logger.error("No file content provided for DocumentUpload %s", document_upload_id)
+        return {"error": "No file content", "id": document_upload_id}
+
     try:
-        sp_client = SharePointClient()
+        file_bytes = base64.b64decode(file_bytes_b64)
+        storage = get_storage_backend()
         folder_parts = []
         if doc.kyc_submission_id:
             folder_parts.append(f"kyc/{doc.kyc_submission_id}")
@@ -393,15 +448,257 @@ def upload_document_to_sharepoint_async(self, document_upload_id: str):
             folder_parts.append(f"parties/{doc.party_id}")
         folder_path = "/".join(folder_parts) if folder_parts else "uploads"
 
-        result = sp_client.upload_document(
-            file_bytes=b"", folder_path=folder_path, filename=doc.original_filename,
+        result = storage.upload(
+            file_bytes=file_bytes, folder_path=folder_path, filename=doc.original_filename,
         )
         doc.sharepoint_file_id = result.get("id", "")
-        doc.sharepoint_web_url = result.get("webUrl", "")
-        doc.sharepoint_drive_item_id = result.get("driveItemId", "")
+        doc.sharepoint_web_url = result.get("web_url", "")
+        doc.sharepoint_drive_item_id = result.get("drive_item_id", result.get("id", ""))
         doc.save(update_fields=["sharepoint_file_id", "sharepoint_web_url", "sharepoint_drive_item_id", "updated_at"])
-        logger.info("Document %s uploaded to SharePoint: %s", document_upload_id, doc.sharepoint_web_url)
-        return {"status": "uploaded", "document_upload_id": document_upload_id, "sharepoint_web_url": doc.sharepoint_web_url}
+        logger.info("Document %s uploaded via %s: %s", document_upload_id, result.get("backend", "unknown"), doc.sharepoint_web_url)
+        return {"status": "uploaded", "document_upload_id": document_upload_id, "web_url": doc.sharepoint_web_url}
     except Exception as exc:
-        logger.exception("SharePoint upload failed for DocumentUpload %s", document_upload_id)
+        logger.exception("Document upload failed for DocumentUpload %s", document_upload_id)
+        raise self.retry(exc=exc)
+
+
+# ===========================================================================
+# KYC Renewal Check
+# ===========================================================================
+
+
+@shared_task
+def check_kyc_renewals():
+    """Check for KYC submissions due for renewal based on JurisdictionConfig.
+
+    Queries entities where last KYC approval + kyc_renewal_months < now,
+    and dispatches notifications to assigned compliance officers.
+    """
+    from datetime import timedelta
+
+    from django.db.models import Max
+
+    from apps.core.models import Entity
+
+    from .constants import KYCStatus
+    from .models import JurisdictionConfig, KYCSubmission
+
+    configs = JurisdictionConfig.objects.select_related("jurisdiction").all()
+    renewal_count = 0
+
+    for config in configs:
+        jurisdiction_code = config.jurisdiction.country_code
+        renewal_months = config.kyc_renewal_months or 12
+
+        entities = Entity.objects.filter(
+            jurisdiction__iexact=jurisdiction_code,
+            status__in=["pending", "active"],
+        )
+
+        for entity in entities.iterator():
+            # Find the most recent approved KYC
+            last_approved = KYCSubmission.objects.filter(
+                ticket__entity=entity,
+                status=KYCStatus.APPROVED,
+            ).aggregate(last=Max("reviewed_at"))["last"]
+
+            if last_approved is None:
+                continue
+
+            renewal_due = last_approved + timedelta(days=renewal_months * 30)
+            if renewal_due < timezone.now():
+                # Send notification
+                try:
+                    from apps.authentication.models import User
+                    from apps.notifications.services import send_notification
+
+                    officers = User.objects.filter(role="compliance_officer")
+                    for officer in officers:
+                        send_notification(
+                            recipient=officer,
+                            template_key="kyc_renewal_due",
+                            context={
+                                "entity_name": entity.name,
+                                "last_approved": last_approved.isoformat(),
+                                "renewal_months": renewal_months,
+                            },
+                            action_url=f"/entities/{entity.id}",
+                        )
+                    renewal_count += 1
+                except Exception:
+                    logger.warning(
+                        "Failed to send KYC renewal notification for entity %s",
+                        entity.id, exc_info=True,
+                    )
+
+    logger.info("KYC renewal check completed: %d entities due for renewal", renewal_count)
+    return {"renewals_due": renewal_count}
+
+
+# ===========================================================================
+# Scheduled Risk Recalculation (frequency-based)
+# ===========================================================================
+
+
+@shared_task
+def scheduled_risk_recalculation():
+    """Recalculate risk for entities based on their current risk level.
+
+    High risk: recalc if last assessment > 12 months ago
+    Medium risk: recalc if last assessment > 24 months ago
+    Low risk: recalc if last assessment > 36 months ago
+    """
+    from datetime import timedelta
+
+    from .constants import RecalculationStatus, RiskLevel, RiskTrigger
+    from .models import RiskAssessment, RiskRecalculationLog
+    from .services import calculate_entity_risk
+
+    batch_id = uuid.uuid4()
+    log = RiskRecalculationLog.objects.create(
+        batch_id=batch_id, status=RecalculationStatus.RUNNING,
+        triggered_by="celery:scheduled_risk_recalculation",
+    )
+
+    now = timezone.now()
+    thresholds = {
+        RiskLevel.HIGH: timedelta(days=365),
+        RiskLevel.MEDIUM: timedelta(days=730),
+        RiskLevel.LOW: timedelta(days=1095),
+    }
+
+    recalculated = 0
+    changed = 0
+    failed_ids = []
+
+    try:
+        for risk_level, max_age in thresholds.items():
+            cutoff = now - max_age
+            stale_assessments = RiskAssessment.objects.filter(
+                is_current=True,
+                risk_level=risk_level,
+                entity__isnull=False,
+                assessed_at__lt=cutoff,
+            ).select_related("entity")
+
+            for assessment in stale_assessments.iterator():
+                try:
+                    previous_level = assessment.risk_level
+                    new_assessment = calculate_entity_risk(
+                        entity_id=assessment.entity_id,
+                        trigger=RiskTrigger.SCHEDULED,
+                    )
+                    recalculated += 1
+                    if previous_level != new_assessment.risk_level:
+                        changed += 1
+                except Exception:
+                    logger.exception(
+                        "Scheduled recalc failed for entity %s",
+                        assessment.entity_id,
+                    )
+                    failed_ids.append(str(assessment.entity_id))
+
+        if failed_ids:
+            logger.warning(
+                "Scheduled risk recalculation %s had %d failures: %s",
+                batch_id, len(failed_ids), failed_ids,
+            )
+
+        log.total_entities = recalculated
+        log.recalculated_count = recalculated
+        log.changed_count = changed
+        log.status = RecalculationStatus.COMPLETED
+        log.completed_at = timezone.now()
+        log.save(update_fields=[
+            "total_entities", "recalculated_count", "changed_count",
+            "status", "completed_at", "updated_at",
+        ])
+
+        logger.info(
+            "Scheduled risk recalculation %s completed: %d recalculated, %d changed",
+            batch_id, recalculated, changed,
+        )
+        return {"batch_id": str(batch_id), "recalculated": recalculated, "changed": changed, "failed_ids": failed_ids}
+    except Exception as exc:
+        log.status = RecalculationStatus.FAILED
+        log.completed_at = timezone.now()
+        log.save(update_fields=["status", "completed_at", "updated_at"])
+        logger.exception("Scheduled risk recalculation %s failed", batch_id)
+        raise exc
+
+
+# ===========================================================================
+# ES PDF generation
+# ===========================================================================
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def generate_es_pdf_task(self, submission_id: str):
+    """Generate PDF for a completed ES submission and send email."""
+    from django.template.loader import render_to_string
+
+    from .models import EconomicSubstanceSubmission
+
+    try:
+        sub = EconomicSubstanceSubmission.objects.select_related(
+            "entity__client", "reviewed_by",
+        ).get(id=submission_id)
+
+        context = {
+            "submission": sub,
+            "entity": sub.entity,
+            "flow_answers": sub.flow_answers,
+            "shareholders_data": sub.shareholders_data,
+            "fiscal_year": sub.fiscal_year,
+        }
+
+        html_content = render_to_string("compliance/es_report.html", context)
+
+        from apps.documents.integrations.gotenberg import GotenbergClient
+        client = GotenbergClient()
+        pdf_bytes = client.convert_html_to_pdf(html_content)
+
+        logger.info("ES PDF generated for submission %s (%d bytes)", submission_id, len(pdf_bytes))
+
+        # Send notification
+        try:
+            from apps.notifications.services import send_notification
+            from apps.authentication.models import User
+            contacts = User.objects.filter(client=sub.entity.client)
+            for contact in contacts:
+                send_notification(
+                    recipient=contact,
+                    template_key="es_completed",
+                    context={
+                        "entity_name": sub.entity.name,
+                        "fiscal_year": sub.fiscal_year,
+                    },
+                    action_url=f"/economic-substance/{sub.id}",
+                )
+        except Exception:
+            logger.warning("Failed to send ES completion notification", exc_info=True)
+
+        return {"status": "completed", "submission_id": submission_id}
+    except Exception as exc:
+        logger.exception("ES PDF generation failed for %s", submission_id)
+        raise self.retry(exc=exc)
+
+
+# ===========================================================================
+# Accounting Record PDF generation
+# ===========================================================================
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def generate_accounting_record_pdf_task(self, record_id: str):
+    """Generate PDF for a submitted accounting record."""
+    from .services import generate_accounting_record_pdf, send_accounting_completion_email
+
+    try:
+        generate_accounting_record_pdf(record_id=record_id)
+        send_accounting_completion_email(record_id=record_id)
+        logger.info("Accounting record PDF generated and email sent: %s", record_id)
+        return {"status": "completed", "record_id": record_id}
+    except Exception as exc:
+        logger.exception("Accounting record PDF generation failed for %s", record_id)
         raise self.retry(exc=exc)

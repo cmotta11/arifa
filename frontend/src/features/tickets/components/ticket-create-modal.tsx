@@ -12,6 +12,7 @@ import { getUsers } from "../api/tickets-api";
 import { useQuery } from "@tanstack/react-query";
 import type { Entity, PaginatedResponse } from "@/types";
 import { api } from "@/lib/api-client";
+import { getWorkflowDefinitions } from "@/features/kanban/api/kanban-api";
 
 interface TicketCreateModalProps {
   isOpen: boolean;
@@ -35,10 +36,16 @@ export function TicketCreateModal({
   const [title, setTitle] = useState("");
   const [clientId, setClientId] = useState("");
   const [entityId, setEntityId] = useState("");
+  const [workflowDefId, setWorkflowDefId] = useState("");
   const [priority, setPriority] = useState("medium");
   const [dueDate, setDueDate] = useState("");
   const [assignedToId, setAssignedToId] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const workflowDefsQuery = useQuery({
+    queryKey: ["workflow", "definitions"],
+    queryFn: getWorkflowDefinitions,
+  });
 
   // Fetch entities for the selected client
   const entitiesQuery = useQuery({
@@ -54,6 +61,7 @@ export function TicketCreateModal({
   const clients = clientsQuery.data?.results ?? [];
   const entities = entitiesQuery.data?.results ?? [];
   const users = usersQuery.data ?? [];
+  const workflowDefs = (workflowDefsQuery.data ?? []).filter((d) => d.is_active);
 
   const priorityOptions = [
     { value: "low", label: t("tickets.form.priorityLow") },
@@ -77,10 +85,16 @@ export function TicketCreateModal({
     label: `${u.first_name} ${u.last_name}`.trim() || u.email,
   }));
 
+  const workflowOptions = workflowDefs.map((d) => ({
+    value: d.id,
+    label: d.display_name,
+  }));
+
   const resetForm = () => {
     setTitle("");
     setClientId("");
     setEntityId("");
+    setWorkflowDefId("");
     setPriority("medium");
     setDueDate("");
     setAssignedToId("");
@@ -112,6 +126,7 @@ export function TicketCreateModal({
         title: title.trim(),
         client_id: clientId,
         entity_id: entityId || null,
+        workflow_definition_id: workflowDefId || null,
         priority,
         due_date: dueDate || null,
         assigned_to_id: assignedToId || null,
@@ -192,6 +207,22 @@ export function TicketCreateModal({
               />
             </FormField>
           )}
+
+          {/* Workflow Definition */}
+          <FormField
+            label={t("tickets.form.workflow")}
+            htmlFor="ticket-workflow"
+          >
+            <Select
+              id="ticket-workflow"
+              options={[
+                { value: "", label: t("tickets.form.defaultWorkflow") },
+                ...workflowOptions,
+              ]}
+              value={workflowDefId}
+              onChange={(e) => setWorkflowDefId(e.target.value)}
+            />
+          </FormField>
 
           {/* Priority */}
           <FormField

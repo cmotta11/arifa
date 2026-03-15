@@ -6,6 +6,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Modal } from "@/components/overlay/modal";
 import type { Party } from "@/types";
 import { useDeleteParty } from "../api/kyc-api";
+import { useScreenParty } from "@/features/compliance/api/compliance-api";
 import { PartyForm } from "./party-form";
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -27,6 +28,26 @@ const ROLE_BADGE_COLOR: Record<string, "blue" | "green" | "yellow" | "gray" | "r
   authorized_signatory: "gray",
 };
 
+// ─── World-Check Badge Helpers ──────────────────────────────────────────────
+
+type ScreeningStatus = "pending" | "clear" | "matched" | null | undefined;
+
+const SCREENING_BADGE_CONFIG: Record<
+  string,
+  { color: "yellow" | "green" | "red" | "gray"; labelKey: string; fallback: string }
+> = {
+  pending: { color: "yellow", labelKey: "worldcheck.screening", fallback: "Screening..." },
+  clear: { color: "green", labelKey: "worldcheck.clear", fallback: "Clear" },
+  matched: { color: "red", labelKey: "worldcheck.matched", fallback: "Match Found" },
+};
+
+function getScreeningBadgeConfig(status: ScreeningStatus) {
+  if (status && SCREENING_BADGE_CONFIG[status]) {
+    return SCREENING_BADGE_CONFIG[status];
+  }
+  return { color: "gray" as const, labelKey: "worldcheck.notScreened", fallback: "Not Screened" };
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function PartyList({
@@ -41,6 +62,8 @@ export function PartyList({
   const [deletingPartyId, setDeletingPartyId] = useState<string | null>(null);
 
   const deletePartyMutation = useDeleteParty();
+  const screenPartyMutation = useScreenParty();
+  const [screeningPartyId, setScreeningPartyId] = useState<string | null>(null);
 
   // UBO ownership tracking
   const ubosAndShareholders = parties.filter(
@@ -105,6 +128,7 @@ export function PartyList({
               viewBox="0 0 24 24"
               stroke="currentColor"
               strokeWidth={2}
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -158,6 +182,7 @@ export function PartyList({
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={1.5}
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -204,6 +229,18 @@ export function PartyList({
                     {party.pep_status && (
                       <Badge color="red">{t("party.pep")}</Badge>
                     )}
+                    {/* World-Check Screening Badge */}
+                    <WorldCheckBadge
+                      party={party}
+                      isScreening={screeningPartyId === party.id && screenPartyMutation.isPending}
+                      onScreen={() => {
+                        setScreeningPartyId(party.id);
+                        screenPartyMutation.mutate(party.id, {
+                          onSettled: () => setScreeningPartyId(null),
+                        });
+                      }}
+                      readonly={readonly}
+                    />
                   </div>
 
                   <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-500 sm:grid-cols-4">
@@ -246,7 +283,7 @@ export function PartyList({
                     <button
                       type="button"
                       onClick={() => handleEdit(party)}
-                      className="rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-arifa-navy"
+                      className="rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-primary"
                       aria-label={t("actions.edit")}
                     >
                       <svg
@@ -255,6 +292,7 @@ export function PartyList({
                         viewBox="0 0 24 24"
                         stroke="currentColor"
                         strokeWidth={2}
+                        aria-hidden="true"
                       >
                         <path
                           strokeLinecap="round"
@@ -275,6 +313,7 @@ export function PartyList({
                         viewBox="0 0 24 24"
                         stroke="currentColor"
                         strokeWidth={2}
+                        aria-hidden="true"
                       >
                         <path
                           strokeLinecap="round"
@@ -336,5 +375,67 @@ export function PartyList({
         </div>
       </Modal>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// World-Check Badge sub-component
+// ---------------------------------------------------------------------------
+
+interface WorldCheckBadgeProps {
+  party: Party;
+  isScreening: boolean;
+  onScreen: () => void;
+  readonly: boolean;
+}
+
+function WorldCheckBadge({
+  party,
+  isScreening,
+  onScreen,
+  readonly,
+}: WorldCheckBadgeProps) {
+  const { t } = useTranslation("kyc");
+  const screeningStatus = party.screening_status;
+  const config = getScreeningBadgeConfig(screeningStatus);
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      {screeningStatus === "pending" || isScreening ? (
+        <Badge color="yellow">
+          <Spinner size="sm" className="mr-1 h-3 w-3" />
+          {t("screening.screening", "Screening...")}
+        </Badge>
+      ) : (
+        <Badge color={config.color}>{t(config.labelKey, config.fallback)}</Badge>
+      )}
+      {!readonly && screeningStatus !== "pending" && !isScreening && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onScreen();
+          }}
+          className="rounded-md p-1 text-gray-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+          aria-label={t("screening.screenParty", "Screen party")}
+          title={t("screening.screenPartyViaWorldCheck", "Screen party via World-Check")}
+        >
+          <svg
+            className="h-3.5 w-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+            />
+          </svg>
+        </button>
+      )}
+    </span>
   );
 }

@@ -166,7 +166,7 @@ function ActivitiesSection({ entityId }: { entityId: string }) {
     >
       <DataTable
         columns={columns}
-        data={activities as (EntityActivity & Record<string, unknown>)[]}
+        data={activities}
         loading={activitiesQuery.isLoading}
         emptyMessage={t("common.noResults")}
         keyExtractor={(row) => row.id as string}
@@ -219,7 +219,7 @@ function ActivitiesSection({ entityId }: { entityId: string }) {
                   {t("entities.activities.description")}
                 </label>
                 <textarea
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   rows={3}
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -379,7 +379,7 @@ function SourceOfFundsSection({ entityId }: { entityId: string }) {
     >
       <DataTable
         columns={columns}
-        data={sources as (SourceOfFunds & Record<string, unknown>)[]}
+        data={sources}
         loading={sofQuery.isLoading}
         emptyMessage={t("common.noResults")}
         keyExtractor={(row) => row.id as string}
@@ -432,7 +432,7 @@ function SourceOfFundsSection({ entityId }: { entityId: string }) {
                   {t("entities.sourcesOfFunds.description")}
                 </label>
                 <textarea
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-arifa-navy focus:outline-none focus:ring-1 focus:ring-arifa-navy"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   rows={3}
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}

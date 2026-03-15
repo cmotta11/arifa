@@ -10,6 +10,7 @@ import { Modal } from "@/components/overlay/modal";
 import { ROUTES } from "@/config/routes";
 import { useEntities, useCreateEntity } from "../api/entities-api";
 import { useClients } from "@/features/clients/api/clients-api";
+import { RiskBadge } from "../components/risk-badge";
 import type { Entity } from "@/types";
 
 const jurisdictionColors: Record<string, "blue" | "green" | "yellow"> = {
@@ -128,6 +129,16 @@ export default function EntitiesListPage() {
         ),
       },
       {
+        key: "current_risk_level",
+        header: t("entities.columns.riskLevel"),
+        render: (row: Entity) =>
+          row.current_risk_level ? (
+            <RiskBadge level={row.current_risk_level} />
+          ) : (
+            <span className="text-sm text-gray-400">—</span>
+          ),
+      },
+      {
         key: "incorporation_date",
         header: t("entities.columns.incorporationDate"),
         render: (row: Entity) =>
@@ -178,7 +189,7 @@ export default function EntitiesListPage() {
       <div className="flex-1 overflow-auto rounded-lg border border-gray-200 bg-white">
         <DataTable
           columns={columns}
-          data={(data?.results ?? []) as (Entity & Record<string, unknown>)[]}
+          data={data?.results ?? []}
           loading={isLoading}
           emptyMessage={t("entities.noEntities")}
           onRowClick={(row) => navigate(ROUTES.ENTITY_DETAIL.replace(":id", row.id as string))}

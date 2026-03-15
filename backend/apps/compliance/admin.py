@@ -4,10 +4,14 @@ from .models import (
     AccountingRecord,
     AccountingRecordDocument,
     AutomaticTriggerRule,
+    ComplianceDelegation,
     ComplianceSnapshot,
     DocumentUpload,
+    DueDiligenceChecklist,
+    EconomicSubstanceSubmission,
     JurisdictionRisk,
     KYCSubmission,
+    OwnershipSnapshot,
     Party,
     RFI,
     RiskAssessment,
@@ -244,3 +248,49 @@ class AccountingRecordDocumentAdmin(admin.ModelAdmin):
     search_fields = ("original_filename", "description")
     readonly_fields = ("created_at", "updated_at")
     raw_id_fields = ("accounting_record",)
+
+
+@admin.register(ComplianceDelegation)
+class ComplianceDelegationAdmin(admin.ModelAdmin):
+    list_display = (
+        "entity",
+        "module",
+        "fiscal_year",
+        "delegate_email",
+        "status",
+        "delegated_by",
+        "accepted_at",
+        "created_at",
+    )
+    list_filter = ("status", "module", "fiscal_year")
+    search_fields = ("delegate_email", "entity__name")
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("entity", "delegated_by", "delegate_user")
+
+
+@admin.register(DueDiligenceChecklist)
+class DueDiligenceChecklistAdmin(admin.ModelAdmin):
+    list_display = ("kyc_submission", "section", "completed_at", "completed_by", "created_at")
+    list_filter = ("section",)
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("kyc_submission", "completed_by")
+
+
+@admin.register(EconomicSubstanceSubmission)
+class EconomicSubstanceSubmissionAdmin(admin.ModelAdmin):
+    list_display = (
+        "entity", "fiscal_year", "status", "current_step",
+        "submitted_at", "reviewed_by", "created_at",
+    )
+    list_filter = ("status", "fiscal_year")
+    search_fields = ("entity__name",)
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("entity", "reviewed_by")
+
+
+@admin.register(OwnershipSnapshot)
+class OwnershipSnapshotAdmin(admin.ModelAdmin):
+    list_display = ("entity", "saved_by", "created_at")
+    search_fields = ("entity__name",)
+    readonly_fields = ("created_at", "updated_at")
+    raw_id_fields = ("entity", "saved_by")

@@ -9,6 +9,10 @@ from common.exceptions import ApplicationError
 
 from .constants import (
     AccountingRecordStatus,
+    DDChecklistSection,
+    DelegationModule,
+    DelegationStatus,
+    ESStatus,
     KYCStatus,
     RFIStatus,
     RiskFactorCategory,
@@ -23,10 +27,14 @@ from .models import (
     AccountingRecord,
     AccountingRecordDocument,
     AutomaticTriggerRule,
+    ComplianceDelegation,
     ComplianceSnapshot,
     DocumentUpload,
+    DueDiligenceChecklist,
+    EconomicSubstanceSubmission,
     JurisdictionRisk,
     KYCSubmission,
+    OwnershipSnapshot,
     Party,
     RFI,
     RiskAssessment,
@@ -121,7 +129,7 @@ _RISK_LEVEL_RANK = {RiskLevel.LOW: 0, RiskLevel.MEDIUM: 1, RiskLevel.HIGH: 2}
 # ===========================================================================
 
 
-def _score_entity_factor(code, max_score, entity, entity_data):
+def _score_entity_factor(*, code, max_score, entity, entity_data):
     """Score a single entity-level factor. Returns (score, detail_dict)."""
     if code == RiskFactorCode.JURISDICTION:
         jr = entity_data.get("entity_jurisdiction_risk")
@@ -172,7 +180,7 @@ def _score_entity_factor(code, max_score, entity, entity_data):
 
     if code == RiskFactorCode.OWNERSHIP_OPACITY:
         from apps.core.services import get_ownership_tree
-        tree = get_ownership_tree(entity.id, _max_depth=5)
+        tree = get_ownership_tree(entity_id=entity.id, _max_depth=5)
 
         def _tree_depth(nodes, depth=1):
             if not nodes:
@@ -385,7 +393,7 @@ def _evaluate_entity_triggers(config, entity, entity_data):
 
         elif rule.condition == TriggerCondition.COMPLEX_STRUCTURE:
             from apps.core.services import get_ownership_tree
-            tree = get_ownership_tree(entity.id, _max_depth=5)
+            tree = get_ownership_tree(entity_id=entity.id, _max_depth=5)
 
             def _max_corporate_depth(nodes, depth=0):
                 if not nodes:
@@ -425,7 +433,8 @@ def calculate_entity_risk(
 
     for factor in factors:
         score, detail = _score_entity_factor(
-            factor.code, factor.max_score, entity, entity_data
+            code=factor.code, max_score=factor.max_score,
+            entity=entity, entity_data=entity_data,
         )
         breakdown[factor.code] = {
             "score": score,
@@ -512,7 +521,7 @@ def _load_person_data(person):
     }
 
 
-def _score_person_factor(code, max_score, person, person_data):
+def _score_person_factor(*, code, max_score, person, person_data):
     """Score a single person-level factor."""
     if code == RiskFactorCode.NATIONALITY_RISK:
         if person.nationality:
@@ -645,7 +654,8 @@ def calculate_person_risk(
 
     for factor in factors:
         score, detail = _score_person_factor(
-            factor.code, factor.max_score, person, person_data
+            code=factor.code, max_score=factor.max_score,
+            person=person, person_data=person_data,
         )
         breakdown[factor.code] = {
             "score": score,
@@ -971,6 +981,15 @@ def add_party_to_kyc(*, kyc_id, party_data: dict) -> Party:
             f"Cannot add parties to a KYC submission that has been '{kyc.get_status_display()}'."
         )
     party = Party.objects.create(kyc_submission=kyc, **party_data)
+
+    # Auto-dispatch World-Check screening
+    try:
+        from .tasks import screen_party_worldcheck
+        screen_party_worldcheck.delay(str(party.id))
+        logger.info("Auto-screening dispatched for party %s", party.id)
+    except Exception:
+        logger.warning("Failed to dispatch auto-screening for party %s", party.id, exc_info=True)
+
     return party
 
 
@@ -1079,7 +1098,9 @@ def upload_kyc_document(*, kyc_id=None, party_id=None, document_type: str, file_
         uploaded_by=uploaded_by,
     )
     from .tasks import upload_document_to_sharepoint_async
-    upload_document_to_sharepoint_async.delay(str(doc.id))
+
+    file_bytes_b64 = file_data.get("file_bytes_b64", "")
+    upload_document_to_sharepoint_async.delay(str(doc.id), file_bytes_b64)
     return doc
 
 
@@ -1635,6 +1656,13 @@ def submit_accounting_record(*, record_id) -> AccountingRecord:
     record.submitted_at = timezone.now()
     record.save(update_fields=["status", "submitted_at", "updated_at"])
 
+    # Dispatch PDF generation
+    try:
+        from .tasks import generate_accounting_record_pdf_task
+        generate_accounting_record_pdf_task.delay(str(record_id))
+    except Exception:
+        logger.warning("Failed to dispatch accounting record PDF generation", exc_info=True)
+
     logger.info("Accounting record submitted: id=%s", record_id)
     return record
 
@@ -1722,3 +1750,853 @@ def upload_accounting_document(*, record_id, file_obj, description="") -> Accoun
         description=description,
     )
     return doc
+
+
+# ---------------------------------------------------------------------------
+# Update services (P1-09: service layer for view updates)
+# ---------------------------------------------------------------------------
+
+
+@transaction.atomic
+def update_jurisdiction_risk(*, jurisdiction_risk_id, **data) -> "JurisdictionRisk":
+    jr = JurisdictionRisk.objects.get(id=jurisdiction_risk_id)
+    for attr, value in data.items():
+        setattr(jr, attr, value)
+    update_fields = list(data.keys())
+    if update_fields:
+        update_fields.append("updated_at")
+        jr.save(update_fields=update_fields)
+    return jr
+
+
+@transaction.atomic
+def update_risk_matrix_config(*, config_id, **data) -> "RiskMatrixConfig":
+    config = RiskMatrixConfig.objects.get(id=config_id)
+    for attr, value in data.items():
+        setattr(config, attr, value)
+    config.save()
+    return config
+
+
+@transaction.atomic
+def update_party(*, party_id, person_id=None, **data) -> Party:
+    party = Party.objects.get(id=party_id)
+    for attr, value in data.items():
+        setattr(party, attr, value)
+    party.save()
+    if person_id:
+        party = link_existing_person_to_party(party_id=party.id, person_id=person_id)
+    return party
+
+
+# ===========================================================================
+# Compliance Delegation
+# ===========================================================================
+
+
+@transaction.atomic
+def delegate_entity(
+    *, entity_id, module: str, fiscal_year: int, delegate_email: str, delegated_by
+) -> ComplianceDelegation:
+    """Create a delegation invitation for an entity module."""
+    if module not in DelegationModule.values:
+        raise ApplicationError(f"Invalid module '{module}'.")
+
+    # Check for existing active delegation
+    existing = ComplianceDelegation.objects.filter(
+        entity_id=entity_id,
+        module=module,
+        fiscal_year=fiscal_year,
+        delegate_email=delegate_email,
+        status__in=[DelegationStatus.PENDING, DelegationStatus.ACCEPTED],
+    ).first()
+    if existing:
+        raise ApplicationError(
+            f"An active delegation already exists for this entity/module/year/email combination."
+        )
+
+    delegation = ComplianceDelegation.objects.create(
+        entity_id=entity_id,
+        module=module,
+        fiscal_year=fiscal_year,
+        delegate_email=delegate_email,
+        delegated_by=delegated_by,
+        status=DelegationStatus.PENDING,
+    )
+
+    # Send notification to delegator (confirmation) — delegate may not have an account yet
+    try:
+        from apps.notifications.services import send_notification
+
+        send_notification(
+            recipient=delegated_by,
+            template_key="delegation_invitation",
+            context={
+                "entity_name": delegation.entity.name,
+                "module": module,
+                "delegate_email": delegate_email,
+            },
+            action_url=f"/entities/{entity_id}",
+        )
+    except Exception:
+        logger.warning("Failed to send delegation notification", exc_info=True)
+
+    logger.info(
+        "Delegation created: entity=%s module=%s -> %s",
+        entity_id, module, delegate_email,
+    )
+    return delegation
+
+
+@transaction.atomic
+def revoke_delegation(*, delegation_id, revoked_by) -> ComplianceDelegation:
+    """Revoke an active delegation."""
+    delegation = ComplianceDelegation.objects.select_for_update().get(id=delegation_id)
+    if delegation.status not in {DelegationStatus.PENDING, DelegationStatus.ACCEPTED}:
+        raise ApplicationError(
+            f"Cannot revoke delegation in '{delegation.get_status_display()}' status."
+        )
+    # Only the creator or a director can revoke
+    is_creator = delegation.delegated_by_id == revoked_by.id
+    is_director = getattr(revoked_by, "role", None) == "director"
+    if not is_creator and not is_director:
+        raise ApplicationError("You do not have permission to revoke this delegation.")
+    delegation.status = DelegationStatus.REVOKED
+    delegation.revoked_at = timezone.now()
+    delegation.save(update_fields=["status", "revoked_at", "updated_at"])
+
+    logger.info("Delegation revoked: id=%s by %s", delegation_id, revoked_by)
+    return delegation
+
+
+@transaction.atomic
+def accept_delegation(*, delegation_id, user) -> ComplianceDelegation:
+    """Accept a pending delegation."""
+    delegation = ComplianceDelegation.objects.select_for_update().get(id=delegation_id)
+    if delegation.status != DelegationStatus.PENDING:
+        raise ApplicationError(
+            f"Cannot accept delegation in '{delegation.get_status_display()}' status."
+        )
+    if delegation.delegate_email.lower() != user.email.lower():
+        raise ApplicationError("This delegation was not sent to your email address.")
+
+    delegation.status = DelegationStatus.ACCEPTED
+    delegation.delegate_user = user
+    delegation.accepted_at = timezone.now()
+    delegation.save(update_fields=["status", "delegate_user", "accepted_at", "updated_at"])
+
+    # Send notification to delegator
+    try:
+        from apps.notifications.services import send_notification
+        from apps.core.models import Entity
+        entity = Entity.objects.get(id=delegation.entity_id)
+        send_notification(
+            template_key="delegation_accepted",
+            recipient=delegation.delegated_by,
+            context={
+                "entity_name": entity.name,
+                "delegate_email": user.email,
+            },
+        )
+    except Exception:
+        logger.warning("Failed to send delegation acceptance notification", exc_info=True)
+
+    logger.info("Delegation accepted: id=%s by %s", delegation_id, user.email)
+    return delegation
+
+
+def auto_accept_delegations_for_user(*, user) -> int:
+    """Auto-accept pending delegations matching user's email on login."""
+    delegations = ComplianceDelegation.objects.filter(
+        delegate_email__iexact=user.email,
+        status=DelegationStatus.PENDING,
+    )
+    count = 0
+    for delegation in delegations:
+        try:
+            accept_delegation(delegation_id=delegation.id, user=user)
+            count += 1
+        except Exception:
+            logger.warning("Failed to auto-accept delegation %s", delegation.id, exc_info=True)
+    return count
+
+
+# ===========================================================================
+# Due Diligence Checklists
+# ===========================================================================
+
+
+@transaction.atomic
+def create_or_update_checklist(
+    *, kyc_id, section: str, items: list
+) -> DueDiligenceChecklist:
+    """Create or update a due diligence checklist for a KYC section."""
+    if section not in DDChecklistSection.values:
+        raise ApplicationError(f"Invalid checklist section '{section}'.")
+
+    checklist, _ = DueDiligenceChecklist.objects.update_or_create(
+        kyc_submission_id=kyc_id,
+        section=section,
+        defaults={"items": items},
+    )
+    return checklist
+
+
+@transaction.atomic
+def complete_checklist(*, checklist_id, completed_by) -> DueDiligenceChecklist:
+    """Mark a checklist as complete."""
+    checklist = DueDiligenceChecklist.objects.select_for_update().get(id=checklist_id)
+    checklist.completed_at = timezone.now()
+    checklist.completed_by = completed_by
+    checklist.save(update_fields=["completed_at", "completed_by", "updated_at"])
+    return checklist
+
+
+# ===========================================================================
+# Field Comments (threaded)
+# ===========================================================================
+
+
+def add_field_comment(*, kyc_id, field_name, text, author, parent_id=None) -> dict:
+    """Add a threaded comment to a KYC field."""
+    import uuid as _uuid
+
+    kyc = KYCSubmission.objects.get(id=kyc_id)
+    comments = kyc.field_comments or {}
+    field_threads = comments.get(field_name, [])
+
+    comment = {
+        "id": str(_uuid.uuid4()),
+        "author_id": str(author.id),
+        "author_name": author.get_full_name() or author.email,
+        "text": text,
+        "created_at": timezone.now().isoformat(),
+        "parent_id": parent_id,
+    }
+    field_threads.append(comment)
+    comments[field_name] = field_threads
+    kyc.field_comments = comments
+    kyc.save(update_fields=["field_comments", "updated_at"])
+    return comment
+
+
+def resolve_field_comments(*, kyc_id, field_name, resolved_by) -> None:
+    """Remove all comments for a field (mark as resolved)."""
+    kyc = KYCSubmission.objects.get(id=kyc_id)
+    comments = kyc.field_comments or {}
+    if field_name in comments:
+        del comments[field_name]
+        kyc.field_comments = comments
+        kyc.save(update_fields=["field_comments", "updated_at"])
+    logger.info("Field comments resolved: kyc=%s field=%s by=%s", kyc_id, field_name, resolved_by)
+
+
+# ===========================================================================
+# Economic Substance
+# ===========================================================================
+
+
+@transaction.atomic
+def create_es_submission(*, entity_id, fiscal_year) -> EconomicSubstanceSubmission:
+    """Create an Economic Substance submission."""
+    submission = EconomicSubstanceSubmission.objects.create(
+        entity_id=entity_id,
+        fiscal_year=fiscal_year,
+        status=ESStatus.PENDING,
+    )
+    logger.info("ES submission created: entity=%s fiscal_year=%d", entity_id, fiscal_year)
+    return submission
+
+
+@transaction.atomic
+def save_es_draft(
+    *, submission_id, flow_answers=None, current_step=None, shareholders_data=None
+) -> EconomicSubstanceSubmission:
+    """Auto-save ES draft."""
+    sub = EconomicSubstanceSubmission.objects.select_for_update().get(id=submission_id)
+    if sub.status not in {ESStatus.PENDING, ESStatus.IN_PROGRESS}:
+        raise ApplicationError(f"Cannot save draft for ES in '{sub.get_status_display()}' status.")
+
+    update_fields = ["updated_at"]
+    if flow_answers is not None:
+        sub.flow_answers = flow_answers
+        update_fields.append("flow_answers")
+    if current_step is not None:
+        sub.current_step = current_step
+        update_fields.append("current_step")
+    if shareholders_data is not None:
+        sub.shareholders_data = shareholders_data
+        update_fields.append("shareholders_data")
+
+    if sub.status == ESStatus.PENDING:
+        sub.status = ESStatus.IN_PROGRESS
+        update_fields.append("status")
+
+    sub.save(update_fields=list(set(update_fields)))
+    return sub
+
+
+def evaluate_es_flow_step(*, es_flow_config, step_key, answer, flow_answers) -> dict:
+    """Pure function: evaluate a single ES flow step and determine the next step.
+
+    Returns: {next_step, terminal, result, reason}
+    """
+    steps = es_flow_config.get("steps", {})
+    step_config = steps.get(step_key, {})
+    if not step_config:
+        return {"next_step": None, "terminal": True, "result": "error", "reason": f"Unknown step: {step_key}"}
+
+    # Check conditions for next step
+    conditions = step_config.get("conditions", [])
+    for condition in conditions:
+        condition_answer = condition.get("answer")
+        # Handle multi_select: answer is a list, check if it matches
+        if isinstance(answer, list) and isinstance(condition_answer, list):
+            if set(answer) == set(condition_answer) or (
+                condition_answer == ["none"] and answer == ["none"]
+            ):
+                return {
+                    "next_step": condition.get("next_step"),
+                    "terminal": condition.get("terminal", False),
+                    "result": condition.get("result", ""),
+                    "reason": condition.get("reason", ""),
+                }
+        elif answer == condition_answer:
+            return {
+                "next_step": condition.get("next_step"),
+                "terminal": condition.get("terminal", False),
+                "result": condition.get("result", ""),
+                "reason": condition.get("reason", ""),
+            }
+
+    # Default condition (fallback)
+    default = step_config.get("default", {})
+    if default:
+        return {
+            "next_step": default.get("next_step"),
+            "terminal": default.get("terminal", False),
+            "result": default.get("result", ""),
+            "reason": default.get("reason", ""),
+        }
+
+    return {"next_step": None, "terminal": False, "result": "", "reason": "No matching condition"}
+
+
+@transaction.atomic
+def advance_es_step(*, submission_id, step_key, answer) -> dict:
+    """Advance the ES flow by one step. Returns evaluation result."""
+    from .models import JurisdictionConfig
+
+    sub = EconomicSubstanceSubmission.objects.select_for_update().get(id=submission_id)
+    if sub.status not in {ESStatus.PENDING, ESStatus.IN_PROGRESS}:
+        raise ApplicationError(f"Cannot advance ES in '{sub.get_status_display()}' status.")
+
+    # Get flow config from jurisdiction
+    try:
+        jconfig = JurisdictionConfig.objects.select_related("jurisdiction").get(
+            jurisdiction__country_code__iexact=sub.entity.jurisdiction
+        )
+        es_flow_config = jconfig.es_flow_config
+    except JurisdictionConfig.DoesNotExist:
+        es_flow_config = {}
+
+    if not es_flow_config:
+        raise ApplicationError("No ES flow configuration found for this jurisdiction.")
+
+    # Store the answer
+    flow_answers = sub.flow_answers or {}
+    flow_answers[step_key] = answer
+    sub.flow_answers = flow_answers
+
+    # Evaluate the step
+    result = evaluate_es_flow_step(
+        es_flow_config=es_flow_config,
+        step_key=step_key,
+        answer=answer,
+        flow_answers=flow_answers,
+    )
+
+    # Update current step
+    if result.get("next_step"):
+        sub.current_step = result["next_step"]
+    elif result.get("terminal"):
+        sub.current_step = ""
+
+    # If terminal with attention result, store reason
+    if result.get("terminal") and result.get("result") == "attention":
+        sub.attention_reason = result.get("reason", "Requires manual review")
+
+    if sub.status == ESStatus.PENDING:
+        sub.status = ESStatus.IN_PROGRESS
+
+    sub.save(update_fields=["flow_answers", "current_step", "attention_reason", "status", "updated_at"])
+    return result
+
+
+@transaction.atomic
+def submit_es(*, submission_id) -> EconomicSubstanceSubmission:
+    """Submit ES for review."""
+    sub = EconomicSubstanceSubmission.objects.select_for_update().get(id=submission_id)
+    if sub.status not in {ESStatus.IN_PROGRESS}:
+        raise ApplicationError(f"Cannot submit ES in '{sub.get_status_display()}' status.")
+
+    sub.status = ESStatus.IN_REVIEW
+    sub.submitted_at = timezone.now()
+    sub.save(update_fields=["status", "submitted_at", "updated_at"])
+
+    # Send notification to compliance team
+    try:
+        from apps.authentication.models import User
+        from apps.notifications.services import send_notification
+
+        compliance_officers = User.objects.filter(role="compliance_officer")
+        for officer in compliance_officers:
+            send_notification(
+                recipient=officer,
+                template_key="es_submitted",
+                context={
+                    "entity_name": sub.entity.name,
+                    "fiscal_year": sub.fiscal_year,
+                },
+                action_url=f"/economic-substance/{sub.id}",
+            )
+    except Exception:
+        logger.warning("Failed to send ES submission notifications", exc_info=True)
+
+    logger.info("ES submitted: id=%s", submission_id)
+    return sub
+
+
+@transaction.atomic
+def approve_es(*, submission_id, reviewed_by) -> EconomicSubstanceSubmission:
+    """Approve an ES submission."""
+    sub = EconomicSubstanceSubmission.objects.select_for_update().get(id=submission_id)
+    if sub.status != ESStatus.IN_REVIEW:
+        raise ApplicationError(f"Cannot approve ES in '{sub.get_status_display()}' status.")
+
+    sub.status = ESStatus.COMPLETED
+    sub.reviewed_by = reviewed_by
+    sub.reviewed_at = timezone.now()
+    sub.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
+
+    # Dispatch PDF generation
+    try:
+        from .tasks import generate_es_pdf_task
+        generate_es_pdf_task.delay(str(sub.id))
+    except Exception:
+        logger.warning("Failed to dispatch ES PDF generation", exc_info=True)
+
+    logger.info("ES approved: id=%s by %s", submission_id, reviewed_by)
+    return sub
+
+
+@transaction.atomic
+def reject_es(*, submission_id, reviewed_by, field_comments=None) -> EconomicSubstanceSubmission:
+    """Reject an ES submission back to in_progress."""
+    sub = EconomicSubstanceSubmission.objects.select_for_update().get(id=submission_id)
+    if sub.status != ESStatus.IN_REVIEW:
+        raise ApplicationError(f"Cannot reject ES in '{sub.get_status_display()}' status.")
+
+    sub.status = ESStatus.IN_PROGRESS
+    sub.reviewed_by = reviewed_by
+    sub.reviewed_at = timezone.now()
+    if field_comments:
+        sub.field_comments = field_comments
+    sub.save(update_fields=["status", "reviewed_by", "reviewed_at", "field_comments", "updated_at"])
+
+    logger.info("ES rejected: id=%s by %s", submission_id, reviewed_by)
+    return sub
+
+
+@transaction.atomic
+def bulk_create_es_submissions(*, fiscal_year, created_by) -> list:
+    """Bulk create ES submissions for all entities requiring ES."""
+    from apps.core.models import Entity
+
+    from .models import JurisdictionConfig
+
+    # Find jurisdictions that require ES
+    es_jurisdictions = JurisdictionConfig.objects.filter(
+        es_required=True
+    ).values_list("jurisdiction__country_code", flat=True)
+
+    entities = Entity.objects.filter(
+        jurisdiction__in=es_jurisdictions,
+        status__in=["pending", "active"],
+    ).exclude(
+        es_submissions__fiscal_year=fiscal_year,
+    )
+
+    submissions = []
+    for entity in entities:
+        sub = EconomicSubstanceSubmission.objects.create(
+            entity=entity,
+            fiscal_year=fiscal_year,
+            status=ESStatus.PENDING,
+        )
+        submissions.append(sub)
+
+    logger.info("Bulk created %d ES submissions for FY%d by %s", len(submissions), fiscal_year, created_by)
+    return submissions
+
+
+# ===========================================================================
+# Help Request
+# ===========================================================================
+
+
+def request_help(*, user_or_email, entity_id=None, module, current_page, message=""):
+    """Send help request notification to compliance team."""
+    from apps.authentication.models import User
+
+    try:
+        from apps.notifications.services import send_notification
+
+        compliance_officers = User.objects.filter(role="compliance_officer")
+        entity_name = ""
+        if entity_id:
+            from apps.core.models import Entity
+            try:
+                entity_name = Entity.objects.get(id=entity_id).name
+            except Entity.DoesNotExist:
+                pass
+
+        requester_name = ""
+        if hasattr(user_or_email, "email"):
+            requester_name = user_or_email.get_full_name() or user_or_email.email
+        else:
+            requester_name = str(user_or_email)
+
+        for officer in compliance_officers:
+            send_notification(
+                recipient=officer,
+                template_key="help_request",
+                context={
+                    "requester": requester_name,
+                    "entity_name": entity_name,
+                    "module": module,
+                    "current_page": current_page,
+                    "message": message,
+                },
+            )
+        logger.info("Help request sent: module=%s page=%s", module, current_page)
+    except Exception:
+        logger.warning("Failed to send help request notification", exc_info=True)
+
+
+# ===========================================================================
+# Risk Matrix: Batch recalculation on config change
+# ===========================================================================
+
+
+def batch_recalculate_on_config_change(*, config_id):
+    """Find all entities using this config's scope and dispatch recalculation."""
+    from apps.core.models import Entity
+
+    config = RiskMatrixConfig.objects.get(id=config_id)
+
+    # Find entities in this config's scope
+    entities = Entity.objects.filter(status__in=["pending", "active"])
+    if config.jurisdiction:
+        entities = entities.filter(jurisdiction__iexact=config.jurisdiction)
+
+    for entity in entities.iterator():
+        request_risk_recalculation(entity_id=entity.id, trigger="auto", delay_seconds=2)
+
+    logger.info(
+        "Batch recalculation dispatched for config %s: %d entities",
+        config_id, entities.count(),
+    )
+
+
+# ===========================================================================
+# Accounting Records: PDF generation + email
+# ===========================================================================
+
+
+def generate_accounting_record_pdf(*, record_id) -> str:
+    """Generate PDF for an accounting record via Gotenberg."""
+    from django.core.files.base import ContentFile
+    from django.template.loader import render_to_string
+
+    record = AccountingRecord.objects.select_related("entity__client").get(id=record_id)
+
+    context = {
+        "record": record,
+        "entity": record.entity,
+        "form_data": record.form_data,
+        "fiscal_year": record.fiscal_year,
+    }
+
+    html_content = render_to_string("compliance/accounting_record_report.html", context)
+
+    from apps.documents.integrations.gotenberg import GotenbergClient
+    client = GotenbergClient()
+    pdf_bytes = client.convert_html_to_pdf(html_content)
+
+    filename = f"accounting_record_{record.entity_id}_FY{record.fiscal_year}.pdf"
+    record.generated_pdf.save(filename, ContentFile(pdf_bytes), save=True)
+
+    logger.info("Accounting record PDF generated: id=%s", record_id)
+    return filename
+
+
+def send_accounting_completion_email(*, record_id):
+    """Send completion email with PDF attachment for an accounting record."""
+    record = AccountingRecord.objects.select_related("entity").get(id=record_id)
+
+    try:
+        from apps.notifications.services import send_notification
+
+        # Notify the entity's primary contact
+        from apps.authentication.models import User
+        contacts = User.objects.filter(client=record.entity.client)
+        for contact in contacts:
+            send_notification(
+                recipient=contact,
+                template_key="accounting_record_completed",
+                context={
+                    "entity_name": record.entity.name,
+                    "fiscal_year": record.fiscal_year,
+                },
+                action_url=f"/registros-contables/{record.id}",
+            )
+    except Exception:
+        logger.warning("Failed to send accounting completion email", exc_info=True)
+
+
+# ===========================================================================
+# Ownership Tree (Shareholders Calculator)
+# ===========================================================================
+
+
+def calculate_ubo_tree(*, entity_id, jurisdiction_code=None) -> dict:
+    """Calculate the UBO tree with indirect ownership percentages.
+
+    Returns: {nodes, edges, reportable_ubos, warnings}
+    """
+    from decimal import Decimal
+
+    from apps.core.models import Entity, ShareClass, ShareIssuance
+
+    from .models import JurisdictionConfig
+
+    entity = Entity.objects.get(id=entity_id)
+
+    # Get UBO threshold
+    threshold = Decimal("25.00")
+    j_code = jurisdiction_code or entity.jurisdiction
+    try:
+        jconfig = JurisdictionConfig.objects.select_related("jurisdiction").get(
+            jurisdiction__country_code__iexact=j_code
+        )
+        threshold = jconfig.ubo_threshold_percent
+    except JurisdictionConfig.DoesNotExist:
+        pass
+
+    nodes = []
+    edges = []
+    warnings = []
+    visited = set()
+
+    def _build_tree(ent_id, depth=0, parent_pct=Decimal("100")):
+        if depth > 10 or ent_id in visited:
+            return
+        visited.add(ent_id)
+
+        try:
+            ent = Entity.objects.get(id=ent_id)
+        except Entity.DoesNotExist:
+            return
+
+        nodes.append({
+            "id": str(ent.id),
+            "type": "entity",
+            "name": ent.name,
+            "jurisdiction": ent.jurisdiction,
+            "exception_type": ent.ubo_exception_type,
+            "depth": depth,
+        })
+
+        # Get shareholders
+        share_classes = ShareClass.objects.filter(entity_id=ent_id)
+        total_shares = {}
+        for sc in share_classes:
+            total_shares[sc.id] = sc.authorized_shares or 0
+
+        issuances = ShareIssuance.objects.filter(
+            share_class__entity_id=ent_id
+        ).select_related("shareholder_person", "shareholder_entity", "share_class")
+
+        ownership_sum = Decimal("0")
+        for iss in issuances:
+            total = total_shares.get(iss.share_class_id, 0)
+            if total > 0:
+                pct = (Decimal(iss.num_shares) / Decimal(total)) * Decimal("100")
+            else:
+                pct = Decimal("0")
+
+            effective_pct = (parent_pct * pct / Decimal("100")).quantize(Decimal("0.01"))
+            ownership_sum += pct
+
+            if iss.shareholder_person_id:
+                person = iss.shareholder_person
+                node_id = f"person-{person.id}"
+                if not any(n["id"] == node_id for n in nodes):
+                    nodes.append({
+                        "id": node_id,
+                        "type": "person",
+                        "name": person.display_name,
+                        "person_id": str(person.id),
+                        "pep_status": person.pep_status,
+                        "nationality": getattr(person.nationality, "country_code", "") if person.nationality else "",
+                        "depth": depth + 1,
+                    })
+                edges.append({
+                    "source": str(ent.id),
+                    "target": node_id,
+                    "ownership_pct": str(pct),
+                    "effective_pct": str(effective_pct),
+                })
+            elif iss.shareholder_entity_id:
+                edges.append({
+                    "source": str(ent.id),
+                    "target": str(iss.shareholder_entity_id),
+                    "ownership_pct": str(pct),
+                    "effective_pct": str(effective_pct),
+                })
+                _build_tree(iss.shareholder_entity_id, depth + 1, effective_pct)
+
+        if ownership_sum > Decimal("100"):
+            warnings.append(f"Entity {ent.name}: ownership sum {ownership_sum}% exceeds 100%")
+
+    _build_tree(entity_id)
+
+    # Identify reportable UBOs
+    reportable_ubos = []
+    for node in nodes:
+        if node["type"] == "person":
+            # Sum effective ownership from all edges targeting this person
+            total_effective = Decimal("0")
+            for edge in edges:
+                if edge["target"] == node["id"]:
+                    total_effective += Decimal(edge["effective_pct"])
+            if total_effective >= threshold:
+                reportable_ubos.append({
+                    "id": node["id"],
+                    "name": node["name"],
+                    "effective_ownership": str(total_effective),
+                    "threshold": str(threshold),
+                })
+
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "reportable_ubos": reportable_ubos,
+        "warnings": warnings,
+        "threshold": str(threshold),
+    }
+
+
+@transaction.atomic
+def save_ownership_tree(*, entity_id, nodes, edges, saved_by) -> OwnershipSnapshot:
+    """Save an ownership tree snapshot for audit."""
+    tree = calculate_ubo_tree(entity_id=entity_id)
+    snapshot = OwnershipSnapshot.objects.create(
+        entity_id=entity_id,
+        nodes=nodes,
+        edges=edges,
+        reportable_ubos=tree["reportable_ubos"],
+        warnings=tree["warnings"],
+        saved_by=saved_by,
+    )
+    logger.info("Ownership snapshot saved: entity=%s snapshot=%s", entity_id, snapshot.id)
+    return snapshot
+
+
+def get_ownership_audit_log(*, entity_id) -> list:
+    """Get the audit trail of ownership snapshots."""
+    return list(
+        OwnershipSnapshot.objects.filter(entity_id=entity_id)
+        .select_related("saved_by")
+        .order_by("-created_at")
+        .values("id", "created_at", "saved_by__email", "reportable_ubos", "warnings")
+    )
+
+
+# ===========================================================================
+# Risk Matrix Config: duplicate & activate (P0-4)
+# ===========================================================================
+
+
+@transaction.atomic
+def duplicate_risk_matrix_config(*, config_id, performed_by) -> RiskMatrixConfig:
+    """Clone a RiskMatrixConfig with all its factors and trigger rules."""
+    config = RiskMatrixConfig.objects.get(id=config_id)
+    new_version = config.version + 1
+    new_config = RiskMatrixConfig.objects.create(
+        name=config.name,
+        jurisdiction=config.jurisdiction,
+        entity_type=config.entity_type,
+        version=new_version,
+        is_active=False,
+        high_risk_threshold=config.high_risk_threshold,
+        medium_risk_threshold=config.medium_risk_threshold,
+        created_by=performed_by,
+        notes=f"Duplicated from v{config.version}",
+    )
+    for factor in config.factors.all():
+        RiskFactor.objects.create(
+            matrix_config=new_config,
+            code=factor.code,
+            category=factor.category,
+            max_score=factor.max_score,
+            description=factor.description,
+            scoring_rules_json=factor.scoring_rules_json,
+        )
+    for rule in config.trigger_rules.all():
+        AutomaticTriggerRule.objects.create(
+            matrix_config=new_config,
+            condition=rule.condition,
+            forced_risk_level=rule.forced_risk_level,
+            is_active=rule.is_active,
+            description=rule.description,
+        )
+    return new_config
+
+
+@transaction.atomic
+def activate_risk_matrix_config(*, config_id) -> RiskMatrixConfig:
+    """Activate a RiskMatrixConfig and deactivate others in the same scope."""
+    config = RiskMatrixConfig.objects.get(id=config_id)
+    RiskMatrixConfig.objects.filter(
+        jurisdiction=config.jurisdiction,
+        entity_type=config.entity_type,
+        is_active=True,
+    ).exclude(id=config.id).update(is_active=False)
+    config.is_active = True
+    config.save(update_fields=["is_active", "updated_at"])
+    return config
+
+
+# ===========================================================================
+# KYC update (P0-5)
+# ===========================================================================
+
+
+@transaction.atomic
+def update_kyc_submission(*, submission_id, ticket_id=None, **kwargs) -> KYCSubmission:
+    """Update a KYC submission via the service layer."""
+    kyc = KYCSubmission.objects.select_for_update().get(id=submission_id)
+    update_fields = []
+    if ticket_id is not None:
+        kyc.ticket_id = ticket_id
+        update_fields.append("ticket_id")
+    for attr, value in kwargs.items():
+        if hasattr(kyc, attr):
+            setattr(kyc, attr, value)
+            update_fields.append(attr)
+    if update_fields:
+        update_fields.append("updated_at")
+        kyc.save(update_fields=update_fields)
+    return kyc

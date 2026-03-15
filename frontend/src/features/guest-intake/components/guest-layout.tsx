@@ -4,7 +4,7 @@ export function GuestLayout({ children }: { children: React.ReactNode }) {
       {/* Minimal header */}
       <header className="border-b border-surface-border bg-white">
         <div className="mx-auto flex h-16 max-w-4xl items-center px-4">
-          <span className="text-xl font-bold text-arifa-navy">ARIFA</span>
+          <span className="text-xl font-bold text-primary">ARIFA</span>
         </div>
       </header>
 
