@@ -7,7 +7,10 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from apps.core.views_health import health_check
+
 urlpatterns = [
+    path("api/health/", health_check),
     path("admin/", admin.site.urls),
     path("api/v1/", include("config.api_router")),
     path("api/v1/ai/", include("apps.ai_assistant.urls")),
