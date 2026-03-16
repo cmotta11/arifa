@@ -30,7 +30,10 @@ RUN pip install --no-cache-dir -r requirements/prod.txt
 
 COPY . .
 
-RUN python manage.py collectstatic --noinput || true
+RUN DJANGO_SETTINGS_MODULE=config.settings.prod \
+    DJANGO_SECRET_KEY=build-placeholder \
+    DATABASE_URL=sqlite:////tmp/placeholder \
+    python manage.py collectstatic --noinput
 RUN chmod +x entrypoint.prod.sh
 
 EXPOSE 8000
